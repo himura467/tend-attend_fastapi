@@ -1,0 +1,20 @@
+version: "3"
+services:
+  db:
+    image: mysql:8.0
+    platform: linux/x86_64  # Apple シリコンの Mac の場合必要
+    environment:
+      - MYSQL_ROOT_PASSWORD=root_password
+      - MYSQL_DATABASE=tend_attend_common
+      - MYSQL_USER=user
+      - MYSQL_PASSWORD=password
+    volumes:
+      - mysql_data_persist:/var/lib/mysql
+      - ./docker/my.cnf:/etc/mysql/conf.d/my.cnf
+      - ./docker/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
+    command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci --skip-character-set-client-handshake --lower_case_table_names=1 --local-infile=1
+    ports:
+      - "13306:3306"
+volumes:
+  mysql_data_persist:
+    driver: local
