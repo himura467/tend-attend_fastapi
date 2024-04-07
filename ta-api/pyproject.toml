@@ -1,0 +1,36 @@
+[tool.poetry]
+name = "ta-api"
+version = "0.1.0"
+description = ""
+authors = ["Your Name <you@example.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "3.11.4"
+fastapi = "^0.110.1"
+uvicorn = {extras = ["standard"], version = "^0.29.0"}
+gunicorn = "^21.2.0"
+
+
+[tool.poetry.group.dev.dependencies]
+mypy = "^1.9.0"
+flake8 = "^7.0.0"
+black = "^24.3.0"
+isort = "^5.13.2"
+poethepoet = "^0.25.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.isort]
+profile = "black"
+line_length = 88
+
+[tool.poe.tasks]
+mypy = "mypy --config-file ../mypy.ini ta_api tests"
+flake8 = "flake8 --config ../.flake8 ta_api tests"
+black = "black ta_api tests"
+isort = "isort ta_api tests"
+lint = ["mypy", "flake8"]
+format = ["black", "isort"]
