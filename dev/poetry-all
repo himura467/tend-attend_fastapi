@@ -7,6 +7,7 @@ command=$@
 
 projects=(
   "ta-api"
+  "ta-core"
 )
 
 for project in "${projects[@]}"; do
