@@ -608,6 +608,19 @@ anyio = ">=3.4.0,<5"
 full = ["httpx (>=0.22.0)", "itsdangerous", "jinja2", "python-multipart (>=0.0.7)", "pyyaml"]
 
 [[package]]
+name = "ta-core"
+version = "0.1.0"
+description = ""
+optional = false
+python-versions = "^3.11"
+files = []
+develop = false
+
+[package.source]
+type = "directory"
+url = "../ta-core"
+
+[[package]]
 name = "tomli"
 version = "2.0.1"
 description = "A lil' TOML parser"
@@ -869,4 +882,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "3.11.4"
-content-hash = "dca43663e8324066cb4530f37bfa3a655c8133e95a2e4598922d6cb0e8b7205b"
+content-hash = "f768ac5d01b0089ac852112277fcb4d9ee4845bac1a3d2e29f4c0397e8f4054a"
