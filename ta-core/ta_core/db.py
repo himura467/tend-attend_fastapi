@@ -48,3 +48,21 @@ async def get_sequence_db() -> AsyncGenerator[AsyncSession, None]:
 async def get_shard_db(shard_id: int) -> AsyncGenerator[AsyncSession, None]:
     async with shard_sessions[shard_id]() as session:
         yield session
+
+
+async def reset_common_db() -> None:
+    async with common_engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)
+        await conn.run_sync(Base.metadata.create_all)
+
+
+async def reset_sequence_db() -> None:
+    async with sequence_engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)
+        await conn.run_sync(Base.metadata.create_all)
+
+
+async def reset_shard_db(shard_id: int) -> None:
+    async with shard_engines[shard_id].begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)
+        await conn.run_sync(Base.metadata.create_all)
