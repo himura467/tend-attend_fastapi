@@ -54,15 +54,18 @@ async def reset_common_db() -> None:
     async with common_engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
         await conn.run_sync(Base.metadata.create_all)
+    await common_engine.dispose()
 
 
 async def reset_sequence_db() -> None:
     async with sequence_engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
         await conn.run_sync(Base.metadata.create_all)
+    await sequence_engine.dispose()
 
 
 async def reset_shard_db(shard_id: int) -> None:
     async with shard_engines[shard_id].begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
         await conn.run_sync(Base.metadata.create_all)
+    await shard_engines[shard_id].dispose()

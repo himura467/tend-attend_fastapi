@@ -8,6 +8,7 @@ readme = "README.md"
 [tool.poetry.dependencies]
 python = "3.11.4"
 typer = {extras = ["all"], version = "^0.12.3"}
+greenlet = "^3.0.3"
 ta-core = {path = "../ta-core", develop = true}
 
 
