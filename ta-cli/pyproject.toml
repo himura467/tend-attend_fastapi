@@ -27,6 +27,7 @@ profile = "black"
 line_length = 88
 
 [tool.poe.tasks]
+db-migration-migrate = "python main.py db-migration migrate"
 mypy = "mypy --config-file ../mypy.ini ta_cli tests"
 flake8 = "flake8 --config ../.flake8 ta_cli tests"
 black = "black ta_cli tests"
