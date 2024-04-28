@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 from sqlalchemy.ext.horizontal_shard import ShardedSession
 from sqlalchemy.orm import DeclarativeBase
 
-from ta_core.sqlalchemy.settings import CONNECTIONS
+from ta_core.db.settings import CONNECTIONS
 
 async_engines = {
     connection_key: create_async_engine(connection_string, echo=True)
