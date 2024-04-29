@@ -1,14 +1,9 @@
 from fastapi import APIRouter
-from pydantic import BaseModel, Field
+from ta_core.dtos.auth import CreateAccountRequest, CreateAccountResponse
 
 router = APIRouter()
 
 
-class CreateAccountRequest(BaseModel):
-    login_id: str = Field(..., title="Login ID")
-    login_password: str = Field(..., title="Login Password")
-
-
-@router.post("/account", name="Create Account", response_model=None)
-async def create_account(request: CreateAccountRequest) -> None:
+@router.post("/account", name="Create Account", response_model=CreateAccountResponse)
+async def create_account(request: CreateAccountRequest) -> CreateAccountResponse:
     pass
