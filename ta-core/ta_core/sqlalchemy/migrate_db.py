@@ -59,7 +59,7 @@ async_session.configure(
 )
 
 
-async def reset_db() -> None:
+async def reset_db_async() -> None:
     for engine_key, engine_value in async_engines.items():
         async with engine_value.begin() as conn:
             await conn.run_sync(Base.metadata.drop_all)
