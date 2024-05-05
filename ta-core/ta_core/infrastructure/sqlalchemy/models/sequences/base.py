@@ -1,11 +1,11 @@
 from typing import Any
 
-from sqlalchemy import Column
 from sqlalchemy.dialects.mysql import BIGINT
 from sqlalchemy.ext.declarative import declared_attr
+from sqlalchemy.orm import Mapped, mapped_column
 
-from ta_core.db.settings import DB_SEQUENCE_CONNECTION_KEY
-from ta_core.sqlalchemy.mapped_classes.base import AbstractBase
+from ta_core.infrastructure.db.settings import DB_SEQUENCE_CONNECTION_KEY
+from ta_core.infrastructure.sqlalchemy.models.base import AbstractBase
 
 
 class AbstractSequenceBase(AbstractBase):
@@ -22,4 +22,4 @@ class AbstractSequenceBase(AbstractBase):
 class AbstractSequenceId(AbstractSequenceBase):
     __abstract__ = True
 
-    id = Column(BIGINT(unsigned=True), primary_key=True)
+    id: Mapped[int] = mapped_column(BIGINT(unsigned=True), primary_key=True)

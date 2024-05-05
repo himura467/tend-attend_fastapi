@@ -1,7 +1,7 @@
 import asyncio
 
 import typer
-from ta_core.sqlalchemy.migrate_db import reset_db_async
+from ta_core.infrastructure.sqlalchemy.migrate_db import reset_db_async
 
 app = typer.Typer()
 

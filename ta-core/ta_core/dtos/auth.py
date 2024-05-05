@@ -1,5 +1,6 @@
-from pydantic.fields import Field
 from pydantic import BaseModel
+from pydantic.fields import Field
+
 from ta_core.dtos.base import BaseModelWithErrorCodes
 
 
