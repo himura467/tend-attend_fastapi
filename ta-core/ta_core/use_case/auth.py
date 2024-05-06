@@ -1,6 +1,6 @@
-import logging
 from dataclasses import dataclass
 from datetime import timedelta
+from logging import ERROR, getLogger
 
 from passlib.context import CryptContext
 
@@ -11,7 +11,7 @@ from ta_core.infrastructure.sqlalchemy.repositories.auth import AuthRepository
 from ta_core.use_case.unit_of_work_base import IUnitOfWork
 
 # https://github.com/pyca/bcrypt/issues/684 への対応
-logging.getLogger("passlib").setLevel(logging.ERROR)
+getLogger("passlib").setLevel(ERROR)
 
 
 @dataclass(frozen=True)
