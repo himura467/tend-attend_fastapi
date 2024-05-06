@@ -1,11 +1,10 @@
 from typing import Any
 
 from sqlalchemy.ext.declarative import declared_attr
+from sqlalchemy.orm import DeclarativeBase
 
-from ta_core.sqlalchemy.db import Base
 
-
-class AbstractBase(Base):
+class AbstractBase(DeclarativeBase):
     __abstract__ = True
 
     @declared_attr

@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from typing import Any, Iterable, Optional, Tuple, TypeVar, Union
 
 from sqlalchemy.orm.mapper import Mapper
@@ -5,19 +6,16 @@ from sqlalchemy.orm.session import ORMExecuteState
 from sqlalchemy.orm.state import InstanceState
 from sqlalchemy.sql.elements import ClauseElement
 
-from ta_core.db.settings import (
+from ta_core.infrastructure.db.settings import (
     CONNECTIONS,
     DB_COMMON_CONNECTION_KEY,
     DB_SEQUENCE_CONNECTION_KEY,
     DB_SHARD_CONNECTION_KEYS,
+    DB_SHARD_COUNT,
 )
-from ta_core.db.sharding import db_shard_resolver
-from ta_core.sqlalchemy.db import Base, async_engines, async_session
-from ta_core.sqlalchemy.mapped_classes.commons.common_base import AbstractCommonBase
-from ta_core.sqlalchemy.mapped_classes.sequences.sequence_base import (
-    AbstractSequenceBase,
-)
-from ta_core.sqlalchemy.mapped_classes.shards.shard_base import AbstractShardBase
+from ta_core.infrastructure.sqlalchemy.models.commons.base import AbstractCommonBase
+from ta_core.infrastructure.sqlalchemy.models.sequences.base import AbstractSequenceBase
+from ta_core.infrastructure.sqlalchemy.models.shards.base import AbstractShardBase
 
 _T = TypeVar("_T", bound=Any)
 
@@ -52,18 +50,12 @@ def execute_chooser(context: ORMExecuteState) -> Iterable[Any]:
     return CONNECTIONS.keys()
 
 
-async_session.configure(
-    shard_chooser=shard_chooser,
-    identity_chooser=identity_chooser,
-    execute_chooser=execute_chooser,
-)
+@dataclass(frozen=True)
+class DbShardResolver:
+    shard_count: int
+
+    def resolve_shard_id(self, user_id: int) -> int:
+        return user_id % self.shard_count
 
 
-async def reset_db() -> None:
-    for engine_key, engine_value in async_engines.items():
-        async with engine_value.begin() as conn:
-            await conn.run_sync(Base.metadata.drop_all)
-            for table in Base.metadata.tables.values():
-                shard_ids = table.info.get("shard_ids")
-                if shard_ids is not None and engine_key in shard_ids:
-                    await conn.run_sync(table.create)
+db_shard_resolver = DbShardResolver(shard_count=DB_SHARD_COUNT)
