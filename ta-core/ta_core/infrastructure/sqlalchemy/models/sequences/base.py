@@ -22,4 +22,6 @@ class AbstractSequenceBase(AbstractBase):
 class AbstractSequenceId(AbstractSequenceBase):
     __abstract__ = True
 
-    id: Mapped[int] = mapped_column(BIGINT(unsigned=True), primary_key=True)
+    id: Mapped[int] = mapped_column(
+        BIGINT(unsigned=True), primary_key=True, autoincrement=False
+    )

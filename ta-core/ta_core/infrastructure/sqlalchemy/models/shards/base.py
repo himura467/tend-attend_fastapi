@@ -27,7 +27,9 @@ class AbstractShardBase(AbstractBase):
 class AbstractShardDynamicBase(AbstractShardBase):
     __abstract__ = True
 
-    id: Mapped[int] = mapped_column(BIGINT(unsigned=True), primary_key=True)
+    id: Mapped[int] = mapped_column(
+        BIGINT(unsigned=True), primary_key=True, autoincrement=False
+    )
     created_at: Mapped[datetime] = mapped_column(
         DATETIME(timezone=True), server_default=func.now()
     )
