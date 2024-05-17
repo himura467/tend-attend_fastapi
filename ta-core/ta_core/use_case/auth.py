@@ -6,6 +6,7 @@ from passlib.context import CryptContext
 
 from ta_core.dtos.auth import CreateAccountResponse
 from ta_core.error.error_code import ErrorCode
+from ta_core.ids.uuid import generate_uuid
 from ta_core.infrastructure.db.transaction import rollbackable
 from ta_core.infrastructure.sqlalchemy.repositories.auth import AuthRepository
 from ta_core.use_case.unit_of_work_base import IUnitOfWork
@@ -39,7 +40,7 @@ class AuthUseCase:
         self, login_id: str, login_password: str
     ) -> CreateAccountResponse:
         account = await self.auth_repository.create_account_async(
-            entity_id=0,  # TODO: generate entity_id
+            entity_id=generate_uuid(),
             login_id=login_id,
             login_password_hashed=self._get_hashed_password(login_password),
         )

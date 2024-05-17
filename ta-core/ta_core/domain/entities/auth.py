@@ -4,7 +4,7 @@ from ta_core.domain.entities.base import IEntity
 class Account(IEntity):
     def __init__(
         self,
-        entity_id: int,
+        entity_id: str,
         login_id: str,
         login_password: str,
         refresh_token: str | None,
@@ -18,7 +18,7 @@ class Account(IEntity):
 
     @staticmethod
     def default(
-        entity_id: int,
+        entity_id: str,
         login_id: str,
         login_password: str,
     ) -> "Account":

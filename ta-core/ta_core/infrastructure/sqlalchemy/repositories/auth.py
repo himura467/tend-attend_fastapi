@@ -4,7 +4,7 @@ from ta_core.infrastructure.sqlalchemy.repositories.base import AbstractReposito
 
 class AuthRepository(AbstractRepository):
     async def create_account_async(
-        self, entity_id: int, login_id: str, login_password_hashed: str
+        self, entity_id: str, login_id: str, login_password_hashed: str
     ) -> Account | None:
         account = Account.default(
             entity_id=entity_id,

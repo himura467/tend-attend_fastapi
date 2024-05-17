@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Any
 
 from sqlalchemy import text
-from sqlalchemy.dialects.mysql import BIGINT, DATETIME
+from sqlalchemy.dialects.mysql import BIGINT, DATETIME, VARCHAR
 from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.sql import func
@@ -27,7 +27,7 @@ class AbstractShardBase(AbstractBase):
 class AbstractShardDynamicBase(AbstractShardBase):
     __abstract__ = True
 
-    id: Mapped[int] = mapped_column(BIGINT(unsigned=True), primary_key=True)
+    id: Mapped[str] = mapped_column(VARCHAR(36), primary_key=True, autoincrement=False)
     created_at: Mapped[datetime] = mapped_column(
         DATETIME(timezone=True), server_default=func.now()
     )
