@@ -1,6 +1,6 @@
 from typing import Any
 
-from sqlalchemy.dialects.mysql import BIGINT
+from sqlalchemy.dialects.mysql import VARCHAR
 from sqlalchemy.ext.declarative import declared_attr
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -22,6 +22,4 @@ class AbstractSequenceBase(AbstractBase):
 class AbstractSequenceId(AbstractSequenceBase):
     __abstract__ = True
 
-    id: Mapped[int] = mapped_column(
-        BIGINT(unsigned=True), primary_key=True, autoincrement=False
-    )
+    id: Mapped[str] = mapped_column(VARCHAR(36), primary_key=True, autoincrement=False)
