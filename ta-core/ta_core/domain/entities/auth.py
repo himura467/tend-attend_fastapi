@@ -29,3 +29,12 @@ class Account(IEntity):
             refresh_token=None,
             user_id=None,
         )
+
+    def set_refresh_token(self, refresh_token: str) -> "Account":
+        return Account(
+            entity_id=self.id,
+            login_id=self.login_id,
+            login_password=self.login_password,
+            refresh_token=refresh_token,
+            user_id=self.user_id,
+        )

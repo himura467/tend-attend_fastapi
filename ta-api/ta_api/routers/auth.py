@@ -1,6 +1,7 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
-from ta_core.dtos.auth import CreateAccountRequest, CreateAccountResponse
+from ta_core.dtos.auth import AuthToken, CreateAccountRequest, CreateAccountResponse
 from ta_core.infrastructure.sqlalchemy.db import get_db_async
 from ta_core.infrastructure.sqlalchemy.models.commons.auth import Account
 from ta_core.infrastructure.sqlalchemy.repositories.auth import AuthRepository
@@ -30,3 +31,33 @@ async def create_account(
     return await use_case.create_account_async(
         login_id=login_id, login_password=login_password
     )
+
+
+@router.post("/token", name="Create Auth Token", response_model=AuthToken)
+async def login_for_access_token(
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    session: AsyncSession = Depends(get_db_async),
+) -> AuthToken:
+    login_id = form_data.username
+    login_password = form_data.password
+
+    auth_repository = AuthRepository(
+        session=session,
+        model=Account,
+    )
+    unit_of_work = SqlalchemyUnitOfWork(session=session)
+    use_case = AuthUseCase(
+        auth_repository=auth_repository,
+        unit_of_work=unit_of_work,
+    )
+
+    response = await use_case.authenticate_async(
+        login_id=login_id, login_password=login_password
+    )
+    if response.auth_token is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    return response.auth_token

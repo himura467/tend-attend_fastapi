@@ -11,3 +11,13 @@ class CreateAccountRequest(BaseModel):
 
 class CreateAccountResponse(BaseModelWithErrorCodes):
     pass
+
+
+class AuthToken(BaseModel):
+    access_token: str = Field(..., title="Access Token")
+    refresh_token: str = Field(..., title="Refresh Token")
+    token_type: str = Field(..., title="Token Type")
+
+
+class AuthenticateResponse(BaseModelWithErrorCodes):
+    auth_token: AuthToken | None = Field(None, title="Auth Token")

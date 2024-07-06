@@ -1,4 +1,4 @@
-from typing import Protocol, TypeVar
+from typing import Any, Protocol, TypeVar
 
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
@@ -48,6 +48,16 @@ class AbstractRepository(IRepository):
         stmt = select(self._model).where(self._model.id.in_(record_ids))
         result = await self._session.execute(stmt)
         return tuple(record.to_entity() for record in result.all())
+
+    async def read_one_async(self, *args: Any) -> TEntity:
+        stmt = select(self._model).where(*args)
+        result = await self._session.execute(stmt)
+        return result.scalar_one().to_entity()
+
+    async def read_one_or_none_async(self, *args: Any) -> TEntity | None:
+        stmt = select(self._model).where(*args)
+        record = (await self._session.execute(stmt)).scalar_one_or_none()
+        return record.to_entity() if record is not None else None
 
     async def read_all_async(self) -> tuple[TEntity, ...]:
         stmt = select(self._model)

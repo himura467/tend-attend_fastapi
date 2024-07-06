@@ -10,6 +10,7 @@ python = "3.11.4"
 fastapi = "^0.110.1"
 uvicorn = {extras = ["standard"], version = "^0.29.0"}
 gunicorn = "^21.2.0"
+python-multipart = "^0.0.9"
 ta-core = {path = "../ta-core", develop = true}
 
 
