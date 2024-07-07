@@ -1,4 +1,4 @@
-from typing import Protocol, TypeVar
+from typing import Any, Protocol, TypeVar
 
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
@@ -49,6 +49,16 @@ class AbstractRepository(IRepository):
         result = await self._session.execute(stmt)
         return tuple(record.to_entity() for record in result.all())
 
+    async def read_one_async(self, *args: Any) -> TEntity:
+        stmt = select(self._model).where(*args)
+        result = await self._session.execute(stmt)
+        return result.scalar_one().to_entity()
+
+    async def read_one_or_none_async(self, *args: Any) -> TEntity | None:
+        stmt = select(self._model).where(*args)
+        record = (await self._session.execute(stmt)).scalar_one_or_none()
+        return record.to_entity() if record is not None else None
+
     async def read_all_async(self) -> tuple[TEntity, ...]:
         stmt = select(self._model)
         result = await self._session.execute(stmt)
@@ -63,6 +73,9 @@ class AbstractRepository(IRepository):
         update_dict = {
             key: value for key, value in model.__dict__.items() if key != "id"
         }
+        # Remove SQLAlchemy internal state
+        if "_sa_instance_state" in update_dict:
+            del update_dict["_sa_instance_state"]
         for key, value in update_dict.items():
             setattr(record, key, value)
         self._session.add(record)
