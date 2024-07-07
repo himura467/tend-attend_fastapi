@@ -9,7 +9,7 @@ class AuthRepository(AbstractRepository):
         account = Account.default(
             entity_id=entity_id,
             login_id=login_id,
-            login_password=login_password_hashed,
+            login_password_hashed=login_password_hashed,
         )
         return await self.create_async(account)
 

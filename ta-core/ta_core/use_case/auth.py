@@ -100,7 +100,7 @@ class AuthUseCase:
             return AuthenticateResponse(
                 error_codes=(ErrorCode.LOGIN_ID_NOT_EXIST,), auth_token=None
             )
-        if not self._verify_password(login_password, account.login_password):
+        if not self._verify_password(login_password, account.login_password_hashed):
             return AuthenticateResponse(
                 error_codes=(ErrorCode.LOGIN_PASSWORD_INCORRECT,), auth_token=None
             )
