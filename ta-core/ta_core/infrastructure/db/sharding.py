@@ -43,11 +43,17 @@ def identity_chooser(
     if lazy_loaded_from:
         return [lazy_loaded_from.identity_token]
     else:
-        return CONNECTIONS.keys()
+        return list(CONNECTIONS.keys())
 
 
 def execute_chooser(context: ORMExecuteState) -> Iterable[Any]:
-    return CONNECTIONS.keys()
+    shard_ids = context.bind_arguments["mapper"].persist_selectable.info.get(
+        "shard_ids"
+    )
+    if len(shard_ids) == 0:
+        return list(CONNECTIONS.keys())
+    else:
+        return list(shard_ids)
 
 
 @dataclass(frozen=True)
