@@ -73,6 +73,9 @@ class AbstractRepository(IRepository):
         update_dict = {
             key: value for key, value in model.__dict__.items() if key != "id"
         }
+        # Remove SQLAlchemy internal state
+        if "_sa_instance_state" in update_dict:
+            del update_dict["_sa_instance_state"]
         for key, value in update_dict.items():
             setattr(record, key, value)
         self._session.add(record)
