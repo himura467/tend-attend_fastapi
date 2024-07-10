@@ -12,7 +12,7 @@ TEntity = TypeVar("TEntity", bound=IEntity)
 
 
 class ModelProtocol(Protocol):
-    id: Mapped[int]
+    id: Mapped[str]
 
     def to_entity(self) -> TEntity: ...  # type: ignore
 
@@ -34,17 +34,17 @@ class AbstractRepository(IRepository):
             await self._session.rollback()
             return None
 
-    async def read_by_id_async(self, record_id: int) -> TEntity:
+    async def read_by_id_async(self, record_id: str) -> TEntity:
         stmt = select(self._model).where(self._model.id == record_id)
         result = await self._session.execute(stmt)
         return result.scalar_one().to_entity()
 
-    async def read_by_id_or_none_async(self, record_id: int) -> TEntity | None:
+    async def read_by_id_or_none_async(self, record_id: str) -> TEntity | None:
         stmt = select(self._model).where(self._model.id == record_id)
         record = (await self._session.execute(stmt)).scalar_one_or_none()
         return record.to_entity() if record is not None else None
 
-    async def read_by_ids_async(self, record_ids: set[int]) -> tuple[TEntity, ...]:
+    async def read_by_ids_async(self, record_ids: set[str]) -> tuple[TEntity, ...]:
         stmt = select(self._model).where(self._model.id.in_(record_ids))
         result = await self._session.execute(stmt)
         return tuple(record.to_entity() for record in result.all())
@@ -81,7 +81,7 @@ class AbstractRepository(IRepository):
         self._session.add(record)
         return entity
 
-    async def delete_by_id_async(self, record_id: int) -> bool:
+    async def delete_by_id_async(self, record_id: str) -> bool:
         stmt = select(self._model).where(self._model.id == record_id)
         record = (await self._session.execute(stmt)).scalar_one_or_none()
         if record is None:

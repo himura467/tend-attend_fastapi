@@ -31,7 +31,7 @@ async def get_current_account(
     )
 
     try:
-        account = await use_case.get_account_by_token(token)
+        account = await use_case.get_account_by_token(token, "access")
         if account is None:
             raise credentials_exception
     except Exception:

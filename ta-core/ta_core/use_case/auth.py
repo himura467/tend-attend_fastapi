@@ -6,11 +6,13 @@ from typing import Literal
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 
+from ta_core.domain.entities.auth import Account
+from ta_core.dtos.auth import Account as AccountDto
 from ta_core.dtos.auth import (
-    Account,
     AuthenticateResponse,
     AuthToken,
     CreateAccountResponse,
+    RefreshAuthTokenResponse,
 )
 from ta_core.error.error_code import ErrorCode
 from ta_core.ids.uuid import generate_uuid
@@ -20,6 +22,8 @@ from ta_core.use_case.unit_of_work_base import IUnitOfWork
 
 # https://github.com/pyca/bcrypt/issues/684 への対応
 getLogger("passlib").setLevel(ERROR)
+
+TokenType = Literal["access", "refresh"]
 
 
 @dataclass(frozen=True)
@@ -45,7 +49,7 @@ class AuthUseCase:
     def _create_token(
         self,
         subject: str,
-        token_type: Literal["access", "refresh"],
+        token_type: TokenType,
         expires_delta: timedelta,
     ) -> str:
         registered_claims = {
@@ -79,9 +83,13 @@ class AuthUseCase:
             access_token=access_token, refresh_token=refresh_token, token_type="bearer"
         )
 
-    async def get_account_by_token(self, token: str) -> Account | None:
+    async def get_account_by_token(
+        self, token: str, token_type: TokenType
+    ) -> AccountDto | None:
         try:
             payload = jwt.decode(token, self._SECRET_KEY, algorithms=[self._ALGORITHM])
+            if payload.get("type") != token_type:
+                return None
             login_id: str = payload.get("sub")
             if login_id is None:
                 return None
@@ -93,7 +101,7 @@ class AuthUseCase:
         if account is None:
             return None
         user_id = account.user_id if account.user_id is not None else 0
-        return Account(
+        return AccountDto(
             account_id=account.id,
             user_id=user_id,
             disabled=account.user_id is None,
@@ -138,3 +146,26 @@ class AuthUseCase:
             raise ValueError("Failed to update account")
 
         return AuthenticateResponse(error_codes=(), auth_token=token)
+
+    @rollbackable
+    async def refresh_auth_token_async(
+        self, refresh_token: str
+    ) -> RefreshAuthTokenResponse:
+        account_dto = await self.get_account_by_token(refresh_token, "refresh")
+        if account_dto is None:
+            return RefreshAuthTokenResponse(
+                error_codes=(ErrorCode.INVALID_REFRESH_TOKEN,), auth_token=None
+            )
+
+        account: Account = await self.auth_repository.read_by_id_async(
+            account_dto.account_id
+        )
+
+        token = self.create_auth_token(account.login_id)
+
+        account = account.set_refresh_token(token.refresh_token)
+
+        if await self.auth_repository.update_account_async(account) is None:
+            raise ValueError("Failed to update account")
+
+        return RefreshAuthTokenResponse(error_codes=(), auth_token=token)
