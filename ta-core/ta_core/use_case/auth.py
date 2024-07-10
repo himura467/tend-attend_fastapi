@@ -3,10 +3,15 @@ from datetime import datetime, timedelta
 from logging import ERROR, getLogger
 from typing import Literal
 
-from jose import jwt
+from jose import JWTError, jwt
 from passlib.context import CryptContext
 
-from ta_core.dtos.auth import AuthenticateResponse, AuthToken, CreateAccountResponse
+from ta_core.dtos.auth import (
+    Account,
+    AuthenticateResponse,
+    AuthToken,
+    CreateAccountResponse,
+)
 from ta_core.error.error_code import ErrorCode
 from ta_core.ids.uuid import generate_uuid
 from ta_core.infrastructure.db.transaction import rollbackable
@@ -72,6 +77,26 @@ class AuthUseCase:
         )
         return AuthToken(
             access_token=access_token, refresh_token=refresh_token, token_type="bearer"
+        )
+
+    async def get_account_by_token(self, token: str) -> Account | None:
+        try:
+            payload = jwt.decode(token, self._SECRET_KEY, algorithms=[self._ALGORITHM])
+            login_id: str = payload.get("sub")
+            if login_id is None:
+                return None
+        except JWTError:
+            return None
+        account = await self.auth_repository.read_account_by_login_id_or_none_async(
+            login_id
+        )
+        if account is None:
+            return None
+        user_id = account.user_id if account.user_id is not None else 0
+        return Account(
+            account_id=account.id,
+            user_id=user_id,
+            disabled=account.user_id is None,
         )
 
     @rollbackable
