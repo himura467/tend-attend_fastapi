@@ -34,7 +34,7 @@ async def create_account(
 
 
 @router.post("/token", name="Create Auth Token", response_model=AuthToken)
-async def login_for_access_token(
+async def login_for_auth_token(
     form_data: OAuth2PasswordRequestForm = Depends(),
     session: AsyncSession = Depends(get_db_async),
 ) -> AuthToken:
