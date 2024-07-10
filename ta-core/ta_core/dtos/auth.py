@@ -23,6 +23,14 @@ class AuthenticateResponse(BaseModelWithErrorCodes):
     auth_token: AuthToken | None = Field(None, title="Auth Token")
 
 
+class RefreshAuthTokenRequest(BaseModel):
+    refresh_token: str = Field(..., title="Refresh Token")
+
+
+class RefreshAuthTokenResponse(BaseModelWithErrorCodes):
+    auth_token: AuthToken | None = Field(None, title="Auth Token")
+
+
 class Account(BaseModel):
     account_id: str = Field(..., title="Account ID")
     user_id: int = Field(..., title="User ID")

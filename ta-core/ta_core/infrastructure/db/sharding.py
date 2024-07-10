@@ -48,8 +48,8 @@ def identity_chooser(
 
 def execute_chooser(context: ORMExecuteState) -> Iterable[Any]:
     shard_ids = set()
-    for table in context.bind_mapper.tables:
-        ids = table.info.get("shard_ids")
+    for table in context.bind_mapper.tables:  # type: ignore
+        ids = table.info.get("shard_ids")  # type: ignore
         if ids is not None:
             shard_ids.update(ids)
     if len(shard_ids) == 0:

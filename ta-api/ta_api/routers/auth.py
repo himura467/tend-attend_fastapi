@@ -1,7 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
-from ta_core.dtos.auth import AuthToken, CreateAccountRequest, CreateAccountResponse
+from ta_core.dtos.auth import (
+    AuthToken,
+    CreateAccountRequest,
+    CreateAccountResponse,
+    RefreshAuthTokenRequest,
+)
 from ta_core.infrastructure.sqlalchemy.db import get_db_async
 from ta_core.infrastructure.sqlalchemy.models.commons.auth import Account
 from ta_core.infrastructure.sqlalchemy.repositories.auth import AuthRepository
@@ -58,6 +63,33 @@ async def login_for_auth_token(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    return response.auth_token
+
+
+@router.post("/refresh", name="Refresh Auth Token", response_model=AuthToken)
+async def refresh_auth_token(
+    request: RefreshAuthTokenRequest,
+    session: AsyncSession = Depends(get_db_async),
+) -> AuthToken:
+    refresh_token = request.refresh_token
+
+    auth_repository = AuthRepository(
+        session=session,
+        model=Account,
+    )
+    unit_of_work = SqlalchemyUnitOfWork(session=session)
+    use_case = AuthUseCase(
+        auth_repository=auth_repository,
+        unit_of_work=unit_of_work,
+    )
+
+    response = await use_case.refresh_auth_token_async(refresh_token=refresh_token)
+    if response.auth_token is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect refresh token",
             headers={"WWW-Authenticate": "Bearer"},
         )
     return response.auth_token
