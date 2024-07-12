@@ -1,6 +1,7 @@
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
+from ta_core.cryptography.jwt import TokenType
 from ta_core.dtos.auth import Account as AccountDto
 from ta_core.infrastructure.sqlalchemy.db import get_db_async
 from ta_core.infrastructure.sqlalchemy.models.commons.auth import Account
@@ -31,7 +32,7 @@ async def get_current_account(
     )
 
     try:
-        account = await use_case.get_account_by_token(token, "access")
+        account = await use_case.get_account_by_token(token, TokenType.ACCESS)
         if account is None:
             raise credentials_exception
     except Exception:

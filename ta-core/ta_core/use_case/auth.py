@@ -1,16 +1,14 @@
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import timedelta
 from logging import ERROR, getLogger
-from typing import Literal
 
-from jose import JWTError, jwt
 from passlib.context import CryptContext
 
+from ta_core.cryptography.jwt import JWTCryptography, TokenType
 from ta_core.domain.entities.auth import Account
 from ta_core.dtos.auth import Account as AccountDto
 from ta_core.dtos.auth import (
     AuthenticateResponse,
-    AuthToken,
     CreateAccountResponse,
     RefreshAuthTokenResponse,
 )
@@ -22,8 +20,6 @@ from ta_core.use_case.unit_of_work_base import IUnitOfWork
 
 # https://github.com/pyca/bcrypt/issues/684 への対応
 getLogger("passlib").setLevel(ERROR)
-
-TokenType = Literal["access", "refresh"]
 
 
 @dataclass(frozen=True)
@@ -40,60 +36,25 @@ class AuthUseCase:
 
     _password_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
+    _jwt_cryptography = JWTCryptography(
+        password_context=_password_context,
+        secret_key=_SECRET_KEY,
+        algorithm=_ALGORITHM,
+        access_token_expires=_ACCESS_TOKEN_EXPIRES,
+        refresh_token_expires=_REFRESH_TOKEN_EXPIRES,
+    )
+
     def _get_hashed_password(self, plain_password: str) -> str:
         return self._password_context.hash(plain_password)
 
     def _verify_password(self, plain_password: str, hashed_password: str) -> bool:
         return self._password_context.verify(plain_password, hashed_password)
 
-    def _create_token(
-        self,
-        subject: str,
-        token_type: TokenType,
-        expires_delta: timedelta,
-    ) -> str:
-        registered_claims = {
-            "sub": subject,
-            "iat": datetime.utcnow(),
-            "nbf": datetime.utcnow(),
-            "jti": generate_uuid(),
-            "exp": datetime.utcnow() + expires_delta,
-        }
-        private_claims = {"type": token_type}
-
-        encoded_jwt: str = jwt.encode(
-            claims={**registered_claims, **private_claims},
-            key=self._SECRET_KEY,
-            algorithm=self._ALGORITHM,
-        )
-        return encoded_jwt
-
-    def create_auth_token(self, subject: str) -> AuthToken:
-        access_token = self._create_token(
-            subject=subject,
-            token_type="access",
-            expires_delta=self._ACCESS_TOKEN_EXPIRES,
-        )
-        refresh_token = self._create_token(
-            subject=subject,
-            token_type="refresh",
-            expires_delta=self._REFRESH_TOKEN_EXPIRES,
-        )
-        return AuthToken(
-            access_token=access_token, refresh_token=refresh_token, token_type="bearer"
-        )
-
     async def get_account_by_token(
         self, token: str, token_type: TokenType
     ) -> AccountDto | None:
-        try:
-            payload = jwt.decode(token, self._SECRET_KEY, algorithms=[self._ALGORITHM])
-            if payload.get("type") != token_type:
-                return None
-            login_id: str = payload.get("sub")
-            if login_id is None:
-                return None
-        except JWTError:
+        login_id = self._jwt_cryptography.get_subject_from_token(token, token_type)
+        if login_id is None:
             return None
         account = await self.auth_repository.read_account_by_login_id_or_none_async(
             login_id
@@ -138,7 +99,7 @@ class AuthUseCase:
                 error_codes=(ErrorCode.LOGIN_PASSWORD_INCORRECT,), auth_token=None
             )
 
-        token = self.create_auth_token(account.login_id)
+        token = self._jwt_cryptography.create_auth_token(account.login_id)
 
         account = account.set_refresh_token(token.refresh_token)
 
@@ -151,7 +112,7 @@ class AuthUseCase:
     async def refresh_auth_token_async(
         self, refresh_token: str
     ) -> RefreshAuthTokenResponse:
-        account_dto = await self.get_account_by_token(refresh_token, "refresh")
+        account_dto = await self.get_account_by_token(refresh_token, TokenType.REFRESH)
         if account_dto is None:
             return RefreshAuthTokenResponse(
                 error_codes=(ErrorCode.INVALID_REFRESH_TOKEN,), auth_token=None
@@ -161,7 +122,7 @@ class AuthUseCase:
             account_dto.account_id
         )
 
-        token = self.create_auth_token(account.login_id)
+        token = self._jwt_cryptography.create_auth_token(account.login_id)
 
         account = account.set_refresh_token(token.refresh_token)
 
