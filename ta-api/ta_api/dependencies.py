@@ -1,8 +1,8 @@
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
-from ta_core.cryptography.jwt import TokenType
 from ta_core.dtos.auth import Account as AccountDto
+from ta_core.features.auth import TokenType
 from ta_core.infrastructure.sqlalchemy.db import get_db_async
 from ta_core.infrastructure.sqlalchemy.models.commons.auth import Account
 from ta_core.infrastructure.sqlalchemy.repositories.auth import AuthRepository

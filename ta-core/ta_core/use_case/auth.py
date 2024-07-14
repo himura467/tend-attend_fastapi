@@ -4,7 +4,7 @@ from logging import ERROR, getLogger
 
 from passlib.context import CryptContext
 
-from ta_core.cryptography.jwt import JWTCryptography, TokenType
+from ta_core.cryptography.jwt import JWTCryptography
 from ta_core.domain.entities.auth import Account
 from ta_core.dtos.auth import Account as AccountDto
 from ta_core.dtos.auth import (
@@ -13,6 +13,7 @@ from ta_core.dtos.auth import (
     RefreshAuthTokenResponse,
 )
 from ta_core.error.error_code import ErrorCode
+from ta_core.features.auth import TokenType
 from ta_core.ids.uuid import generate_uuid
 from ta_core.infrastructure.db.transaction import rollbackable
 from ta_core.infrastructure.sqlalchemy.repositories.auth import AuthRepository

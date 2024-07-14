@@ -1,4 +1,9 @@
-from enum import IntEnum
+from enum import IntEnum, StrEnum
+
+
+class TokenType(StrEnum):
+    ACCESS = "access"
+    REFRESH = "refresh"
 
 
 class Group(IntEnum):
