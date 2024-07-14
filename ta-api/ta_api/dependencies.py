@@ -47,10 +47,14 @@ class AccessControl:
             raise credentials_exception
 
         if account.disabled:
-            raise HTTPException(status_code=400, detail="Inactive account")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail="Inactive account"
+            )
 
         if not self.has_compatible_role(account):
-            raise HTTPException(status_code=403, detail="Forbidden")
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN, detail="Insufficient permissions"
+            )
 
         return account
 
