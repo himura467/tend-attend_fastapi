@@ -2,11 +2,13 @@ from pydantic import BaseModel
 from pydantic.fields import Field
 
 from ta_core.dtos.base import BaseModelWithErrorCodes
+from ta_core.features.auth import Group
 
 
 class CreateAccountRequest(BaseModel):
     login_id: str = Field(..., title="Login ID")
     login_password: str = Field(..., title="Login Password")
+    group: Group = Field(..., title="Group")
 
 
 class CreateAccountResponse(BaseModelWithErrorCodes):
@@ -34,4 +36,5 @@ class RefreshAuthTokenResponse(BaseModelWithErrorCodes):
 class Account(BaseModel):
     account_id: str = Field(..., title="Account ID")
     user_id: int = Field(..., title="User ID")
+    group: Group = Field(..., title="Group")
     disabled: bool | None = Field(None, title="Is Disabled")

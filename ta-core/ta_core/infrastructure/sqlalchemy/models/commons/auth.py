@@ -1,7 +1,8 @@
-from sqlalchemy.dialects.mysql import BIGINT, VARCHAR
+from sqlalchemy.dialects.mysql import BIGINT, TINYINT, VARCHAR
 from sqlalchemy.orm import Mapped, mapped_column
 
 from ta_core.domain.entities.auth import Account as AccountEntity
+from ta_core.features.auth import Group
 from ta_core.infrastructure.sqlalchemy.models.commons.base import (
     AbstractCommonDynamicBase,
 )
@@ -18,6 +19,7 @@ class Account(AbstractCommonDynamicBase):
     user_id: Mapped[int] = mapped_column(
         BIGINT(unsigned=True), nullable=True, comment="User ID"
     )
+    group: Mapped[Group] = mapped_column(TINYINT(unsigned=True), comment="Group")
 
     def to_entity(self) -> AccountEntity:
         return AccountEntity(
@@ -26,6 +28,7 @@ class Account(AbstractCommonDynamicBase):
             login_password_hashed=self.login_password_hashed,
             refresh_token=self.refresh_token,
             user_id=self.user_id,
+            group=self.group,
         )
 
     @staticmethod
@@ -36,4 +39,5 @@ class Account(AbstractCommonDynamicBase):
             login_password_hashed=entity.login_password_hashed,
             refresh_token=entity.refresh_token,
             user_id=entity.user_id,
+            group=entity.group,
         )

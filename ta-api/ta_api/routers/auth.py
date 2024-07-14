@@ -22,6 +22,7 @@ async def create_account(
 ) -> CreateAccountResponse:
     login_id = request.login_id
     login_password = request.login_password
+    group = request.group
 
     auth_repository = AuthRepository(
         session=session,
@@ -34,7 +35,7 @@ async def create_account(
     )
 
     return await use_case.create_account_async(
-        login_id=login_id, login_password=login_password
+        login_id=login_id, login_password=login_password, group=group
     )
 
 
