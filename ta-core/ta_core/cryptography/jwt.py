@@ -1,17 +1,12 @@
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from enum import StrEnum
 
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 
 from ta_core.dtos.auth import AuthToken
+from ta_core.features.auth import TokenType
 from ta_core.ids.uuid import generate_uuid
-
-
-class TokenType(StrEnum):
-    ACCESS = "access"
-    REFRESH = "refresh"
 
 
 @dataclass(frozen=True)

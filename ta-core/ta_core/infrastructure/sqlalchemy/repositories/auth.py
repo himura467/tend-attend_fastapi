@@ -1,15 +1,17 @@
 from ta_core.domain.entities.auth import Account
+from ta_core.features.auth import Group
 from ta_core.infrastructure.sqlalchemy.repositories.base import AbstractRepository
 
 
 class AuthRepository(AbstractRepository):
     async def create_account_async(
-        self, entity_id: str, login_id: str, login_password_hashed: str
+        self, entity_id: str, login_id: str, login_password_hashed: str, group: Group
     ) -> Account | None:
         account = Account.default(
             entity_id=entity_id,
             login_id=login_id,
             login_password_hashed=login_password_hashed,
+            group=group,
         )
         return await self.create_async(account)
 
