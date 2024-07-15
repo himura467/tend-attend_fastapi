@@ -21,8 +21,14 @@ class AuthToken(BaseModel):
     token_type: str = Field(..., title="Token Type")
 
 
-class AuthenticateResponse(BaseModelWithErrorCodes):
+class AuthTokenResponse(BaseModelWithErrorCodes):
     auth_token: AuthToken | None = Field(None, title="Auth Token")
+    access_token_max_age: int | None = Field(None, title="Access Token Max Age")
+    refresh_token_max_age: int | None = Field(None, title="Refresh Token Max Age")
+
+
+class LoginForAuthTokenResponse(BaseModelWithErrorCodes):
+    pass
 
 
 class RefreshAuthTokenRequest(BaseModel):
@@ -30,7 +36,7 @@ class RefreshAuthTokenRequest(BaseModel):
 
 
 class RefreshAuthTokenResponse(BaseModelWithErrorCodes):
-    auth_token: AuthToken | None = Field(None, title="Auth Token")
+    pass
 
 
 class Account(BaseModel):

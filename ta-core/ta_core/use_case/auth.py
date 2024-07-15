@@ -7,11 +7,7 @@ from passlib.context import CryptContext
 from ta_core.cryptography.jwt import JWTCryptography
 from ta_core.domain.entities.auth import Account
 from ta_core.dtos.auth import Account as AccountDto
-from ta_core.dtos.auth import (
-    AuthenticateResponse,
-    CreateAccountResponse,
-    RefreshAuthTokenResponse,
-)
+from ta_core.dtos.auth import AuthTokenResponse, CreateAccountResponse
 from ta_core.error.error_code import ErrorCode
 from ta_core.features.auth import Group, TokenType
 from ta_core.ids.uuid import generate_uuid
@@ -89,17 +85,23 @@ class AuthUseCase:
     @rollbackable
     async def authenticate_async(
         self, login_id: str, login_password: str
-    ) -> AuthenticateResponse:
+    ) -> AuthTokenResponse:
         account = await self.auth_repository.read_account_by_login_id_or_none_async(
             login_id
         )
         if account is None:
-            return AuthenticateResponse(
-                error_codes=(ErrorCode.LOGIN_ID_NOT_EXIST,), auth_token=None
+            return AuthTokenResponse(
+                error_codes=(ErrorCode.LOGIN_ID_NOT_EXIST,),
+                auth_token=None,
+                access_token_max_age=None,
+                refresh_token_max_age=None,
             )
         if not self._verify_password(login_password, account.login_password_hashed):
-            return AuthenticateResponse(
-                error_codes=(ErrorCode.LOGIN_PASSWORD_INCORRECT,), auth_token=None
+            return AuthTokenResponse(
+                error_codes=(ErrorCode.LOGIN_PASSWORD_INCORRECT,),
+                auth_token=None,
+                access_token_max_age=None,
+                refresh_token_max_age=None,
             )
 
         token = self._jwt_cryptography.create_auth_token(account.login_id)
@@ -109,16 +111,22 @@ class AuthUseCase:
         if await self.auth_repository.update_account_async(account) is None:
             raise ValueError("Failed to update account")
 
-        return AuthenticateResponse(error_codes=(), auth_token=token)
+        return AuthTokenResponse(
+            error_codes=(),
+            auth_token=token,
+            access_token_max_age=int(self._ACCESS_TOKEN_EXPIRES.total_seconds()),
+            refresh_token_max_age=int(self._REFRESH_TOKEN_EXPIRES.total_seconds()),
+        )
 
     @rollbackable
-    async def refresh_auth_token_async(
-        self, refresh_token: str
-    ) -> RefreshAuthTokenResponse:
+    async def refresh_auth_token_async(self, refresh_token: str) -> AuthTokenResponse:
         account_dto = await self.get_account_by_token(refresh_token, TokenType.REFRESH)
         if account_dto is None:
-            return RefreshAuthTokenResponse(
-                error_codes=(ErrorCode.INVALID_REFRESH_TOKEN,), auth_token=None
+            return AuthTokenResponse(
+                error_codes=(ErrorCode.INVALID_REFRESH_TOKEN,),
+                auth_token=None,
+                access_token_max_age=None,
+                refresh_token_max_age=None,
             )
 
         account: Account = await self.auth_repository.read_by_id_async(
@@ -132,4 +140,9 @@ class AuthUseCase:
         if await self.auth_repository.update_account_async(account) is None:
             raise ValueError("Failed to update account")
 
-        return RefreshAuthTokenResponse(error_codes=(), auth_token=token)
+        return AuthTokenResponse(
+            error_codes=(),
+            auth_token=token,
+            access_token_max_age=int(self._ACCESS_TOKEN_EXPIRES.total_seconds()),
+            refresh_token_max_age=int(self._REFRESH_TOKEN_EXPIRES.total_seconds()),
+        )

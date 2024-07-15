@@ -1,11 +1,12 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 from ta_core.dtos.auth import (
-    AuthToken,
     CreateAccountRequest,
     CreateAccountResponse,
+    LoginForAuthTokenResponse,
     RefreshAuthTokenRequest,
+    RefreshAuthTokenResponse,
 )
 from ta_core.infrastructure.sqlalchemy.db import get_db_async
 from ta_core.infrastructure.sqlalchemy.models.commons.auth import Account
@@ -39,11 +40,14 @@ async def create_account(
     )
 
 
-@router.post("/token", name="Create Auth Token", response_model=AuthToken)
+@router.post(
+    "/token", name="Create Auth Token", response_model=LoginForAuthTokenResponse
+)
 async def login_for_auth_token(
+    res: Response,
     form_data: OAuth2PasswordRequestForm = Depends(),
     session: AsyncSession = Depends(get_db_async),
-) -> AuthToken:
+) -> LoginForAuthTokenResponse:
     login_id = form_data.username
     login_password = form_data.password
 
@@ -66,14 +70,35 @@ async def login_for_auth_token(
             detail="Incorrect username or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    return response.auth_token
+
+    res.set_cookie(
+        key="access_token",
+        value=response.auth_token.access_token,
+        httponly=True,
+        secure=True,
+        samesite="lax",
+        max_age=response.access_token_max_age,
+    )
+    res.set_cookie(
+        key="refresh_token",
+        value=response.auth_token.refresh_token,
+        httponly=True,
+        secure=True,
+        samesite="lax",
+        max_age=response.refresh_token_max_age,
+    )
+
+    return LoginForAuthTokenResponse(error_codes=response.error_codes)
 
 
-@router.post("/refresh", name="Refresh Auth Token", response_model=AuthToken)
+@router.post(
+    "/refresh", name="Refresh Auth Token", response_model=RefreshAuthTokenResponse
+)
 async def refresh_auth_token(
     request: RefreshAuthTokenRequest,
+    res: Response,
     session: AsyncSession = Depends(get_db_async),
-) -> AuthToken:
+) -> RefreshAuthTokenResponse:
     refresh_token = request.refresh_token
 
     auth_repository = AuthRepository(
@@ -93,4 +118,22 @@ async def refresh_auth_token(
             detail="Incorrect refresh token",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    return response.auth_token
+
+    res.set_cookie(
+        key="access_token",
+        value=response.auth_token.access_token,
+        httponly=True,
+        secure=True,
+        samesite="lax",
+        max_age=response.access_token_max_age,
+    )
+    res.set_cookie(
+        key="refresh_token",
+        value=response.auth_token.refresh_token,
+        httponly=True,
+        secure=True,
+        samesite="lax",
+        max_age=response.refresh_token_max_age,
+    )
+
+    return RefreshAuthTokenResponse(error_codes=response.error_codes)
