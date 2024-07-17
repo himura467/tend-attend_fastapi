@@ -29,14 +29,14 @@ class AccessControl:
             headers={"WWW-Authenticate": "Bearer"},
         )
 
+        uow = SqlalchemyUnitOfWork(session=session)
         auth_repository = AuthRepository(
-            session=session,
+            uow=uow,
             model=Account,
         )
-        unit_of_work = SqlalchemyUnitOfWork(session=session)
         use_case = AuthUseCase(
+            uow=uow,
             auth_repository=auth_repository,
-            unit_of_work=unit_of_work,
         )
 
         try:

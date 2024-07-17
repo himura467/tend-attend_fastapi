@@ -25,14 +25,14 @@ async def create_account(
     login_password = request.login_password
     group = request.group
 
+    uow = SqlalchemyUnitOfWork(session=session)
     auth_repository = AuthRepository(
-        session=session,
+        uow=uow,
         model=Account,
     )
-    unit_of_work = SqlalchemyUnitOfWork(session=session)
     use_case = AuthUseCase(
+        uow=uow,
         auth_repository=auth_repository,
-        unit_of_work=unit_of_work,
     )
 
     return await use_case.create_account_async(
@@ -51,14 +51,14 @@ async def login_for_auth_token(
     login_id = form_data.username
     login_password = form_data.password
 
+    uow = SqlalchemyUnitOfWork(session=session)
     auth_repository = AuthRepository(
-        session=session,
+        uow=uow,
         model=Account,
     )
-    unit_of_work = SqlalchemyUnitOfWork(session=session)
     use_case = AuthUseCase(
+        uow=uow,
         auth_repository=auth_repository,
-        unit_of_work=unit_of_work,
     )
 
     response = await use_case.authenticate_async(
@@ -101,14 +101,14 @@ async def refresh_auth_token(
 ) -> RefreshAuthTokenResponse:
     refresh_token = request.refresh_token
 
+    uow = SqlalchemyUnitOfWork(session=session)
     auth_repository = AuthRepository(
-        session=session,
+        uow=uow,
         model=Account,
     )
-    unit_of_work = SqlalchemyUnitOfWork(session=session)
     use_case = AuthUseCase(
+        uow=uow,
         auth_repository=auth_repository,
-        unit_of_work=unit_of_work,
     )
 
     response = await use_case.refresh_auth_token_async(refresh_token=refresh_token)

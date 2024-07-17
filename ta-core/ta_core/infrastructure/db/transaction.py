@@ -15,9 +15,9 @@ def rollbackable(f: TUseCaseMethod) -> TUseCaseMethod:
     ) -> BaseModelWithErrorCodes:
         response: BaseModelWithErrorCodes = await f(self, *args, **kwargs)
         if response.error_codes:
-            await self.unit_of_work.rollback_async()
+            await self.uow.rollback_async()
         else:
-            await self.unit_of_work.commit_async()
+            await self.uow.commit_async()
         return response
 
     return cast(TUseCaseMethod, wrapper)

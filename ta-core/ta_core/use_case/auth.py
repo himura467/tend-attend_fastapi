@@ -21,8 +21,8 @@ getLogger("passlib").setLevel(ERROR)
 
 @dataclass(frozen=True)
 class AuthUseCase:
+    uow: IUnitOfWork
     auth_repository: AuthRepository
-    unit_of_work: IUnitOfWork
 
     # TODO: should be hidden
     # openssl rand -hex 32
