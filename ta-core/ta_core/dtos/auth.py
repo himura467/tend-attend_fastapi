@@ -2,17 +2,6 @@ from pydantic import BaseModel
 from pydantic.fields import Field
 
 from ta_core.dtos.base import BaseModelWithErrorCodes
-from ta_core.features.auth import Group
-
-
-class CreateAccountRequest(BaseModel):
-    login_id: str = Field(..., title="Login ID")
-    login_password: str = Field(..., title="Login Password")
-    group: Group = Field(..., title="Group")
-
-
-class CreateAccountResponse(BaseModelWithErrorCodes):
-    pass
 
 
 class AuthToken(BaseModel):
@@ -27,7 +16,7 @@ class AuthTokenResponse(BaseModelWithErrorCodes):
     refresh_token_max_age: int | None = Field(None, title="Refresh Token Max Age")
 
 
-class LoginForAuthTokenResponse(BaseModelWithErrorCodes):
+class CreateAuthTokenResponse(BaseModelWithErrorCodes):
     pass
 
 
@@ -37,10 +26,3 @@ class RefreshAuthTokenRequest(BaseModel):
 
 class RefreshAuthTokenResponse(BaseModelWithErrorCodes):
     pass
-
-
-class Account(BaseModel):
-    account_id: str = Field(..., title="Account ID")
-    user_id: int = Field(..., title="User ID")
-    group: Group = Field(..., title="Group")
-    disabled: bool | None = Field(None, title="Is Disabled")

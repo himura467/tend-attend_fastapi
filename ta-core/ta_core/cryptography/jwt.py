@@ -2,16 +2,14 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 
 from jose import JWTError, jwt
-from passlib.context import CryptContext
 
 from ta_core.dtos.auth import AuthToken
 from ta_core.features.auth import TokenType
-from ta_core.ids.uuid import generate_uuid
+from ta_core.utils.uuid import generate_uuid
 
 
 @dataclass(frozen=True)
 class JWTCryptography:
-    password_context: CryptContext
     secret_key: str
     algorithm: str
     access_token_expires: timedelta
