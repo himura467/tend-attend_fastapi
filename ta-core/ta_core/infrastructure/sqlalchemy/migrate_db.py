@@ -1,6 +1,10 @@
 from ta_core.infrastructure.sqlalchemy.db import async_engines
 from ta_core.infrastructure.sqlalchemy.models.base import AbstractBase
-from ta_core.infrastructure.sqlalchemy.models.commons.auth import Account  # noqa: F401
+from ta_core.infrastructure.sqlalchemy.models.commons.account import (  # noqa: F401
+    Account,
+    GuestAccount,
+    HostAccount,
+)
 
 
 async def reset_db_async() -> None:

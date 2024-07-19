@@ -1,28 +1,31 @@
 from dataclasses import dataclass
 from datetime import timedelta
-from logging import ERROR, getLogger
 
-from passlib.context import CryptContext
-
+from ta_core.cryptography.hash import PasswordHasher
 from ta_core.cryptography.jwt import JWTCryptography
-from ta_core.domain.entities.auth import Account
-from ta_core.dtos.auth import Account as AccountDto
-from ta_core.dtos.auth import AuthTokenResponse, CreateAccountResponse
+from ta_core.domain.entities.account import Account as AccountEntity
+from ta_core.dtos.account import Account as AccountDto
+from ta_core.dtos.auth import AuthTokenResponse
 from ta_core.error.error_code import ErrorCode
-from ta_core.features.auth import Group, TokenType
-from ta_core.ids.uuid import generate_uuid
+from ta_core.features.account import Group
+from ta_core.features.auth import TokenType
 from ta_core.infrastructure.db.transaction import rollbackable
-from ta_core.infrastructure.sqlalchemy.repositories.auth import AuthRepository
+from ta_core.infrastructure.sqlalchemy.models.commons.account import (
+    Account,
+    GuestAccount,
+    HostAccount,
+)
+from ta_core.infrastructure.sqlalchemy.repositories.account import (
+    AccountRepository,
+    GuestAccountRepository,
+    HostAccountRepository,
+)
 from ta_core.use_case.unit_of_work_base import IUnitOfWork
-
-# https://github.com/pyca/bcrypt/issues/684 への対応
-getLogger("passlib").setLevel(ERROR)
 
 
 @dataclass(frozen=True)
 class AuthUseCase:
-    auth_repository: AuthRepository
-    unit_of_work: IUnitOfWork
+    uow: IUnitOfWork
 
     # TODO: should be hidden
     # openssl rand -hex 32
@@ -31,84 +34,80 @@ class AuthUseCase:
     _ACCESS_TOKEN_EXPIRES = timedelta(minutes=60)
     _REFRESH_TOKEN_EXPIRES = timedelta(days=30)
 
-    _password_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
+    _password_hasher = PasswordHasher()
     _jwt_cryptography = JWTCryptography(
-        password_context=_password_context,
         secret_key=_SECRET_KEY,
         algorithm=_ALGORITHM,
         access_token_expires=_ACCESS_TOKEN_EXPIRES,
         refresh_token_expires=_REFRESH_TOKEN_EXPIRES,
     )
 
-    def _get_hashed_password(self, plain_password: str) -> str:
-        return self._password_context.hash(plain_password)
-
-    def _verify_password(self, plain_password: str, hashed_password: str) -> bool:
-        return self._password_context.verify(plain_password, hashed_password)
-
     async def get_account_by_token(
         self, token: str, token_type: TokenType
     ) -> AccountDto | None:
-        login_id = self._jwt_cryptography.get_subject_from_token(token, token_type)
-        if login_id is None:
+        account_repository = AccountRepository(self.uow, Account)  # type: ignore
+
+        email = self._jwt_cryptography.get_subject_from_token(token, token_type)
+        if email is None:
             return None
-        account = await self.auth_repository.read_account_by_login_id_or_none_async(
-            login_id
-        )
+        account = await account_repository.read_by_email_or_none_async(email)
         if account is None:
             return None
-        user_id = account.user_id if account.user_id is not None else 0
+
+        if account.group == Group.HOST:
+            host_account_repository = HostAccountRepository(self.uow, HostAccount)  # type: ignore
+            host_account = (
+                await host_account_repository.read_by_account_id_or_none_async(
+                    account.id
+                )
+            )
+            if host_account is None:
+                raise ValueError("Host account not found")
+            user_id = host_account.user_id
+        elif account.group == Group.GUEST:
+            guest_account_repository = GuestAccountRepository(self.uow, GuestAccount)  # type: ignore
+            guest_account = (
+                await guest_account_repository.read_by_account_id_or_none_async(
+                    account.id
+                )
+            )
+            if guest_account is None:
+                raise ValueError("Guest account not found")
+            user_id = guest_account.user_id
+        else:
+            raise NotImplementedError()
+
         return AccountDto(
             account_id=account.id,
-            user_id=user_id,
             group=account.group,
-            disabled=account.user_id is None,
+            disabled=user_id is None,
         )
 
     @rollbackable
-    async def create_account_async(
-        self, login_id: str, login_password: str, group: Group
-    ) -> CreateAccountResponse:
-        account = await self.auth_repository.create_account_async(
-            entity_id=generate_uuid(),
-            login_id=login_id,
-            login_password_hashed=self._get_hashed_password(login_password),
-            group=group,
-        )
-        if account is None:
-            return CreateAccountResponse(
-                error_codes=(ErrorCode.LOGIN_ID_ALREADY_REGISTERED,)
-            )
-        return CreateAccountResponse(error_codes=())
+    async def authenticate_async(self, email: str, password: str) -> AuthTokenResponse:
+        account_repository = AccountRepository(self.uow, Account)  # type: ignore
 
-    @rollbackable
-    async def authenticate_async(
-        self, login_id: str, login_password: str
-    ) -> AuthTokenResponse:
-        account = await self.auth_repository.read_account_by_login_id_or_none_async(
-            login_id
-        )
+        account = await account_repository.read_by_email_or_none_async(email)
         if account is None:
             return AuthTokenResponse(
-                error_codes=(ErrorCode.LOGIN_ID_NOT_EXIST,),
+                error_codes=(ErrorCode.EMAIL_NOT_EXIST,),
                 auth_token=None,
                 access_token_max_age=None,
                 refresh_token_max_age=None,
             )
-        if not self._verify_password(login_password, account.login_password_hashed):
+        if not self._password_hasher.verify_password(password, account.hashed_password):
             return AuthTokenResponse(
-                error_codes=(ErrorCode.LOGIN_PASSWORD_INCORRECT,),
+                error_codes=(ErrorCode.PASSWORD_INCORRECT,),
                 auth_token=None,
                 access_token_max_age=None,
                 refresh_token_max_age=None,
             )
 
-        token = self._jwt_cryptography.create_auth_token(account.login_id)
+        token = self._jwt_cryptography.create_auth_token(account.email)
 
         account = account.set_refresh_token(token.refresh_token)
 
-        if await self.auth_repository.update_account_async(account) is None:
+        if await account_repository.update_async(account) is None:
             raise ValueError("Failed to update account")
 
         return AuthTokenResponse(
@@ -120,24 +119,26 @@ class AuthUseCase:
 
     @rollbackable
     async def refresh_auth_token_async(self, refresh_token: str) -> AuthTokenResponse:
+        account_repository = AccountRepository(self.uow, Account)  # type: ignore
+
         account_dto = await self.get_account_by_token(refresh_token, TokenType.REFRESH)
         if account_dto is None:
             return AuthTokenResponse(
-                error_codes=(ErrorCode.INVALID_REFRESH_TOKEN,),
+                error_codes=(ErrorCode.REFRESH_TOKEN_INVALID,),
                 auth_token=None,
                 access_token_max_age=None,
                 refresh_token_max_age=None,
             )
 
-        account: Account = await self.auth_repository.read_by_id_async(
+        account: AccountEntity = await account_repository.read_by_id_async(
             account_dto.account_id
         )
 
-        token = self._jwt_cryptography.create_auth_token(account.login_id)
+        token = self._jwt_cryptography.create_auth_token(account.email)
 
         account = account.set_refresh_token(token.refresh_token)
 
-        if await self.auth_repository.update_account_async(account) is None:
+        if await account_repository.update_async(account) is None:
             raise ValueError("Failed to update account")
 
         return AuthTokenResponse(

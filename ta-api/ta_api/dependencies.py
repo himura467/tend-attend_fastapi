@@ -3,11 +3,10 @@ from dataclasses import dataclass
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
-from ta_core.dtos.auth import Account as AccountDto
-from ta_core.features.auth import Role, TokenType, groupRoleMap
+from ta_core.dtos.account import Account as AccountDto
+from ta_core.features.account import Role, groupRoleMap
+from ta_core.features.auth import TokenType
 from ta_core.infrastructure.sqlalchemy.db import get_db_async
-from ta_core.infrastructure.sqlalchemy.models.commons.auth import Account
-from ta_core.infrastructure.sqlalchemy.repositories.auth import AuthRepository
 from ta_core.infrastructure.sqlalchemy.unit_of_work import SqlalchemyUnitOfWork
 from ta_core.use_case.auth import AuthUseCase
 
@@ -29,34 +28,22 @@ class AccessControl:
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-        auth_repository = AuthRepository(
-            session=session,
-            model=Account,
-        )
-        unit_of_work = SqlalchemyUnitOfWork(session=session)
-        use_case = AuthUseCase(
-            auth_repository=auth_repository,
-            unit_of_work=unit_of_work,
-        )
+        uow = SqlalchemyUnitOfWork(session=session)
+        use_case = AuthUseCase(uow=uow)
 
-        try:
-            account = await use_case.get_account_by_token(token, TokenType.ACCESS)
-            if account is None:
-                raise credentials_exception
-        except Exception:
+        account_dto = await use_case.get_account_by_token(token, TokenType.ACCESS)
+        if account_dto is None:
             raise credentials_exception
-
-        if account.disabled:
+        if account_dto.disabled:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST, detail="Inactive account"
             )
-
-        if not self.has_compatible_role(account):
+        if not self.has_compatible_role(account_dto):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN, detail="Insufficient permissions"
             )
 
-        return account
+        return account_dto
 
     def __hash__(self) -> int:
         return hash(",".join(sorted(map(str, list(self.permit)))))
