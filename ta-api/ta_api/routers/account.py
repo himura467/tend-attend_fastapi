@@ -19,15 +19,15 @@ router = APIRouter()
 async def create_host_account(
     req: CreateHostAccountRequest, session: AsyncSession = Depends(get_db_async)
 ) -> CreateHostAccountResponse:
-    email = req.email
-    password = req.password
     host_name = req.host_name
+    password = req.password
+    email = req.email
 
     uow = SqlalchemyUnitOfWork(session=session)
     use_case = AccountUseCase(uow=uow)
 
     return await use_case.create_host_account_async(
-        email=email, password=password, host_name=host_name
+        host_name=host_name, password=password, email=email
     )
 
 
@@ -37,14 +37,19 @@ async def create_host_account(
 async def create_guest_account(
     req: CreateGuestAccountRequest, session: AsyncSession = Depends(get_db_async)
 ) -> CreateGuestAccountResponse:
-    email = req.email
+    guest_first_name = req.guest_first_name
+    guest_last_name = req.guest_last_name
+    guest_nickname = req.guest_nickname
     password = req.password
-    guest_name = req.guest_name
     host_name = req.host_name
 
     uow = SqlalchemyUnitOfWork(session=session)
     use_case = AccountUseCase(uow=uow)
 
     return await use_case.create_guest_account_async(
-        email=email, password=password, guest_name=guest_name, host_name=host_name
+        guest_first_name=guest_first_name,
+        guest_last_name=guest_last_name,
+        guest_nickname=guest_nickname,
+        password=password,
+        host_name=host_name,
     )

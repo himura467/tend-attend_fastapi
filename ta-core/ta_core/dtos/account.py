@@ -12,9 +12,9 @@ class Account(BaseModel):
 
 
 class CreateHostAccountRequest(BaseModel):
-    email: str = Field(..., title="Email")
-    password: str = Field(..., title="Password")
     host_name: str = Field(..., title="Host Name")
+    password: str = Field(..., title="Password")
+    email: str = Field(..., title="Email")
 
 
 class CreateHostAccountResponse(BaseModelWithErrorCodes):
@@ -22,9 +22,10 @@ class CreateHostAccountResponse(BaseModelWithErrorCodes):
 
 
 class CreateGuestAccountRequest(BaseModel):
-    email: str = Field(..., title="Email")
+    guest_first_name: str = Field(..., title="Guest First Name")
+    guest_last_name: str = Field(..., title="Guest Last Name")
+    guest_nickname: str | None = Field(None, title="Guest Nickname")
     password: str = Field(..., title="Password")
-    guest_name: str = Field(..., title="Guest Name")
     host_name: str = Field(..., title="Associated Host Name")
 
 

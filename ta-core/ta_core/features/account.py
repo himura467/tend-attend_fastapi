@@ -1,20 +1,17 @@
-from enum import IntEnum
+from enum import IntEnum, StrEnum
 
 
-class Group(IntEnum):
-    ADMIN = 0
-    HOST = 1
-    GUEST = 2
+class Group(StrEnum):
+    HOST = "host"
+    GUEST = "guest"
 
 
 class Role(IntEnum):
-    ADMIN = 0
-    HOST = 1
-    GUEST = 2
+    HOST = 0
+    GUEST = 1
 
 
 groupRoleMap: dict[Group, list[Role]] = {
-    Group.ADMIN: [*Role],
     Group.HOST: [Role.HOST, Role.GUEST],
     Group.GUEST: [Role.GUEST],
 }
