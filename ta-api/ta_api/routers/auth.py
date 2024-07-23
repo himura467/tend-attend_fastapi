@@ -19,13 +19,15 @@ async def create_auth_token(
     form_data: OAuth2PasswordRequestForm = Depends(),
     session: AsyncSession = Depends(get_db_async),
 ) -> CreateAuthTokenResponse:
-    email = form_data.username
+    auth_info_json = form_data.username
     password = form_data.password
 
     uow = SqlalchemyUnitOfWork(session=session)
     use_case = AuthUseCase(uow=uow)
 
-    res = await use_case.authenticate_async(email=email, password=password)
+    res = await use_case.authenticate_async(
+        auth_info_json=auth_info_json, password=password
+    )
     if res.auth_token is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

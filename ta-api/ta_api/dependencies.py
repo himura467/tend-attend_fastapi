@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
-from ta_core.dtos.account import Account as AccountDto
+from ta_core.dtos.account import Account
 from ta_core.features.account import Role, groupRoleMap
 from ta_core.features.auth import TokenType
 from ta_core.infrastructure.sqlalchemy.db import get_db_async
@@ -21,7 +21,7 @@ class AccessControl:
         self,
         token: str = Depends(oauth2_scheme),
         session: AsyncSession = Depends(get_db_async),
-    ) -> AccountDto:
+    ) -> Account:
         credentials_exception = HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Could not validate credentials",
@@ -31,23 +31,23 @@ class AccessControl:
         uow = SqlalchemyUnitOfWork(session=session)
         use_case = AuthUseCase(uow=uow)
 
-        account_dto = await use_case.get_account_by_token(token, TokenType.ACCESS)
-        if account_dto is None:
+        account = await use_case.get_account_by_token(token, TokenType.ACCESS)
+        if account is None:
             raise credentials_exception
-        if account_dto.disabled:
+        if account.disabled:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST, detail="Inactive account"
             )
-        if not self.has_compatible_role(account_dto):
+        if not self.has_compatible_role(account):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN, detail="Insufficient permissions"
             )
 
-        return account_dto
+        return account
 
     def __hash__(self) -> int:
         return hash(",".join(sorted(map(str, list(self.permit)))))
 
-    def has_compatible_role(self, account: AccountDto) -> bool:
+    def has_compatible_role(self, account: Account) -> bool:
         roles = set(groupRoleMap[account.group])
         return len(self.permit.intersection(roles)) > 0

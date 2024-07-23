@@ -1,22 +1,22 @@
+import json
 from dataclasses import dataclass
 from datetime import timedelta
 
 from ta_core.cryptography.hash import PasswordHasher
 from ta_core.cryptography.jwt import JWTCryptography
-from ta_core.domain.entities.account import Account as AccountEntity
-from ta_core.dtos.account import Account as AccountDto
+from ta_core.domain.entities.account import GuestAccount as GuestAccountEntity
+from ta_core.domain.entities.account import HostAccount as HostAccountEntity
+from ta_core.dtos.account import Account
 from ta_core.dtos.auth import AuthTokenResponse
 from ta_core.error.error_code import ErrorCode
 from ta_core.features.account import Group
 from ta_core.features.auth import TokenType
 from ta_core.infrastructure.db.transaction import rollbackable
 from ta_core.infrastructure.sqlalchemy.models.commons.account import (
-    Account,
     GuestAccount,
     HostAccount,
 )
 from ta_core.infrastructure.sqlalchemy.repositories.account import (
-    AccountRepository,
     GuestAccountRepository,
     HostAccountRepository,
 )
@@ -44,72 +44,122 @@ class AuthUseCase:
 
     async def get_account_by_token(
         self, token: str, token_type: TokenType
-    ) -> AccountDto | None:
-        account_repository = AccountRepository(self.uow, Account)  # type: ignore
-
-        email = self._jwt_cryptography.get_subject_from_token(token, token_type)
-        if email is None:
+    ) -> Account | None:
+        token_info = self._jwt_cryptography.get_subject_and_group_from_token(
+            token, token_type
+        )
+        if token_info is None:
             return None
-        account = await account_repository.read_by_email_or_none_async(email)
-        if account is None:
-            return None
+        account_id, group = token_info
 
-        if account.group == Group.HOST:
+        if group == Group.HOST:
             host_account_repository = HostAccountRepository(self.uow, HostAccount)  # type: ignore
-            host_account = (
-                await host_account_repository.read_by_account_id_or_none_async(
-                    account.id
-                )
-            )
+
+            host_account = await host_account_repository.read_by_id_or_none_async(
+                account_id
+            )  # type: ignore[func-returns-value]
             if host_account is None:
                 raise ValueError("Host account not found")
+
             user_id = host_account.user_id
-        elif account.group == Group.GUEST:
+        elif group == Group.GUEST:
             guest_account_repository = GuestAccountRepository(self.uow, GuestAccount)  # type: ignore
-            guest_account = (
-                await guest_account_repository.read_by_account_id_or_none_async(
-                    account.id
-                )
-            )
+
+            guest_account = await guest_account_repository.read_by_id_or_none_async(
+                account_id
+            )  # type: ignore[func-returns-value]
             if guest_account is None:
                 raise ValueError("Guest account not found")
+
             user_id = guest_account.user_id
         else:
             raise NotImplementedError()
 
-        return AccountDto(
-            account_id=account.id,
-            group=account.group,
+        return Account(
+            account_id=account_id,
+            group=group,
             disabled=user_id is None,
         )
 
-    @rollbackable
-    async def authenticate_async(self, email: str, password: str) -> AuthTokenResponse:
-        account_repository = AccountRepository(self.uow, Account)  # type: ignore
+    async def auth_host_async(self, host_name: str, password: str) -> AuthTokenResponse:
+        host_account_repository = HostAccountRepository(self.uow, HostAccount)  # type: ignore
 
-        account = await account_repository.read_by_email_or_none_async(email)
-        if account is None:
+        host_account = await host_account_repository.read_by_host_name_or_none_async(
+            host_name
+        )
+        if host_account is None:
             return AuthTokenResponse(
-                error_codes=(ErrorCode.EMAIL_NOT_EXIST,),
+                error_codes=(ErrorCode.HOST_NAME_NOT_EXIST,),
                 auth_token=None,
                 access_token_max_age=None,
                 refresh_token_max_age=None,
             )
-        if not self._password_hasher.verify_password(password, account.hashed_password):
+        if not self._password_hasher.verify_password(
+            password, host_account.hashed_password
+        ):
             return AuthTokenResponse(
                 error_codes=(ErrorCode.PASSWORD_INCORRECT,),
                 auth_token=None,
                 access_token_max_age=None,
                 refresh_token_max_age=None,
             )
+        token = self._jwt_cryptography.create_auth_token(host_account.id, Group.HOST)
+        host_account = host_account.set_refresh_token(token.refresh_token)
+        if await host_account_repository.update_async(host_account) is None:
+            raise ValueError("Failed to update host account")
+        return AuthTokenResponse(
+            error_codes=(),
+            auth_token=token,
+            access_token_max_age=int(self._ACCESS_TOKEN_EXPIRES.total_seconds()),
+            refresh_token_max_age=int(self._REFRESH_TOKEN_EXPIRES.total_seconds()),
+        )
 
-        token = self._jwt_cryptography.create_auth_token(account.email)
+    async def auth_guest_async(
+        self,
+        guest_first_name: str,
+        guest_last_name: str,
+        guest_nickname: str | None,
+        password: str,
+        host_name: str,
+    ) -> AuthTokenResponse:
+        host_account_repository = HostAccountRepository(self.uow, HostAccount)  # type: ignore
+        guest_account_repository = GuestAccountRepository(self.uow, GuestAccount)  # type: ignore
 
-        account = account.set_refresh_token(token.refresh_token)
-
-        if await account_repository.update_async(account) is None:
-            raise ValueError("Failed to update account")
-
+        host_account = await host_account_repository.read_by_host_name_or_none_async(
+            host_name
+        )
+        if host_account is None:
+            return AuthTokenResponse(
+                error_codes=(ErrorCode.HOST_NAME_NOT_EXIST,),
+                auth_token=None,
+                access_token_max_age=None,
+                refresh_token_max_age=None,
+            )
+        guest_account = (
+            await guest_account_repository.read_by_guest_name_and_host_id_or_none_async(
+                guest_first_name, guest_last_name, guest_nickname, host_account.id
+            )
+        )
+        if guest_account is None:
+            return AuthTokenResponse(
+                error_codes=(ErrorCode.GUEST_NAME_NOT_EXIST,),
+                auth_token=None,
+                access_token_max_age=None,
+                refresh_token_max_age=None,
+            )
+        if not self._password_hasher.verify_password(
+            password, guest_account.hashed_password
+        ):
+            return AuthTokenResponse(
+                error_codes=(ErrorCode.PASSWORD_INCORRECT,),
+                auth_token=None,
+                access_token_max_age=None,
+                refresh_token_max_age=None,
+            )
+        token = self._jwt_cryptography.create_auth_token(guest_account.id, Group.GUEST)
+        guest_account = guest_account.set_refresh_token(token.refresh_token)
+        if await guest_account_repository.update_async(guest_account) is None:
+            raise ValueError("Failed to update guest account")
         return AuthTokenResponse(
             error_codes=(),
             auth_token=token,
@@ -118,9 +168,31 @@ class AuthUseCase:
         )
 
     @rollbackable
-    async def refresh_auth_token_async(self, refresh_token: str) -> AuthTokenResponse:
-        account_repository = AccountRepository(self.uow, Account)  # type: ignore
+    async def authenticate_async(
+        self, auth_info_json: str, password: str
+    ) -> AuthTokenResponse:
+        auth_info = json.loads(auth_info_json)
 
+        if auth_info["group"] == Group.HOST:
+            return await self.auth_host_async(auth_info["host_name"], password)
+        elif auth_info["group"] == Group.GUEST:
+            guest_nickname = (
+                auth_info["guest_nickname"]
+                if auth_info["guest_nickname"] != ""
+                else None
+            )
+            return await self.auth_guest_async(
+                auth_info["guest_first_name"],
+                auth_info["guest_last_name"],
+                guest_nickname,
+                password,
+                auth_info["host_name"],
+            )
+        else:
+            raise NotImplementedError()
+
+    @rollbackable
+    async def refresh_auth_token_async(self, refresh_token: str) -> AuthTokenResponse:
         account_dto = await self.get_account_by_token(refresh_token, TokenType.REFRESH)
         if account_dto is None:
             return AuthTokenResponse(
@@ -130,20 +202,49 @@ class AuthUseCase:
                 refresh_token_max_age=None,
             )
 
-        account: AccountEntity = await account_repository.read_by_id_async(
-            account_dto.account_id
-        )
+        if account_dto.disabled:
+            return AuthTokenResponse(
+                error_codes=(ErrorCode.ACCOUNT_DISABLED,),
+                auth_token=None,
+                access_token_max_age=None,
+                refresh_token_max_age=None,
+            )
 
-        token = self._jwt_cryptography.create_auth_token(account.email)
+        if account_dto.group == Group.HOST:
+            host_account_repository = HostAccountRepository(self.uow, HostAccount)  # type: ignore
 
-        account = account.set_refresh_token(token.refresh_token)
+            host_account: HostAccountEntity = (
+                await host_account_repository.read_by_id_async(account_dto.account_id)
+            )
+            token = self._jwt_cryptography.create_auth_token(
+                host_account.id, Group.HOST
+            )
+            host_account = host_account.set_refresh_token(token.refresh_token)
+            if await host_account_repository.update_async(host_account) is None:
+                raise ValueError("Failed to update host account")
+            return AuthTokenResponse(
+                error_codes=(),
+                auth_token=token,
+                access_token_max_age=int(self._ACCESS_TOKEN_EXPIRES.total_seconds()),
+                refresh_token_max_age=int(self._REFRESH_TOKEN_EXPIRES.total_seconds()),
+            )
+        elif account_dto.group == Group.GUEST:
+            guest_account_repository = GuestAccountRepository(self.uow, GuestAccount)  # type: ignore
 
-        if await account_repository.update_async(account) is None:
-            raise ValueError("Failed to update account")
-
-        return AuthTokenResponse(
-            error_codes=(),
-            auth_token=token,
-            access_token_max_age=int(self._ACCESS_TOKEN_EXPIRES.total_seconds()),
-            refresh_token_max_age=int(self._REFRESH_TOKEN_EXPIRES.total_seconds()),
-        )
+            guest_account: GuestAccountEntity = (
+                await guest_account_repository.read_by_id_async(account_dto.account_id)
+            )
+            token = self._jwt_cryptography.create_auth_token(
+                guest_account.id, Group.GUEST
+            )
+            guest_account = guest_account.set_refresh_token(token.refresh_token)
+            if await guest_account_repository.update_async(guest_account) is None:
+                raise ValueError("Failed to update guest account")
+            return AuthTokenResponse(
+                error_codes=(),
+                auth_token=token,
+                access_token_max_age=int(self._ACCESS_TOKEN_EXPIRES.total_seconds()),
+                refresh_token_max_age=int(self._REFRESH_TOKEN_EXPIRES.total_seconds()),
+            )
+        else:
+            NotImplementedError()

@@ -2,11 +2,13 @@ from pydantic import BaseModel
 from pydantic.fields import Field
 
 from ta_core.dtos.base import BaseModelWithErrorCodes
+from ta_core.features.account import Group
 
 
 class AuthToken(BaseModel):
     access_token: str = Field(..., title="Access Token")
     refresh_token: str = Field(..., title="Refresh Token")
+    group: Group = Field(..., title="Group")
     token_type: str = Field(..., title="Token Type")
 
 

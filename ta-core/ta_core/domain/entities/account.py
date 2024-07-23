@@ -1,53 +1,63 @@
 from ta_core.domain.entities.base import IEntity
-from ta_core.features.account import Group
-
-
-class Account(IEntity):
-    def __init__(
-        self,
-        entity_id: str,
-        email: str,
-        hashed_password: str,
-        refresh_token: str | None,
-        group: Group,
-    ) -> None:
-        super().__init__(entity_id)
-        self.email = email
-        self.hashed_password = hashed_password
-        self.refresh_token = refresh_token
-        self.group = group
-
-    def set_refresh_token(self, refresh_token: str) -> "Account":
-        return Account(
-            entity_id=self.id,
-            email=self.email,
-            hashed_password=self.hashed_password,
-            refresh_token=refresh_token,
-            group=self.group,
-        )
 
 
 class HostAccount(IEntity):
     def __init__(
-        self, entity_id: str, account_id: str, user_id: int | None, host_name: str
+        self,
+        entity_id: str,
+        host_name: str,
+        hashed_password: str,
+        refresh_token: str | None,
+        email: str,
+        user_id: int | None,
     ) -> None:
         super().__init__(entity_id)
-        self.account_id = account_id
-        self.user_id = user_id
         self.host_name = host_name
+        self.hashed_password = hashed_password
+        self.refresh_token = refresh_token
+        self.email = email
+        self.user_id = user_id
+
+    def set_refresh_token(self, refresh_token: str) -> "HostAccount":
+        return HostAccount(
+            entity_id=self.id,
+            host_name=self.host_name,
+            hashed_password=self.hashed_password,
+            refresh_token=refresh_token,
+            email=self.email,
+            user_id=self.user_id,
+        )
 
 
 class GuestAccount(IEntity):
     def __init__(
         self,
         entity_id: str,
-        account_id: str,
-        user_id: int | None,
+        guest_first_name: str,
+        guest_last_name: str,
+        guest_nickname: str | None,
+        hashed_password: str,
+        refresh_token: str | None,
+        user_id: int,
         host_id: str,
-        guest_name: str,
     ) -> None:
         super().__init__(entity_id)
-        self.account_id = account_id
+        self.guest_first_name = guest_first_name
+        self.guest_last_name = guest_last_name
+        self.guest_nickname = guest_nickname
+        self.hashed_password = hashed_password
+        self.refresh_token = refresh_token
         self.user_id = user_id
         self.host_id = host_id
-        self.guest_name = guest_name
+
+    def set_refresh_token(self, refresh_token: str) -> "GuestAccount":
+        return GuestAccount(
+            entity_id=self.id,
+            guest_first_name=self.guest_first_name,
+            guest_last_name=self.guest_last_name,
+            guest_nickname=self.guest_nickname,
+            hashed_password=self.hashed_password,
+            refresh_token=refresh_token,
+            user_id=self.user_id,
+            host_id=self.host_id,
+        )

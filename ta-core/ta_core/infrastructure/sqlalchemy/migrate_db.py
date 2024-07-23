@@ -1,7 +1,6 @@
 from ta_core.infrastructure.sqlalchemy.db import async_engines
 from ta_core.infrastructure.sqlalchemy.models.base import AbstractBase
 from ta_core.infrastructure.sqlalchemy.models.commons.account import (  # noqa: F401
-    Account,
     GuestAccount,
     HostAccount,
 )
