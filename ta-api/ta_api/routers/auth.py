@@ -31,7 +31,7 @@ async def create_auth_token(
     if res.auth_token is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect username or password",
+            detail="Incorrect auth_info or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
@@ -72,7 +72,7 @@ async def refresh_auth_token(
     if res.auth_token is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect refresh token",
+            detail="Invalid refresh token",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
