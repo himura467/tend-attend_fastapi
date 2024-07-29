@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Response, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 from ta_core.dtos.auth import (
-    CreateAuthTokenResponse,
+    AuthToken,
     RefreshAuthTokenRequest,
     RefreshAuthTokenResponse,
 )
@@ -13,12 +13,12 @@ from ta_core.use_case.auth import AuthUseCase
 router = APIRouter()
 
 
-@router.post("/token", name="Create Auth Token", response_model=CreateAuthTokenResponse)
+@router.post(path="/token", name="Create Auth Token", response_model=AuthToken)
 async def create_auth_token(
     response: Response,
     form_data: OAuth2PasswordRequestForm = Depends(),
     session: AsyncSession = Depends(get_db_async),
-) -> CreateAuthTokenResponse:
+) -> AuthToken:
     auth_info_json = form_data.username
     password = form_data.password
 
@@ -52,11 +52,13 @@ async def create_auth_token(
         max_age=res.refresh_token_max_age,
     )
 
-    return CreateAuthTokenResponse(error_codes=res.error_codes)
+    return res.auth_token
 
 
 @router.post(
-    "/token/refresh", name="Refresh Auth Token", response_model=RefreshAuthTokenResponse
+    path="/token/refresh",
+    name="Refresh Auth Token",
+    response_model=RefreshAuthTokenResponse,
 )
 async def refresh_auth_token(
     req: RefreshAuthTokenRequest,

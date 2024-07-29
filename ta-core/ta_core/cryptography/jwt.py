@@ -55,7 +55,6 @@ class JWTCryptography:
         return AuthToken(
             access_token=access_token,
             refresh_token=refresh_token,
-            group=group,
             token_type="bearer",
         )
 

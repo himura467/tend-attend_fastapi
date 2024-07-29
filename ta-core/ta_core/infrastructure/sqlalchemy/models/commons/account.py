@@ -2,6 +2,7 @@ from typing import List
 
 from sqlalchemy import ForeignKey, UniqueConstraint
 from sqlalchemy.dialects.mysql import BIGINT, VARCHAR
+from sqlalchemy.exc import StatementError
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from ta_core.domain.entities.account import GuestAccount as GuestAccountEntity
@@ -30,6 +31,11 @@ class HostAccount(AbstractCommonDynamicBase):
     guests: Mapped[List["GuestAccount"]] = relationship(back_populates="host")
 
     def to_entity(self) -> HostAccountEntity:
+        try:
+            guests = [guest.to_entity() for guest in self.guests]
+        except StatementError:
+            guests = None
+
         return HostAccountEntity(
             entity_id=self.id,
             host_name=self.host_name,
@@ -37,6 +43,7 @@ class HostAccount(AbstractCommonDynamicBase):
             refresh_token=self.refresh_token,
             email=self.email,
             user_id=self.user_id,
+            guests=guests,
         )
 
     @staticmethod

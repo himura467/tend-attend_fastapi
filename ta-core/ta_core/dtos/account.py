@@ -31,3 +31,14 @@ class CreateGuestAccountRequest(BaseModel):
 
 class CreateGuestAccountResponse(BaseModelWithErrorCodes):
     pass
+
+
+class GuestInfo(BaseModel):
+    account_id: str = Field(..., title="Account ID")
+    first_name: str = Field(..., title="First Name")
+    last_name: str = Field(..., title="Last Name")
+    nickname: str | None = Field(None, title="Nickname")
+
+
+class GetGuestsInfoResponse(BaseModelWithErrorCodes):
+    guests: tuple[GuestInfo, ...] = Field(..., title="Guests Info")
