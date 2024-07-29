@@ -10,6 +10,7 @@ class HostAccount(IEntity):
         refresh_token: str | None,
         email: str,
         user_id: int | None,
+        guests: list["GuestAccount"] | None = None,
     ) -> None:
         super().__init__(entity_id)
         self.host_name = host_name
@@ -17,6 +18,7 @@ class HostAccount(IEntity):
         self.refresh_token = refresh_token
         self.email = email
         self.user_id = user_id
+        self.guests = guests
 
     def set_refresh_token(self, refresh_token: str) -> "HostAccount":
         return HostAccount(
@@ -26,6 +28,7 @@ class HostAccount(IEntity):
             refresh_token=refresh_token,
             email=self.email,
             user_id=self.user_id,
+            guests=self.guests,
         )
 
 

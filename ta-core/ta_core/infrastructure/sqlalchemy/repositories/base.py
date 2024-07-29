@@ -2,7 +2,8 @@ from typing import Any, Protocol, TypeVar
 
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Mapped
+from sqlalchemy.orm import Mapped, joinedload
+from sqlalchemy.orm.attributes import QueryableAttribute
 
 from ta_core.domain.entities.base import IEntity
 from ta_core.domain.repositories.base import IRepository
@@ -34,35 +35,59 @@ class AbstractRepository(IRepository):
             await self._uow.rollback_async()
             return None
 
-    async def read_by_id_async(self, record_id: str) -> TEntity:
+    async def read_by_id_async(
+        self, record_id: str, joined_args: QueryableAttribute[Any] | None = None
+    ) -> TEntity:
         stmt = select(self._model).where(self._model.id == record_id)
+        if joined_args is not None:
+            stmt = stmt.options(joinedload(joined_args))
         result = await self._uow.execute_async(stmt)
-        return result.scalar_one().to_entity()
+        return result.unique().scalar_one().to_entity()
 
-    async def read_by_id_or_none_async(self, record_id: str) -> TEntity | None:
+    async def read_by_id_or_none_async(
+        self, record_id: str, joined_args: QueryableAttribute[Any] | None = None
+    ) -> TEntity | None:
         stmt = select(self._model).where(self._model.id == record_id)
-        record = (await self._uow.execute_async(stmt)).scalar_one_or_none()
+        if joined_args is not None:
+            stmt = stmt.options(joinedload(joined_args))
+        record = (await self._uow.execute_async(stmt)).unique().scalar_one_or_none()
         return record.to_entity() if record is not None else None
 
-    async def read_by_ids_async(self, record_ids: set[str]) -> tuple[TEntity, ...]:
+    async def read_by_ids_async(
+        self, record_ids: set[str], joined_args: QueryableAttribute[Any] | None = None
+    ) -> tuple[TEntity, ...]:
         stmt = select(self._model).where(self._model.id.in_(record_ids))
+        if joined_args is not None:
+            stmt = stmt.options(joinedload(joined_args))
         result = await self._uow.execute_async(stmt)
-        return tuple(record.to_entity() for record in result.all())
+        return tuple(record.to_entity() for record in result.unique().all())
 
-    async def read_one_async(self, *args: Any) -> TEntity:
-        stmt = select(self._model).where(*args)
+    async def read_one_async(
+        self, *whereclause: Any, joined_args: QueryableAttribute[Any] | None = None
+    ) -> TEntity:
+        stmt = select(self._model).where(*whereclause)
+        if joined_args is not None:
+            stmt = stmt.options(joinedload(joined_args))
         result = await self._uow.execute_async(stmt)
-        return result.scalar_one().to_entity()
+        return result.unique().scalar_one().to_entity()
 
-    async def read_one_or_none_async(self, *args: Any) -> TEntity | None:
-        stmt = select(self._model).where(*args)
-        record = (await self._uow.execute_async(stmt)).scalar_one_or_none()
+    async def read_one_or_none_async(
+        self, *whereclause: Any, joined_args: QueryableAttribute[Any] | None = None
+    ) -> TEntity | None:
+        stmt = select(self._model).where(*whereclause)
+        if joined_args is not None:
+            stmt = stmt.options(joinedload(joined_args))
+        record = (await self._uow.execute_async(stmt)).unique().scalar_one_or_none()
         return record.to_entity() if record is not None else None
 
-    async def read_all_async(self) -> tuple[TEntity, ...]:
+    async def read_all_async(
+        self, joined_args: QueryableAttribute[Any] | None = None
+    ) -> tuple[TEntity, ...]:
         stmt = select(self._model)
+        if joined_args is not None:
+            stmt = stmt.options(joinedload(joined_args))
         result = await self._uow.execute_async(stmt)
-        return tuple(record.to_entity() for record in result.all())
+        return tuple(record.to_entity() for record in result.unique().all())
 
     async def update_async(self, entity: TEntity) -> TEntity | None:
         stmt = select(self._model).where(self._model.id == entity.id)

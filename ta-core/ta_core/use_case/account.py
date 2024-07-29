@@ -1,7 +1,12 @@
 from dataclasses import dataclass
 
 from ta_core.cryptography.hash import PasswordHasher
-from ta_core.dtos.account import CreateGuestAccountResponse, CreateHostAccountResponse
+from ta_core.dtos.account import (
+    CreateGuestAccountResponse,
+    CreateHostAccountResponse,
+    GetGuestsInfoResponse,
+    GuestInfo,
+)
 from ta_core.error.error_code import ErrorCode
 from ta_core.infrastructure.db.transaction import rollbackable
 from ta_core.infrastructure.sqlalchemy.models.commons.account import (
@@ -79,3 +84,24 @@ class AccountUseCase:
             )
 
         return CreateGuestAccountResponse(error_codes=())
+
+    @rollbackable
+    async def get_guests_info_async(self, host_id: str) -> GetGuestsInfoResponse:
+        host_account_repository = HostAccountRepository(self.uow, HostAccount)  # type: ignore
+
+        host_account = await host_account_repository.read_by_id_or_none_async(host_id, HostAccount.guests)  # type: ignore[func-returns-value]
+        if host_account is None:
+            raise ValueError("Host ID not found")
+
+        return GetGuestsInfoResponse(
+            error_codes=(),
+            guests=(
+                GuestInfo(
+                    account_id=guest.id,
+                    first_name=guest.guest_first_name,
+                    last_name=guest.guest_last_name,
+                    nickname=guest.guest_nickname,
+                )
+                for guest in host_account.guests
+            ),
+        )
