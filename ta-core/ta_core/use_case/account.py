@@ -8,6 +8,7 @@ from ta_core.infrastructure.sqlalchemy.models.commons.account import (
     GuestAccount,
     HostAccount,
 )
+from ta_core.infrastructure.sqlalchemy.models.sequences.sequence import SequenceUserId
 from ta_core.infrastructure.sqlalchemy.repositories.account import (
     GuestAccountRepository,
     HostAccountRepository,
@@ -53,6 +54,8 @@ class AccountUseCase:
         host_account_repository = HostAccountRepository(self.uow, HostAccount)  # type: ignore
         guest_account_repository = GuestAccountRepository(self.uow, GuestAccount)  # type: ignore
 
+        user_id = await SequenceUserId.id_generator(self.uow)
+
         host_account = await host_account_repository.read_by_host_name_or_none_async(
             host_name=host_name
         )
@@ -67,7 +70,7 @@ class AccountUseCase:
             guest_last_name=guest_last_name,
             guest_nickname=guest_nickname,
             hashed_password=self._password_hasher.get_password_hash(password),
-            user_id=0,  # TODO: Implement SequenceUserId table
+            user_id=user_id,
             host_id=host_account.id,
         )
         if guest_account is None:

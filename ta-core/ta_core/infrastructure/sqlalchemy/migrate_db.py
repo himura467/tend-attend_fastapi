@@ -4,6 +4,9 @@ from ta_core.infrastructure.sqlalchemy.models.commons.account import (  # noqa: 
     GuestAccount,
     HostAccount,
 )
+from ta_core.infrastructure.sqlalchemy.models.sequences.sequence import (  # noqa: F401
+    SequenceUserId,
+)
 
 
 async def reset_db_async() -> None:
