@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from pydantic.fields import Field
+from pydantic.networks import EmailStr
 
 from ta_core.dtos.base import BaseModelWithErrorCodes
 from ta_core.features.account import Group
@@ -14,7 +15,7 @@ class Account(BaseModel):
 class CreateHostAccountRequest(BaseModel):
     host_name: str = Field(..., title="Host Name")
     password: str = Field(..., title="Password")
-    email: str = Field(..., title="Email")
+    email: EmailStr = Field(..., title="Email")
 
 
 class CreateHostAccountResponse(BaseModelWithErrorCodes):
