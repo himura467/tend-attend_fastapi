@@ -1,3 +1,5 @@
+from pydantic.networks import EmailStr
+
 from ta_core.domain.entities.base import IEntity
 
 
@@ -8,7 +10,7 @@ class HostAccount(IEntity):
         host_name: str,
         hashed_password: str,
         refresh_token: str | None,
-        email: str,
+        email: EmailStr,
         user_id: int | None,
         guests: list["GuestAccount"] | None = None,
     ) -> None:

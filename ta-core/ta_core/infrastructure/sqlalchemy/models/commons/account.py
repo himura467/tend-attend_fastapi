@@ -1,5 +1,6 @@
 from typing import List
 
+from pydantic.networks import EmailStr
 from sqlalchemy import ForeignKey, UniqueConstraint
 from sqlalchemy.dialects.mysql import BIGINT, VARCHAR
 from sqlalchemy.exc import StatementError
@@ -22,7 +23,7 @@ class HostAccount(AbstractCommonDynamicBase):
     refresh_token: Mapped[str] = mapped_column(
         VARCHAR(512), nullable=True, comment="Refresh Token"
     )
-    email: Mapped[str] = mapped_column(
+    email: Mapped[EmailStr] = mapped_column(
         VARCHAR(64), unique=True, comment="Email Address"
     )
     user_id: Mapped[int] = mapped_column(

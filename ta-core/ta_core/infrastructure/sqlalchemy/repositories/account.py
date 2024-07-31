@@ -1,3 +1,5 @@
+from pydantic.networks import EmailStr
+
 from ta_core.domain.entities.account import GuestAccount, HostAccount
 from ta_core.infrastructure.sqlalchemy.repositories.base import AbstractRepository
 
@@ -8,7 +10,7 @@ class HostAccountRepository(AbstractRepository):
         entity_id: str,
         host_name: str,
         hashed_password: str,
-        email: str,
+        email: EmailStr,
         refresh_token: str | None = None,
         user_id: int | None = None,
     ) -> HostAccount | None:
@@ -26,6 +28,9 @@ class HostAccountRepository(AbstractRepository):
         self, host_name: str
     ) -> HostAccount | None:
         return await self.read_one_or_none_async(self._model.host_name == host_name)  # type: ignore
+
+    async def read_by_email_or_none_async(self, email: EmailStr) -> HostAccount | None:
+        return await self.read_one_or_none_async(self._model.email == email)  # type: ignore
 
 
 class GuestAccountRepository(AbstractRepository):

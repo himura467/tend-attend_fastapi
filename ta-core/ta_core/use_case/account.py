@@ -1,5 +1,7 @@
 from dataclasses import dataclass
 
+from pydantic.networks import EmailStr
+
 from ta_core.cryptography.hash import PasswordHasher
 from ta_core.dtos.account import (
     CreateGuestAccountResponse,
@@ -30,7 +32,7 @@ class AccountUseCase:
 
     @rollbackable
     async def create_host_account_async(
-        self, host_name: str, password: str, email: str
+        self, host_name: str, password: str, email: EmailStr
     ) -> CreateHostAccountResponse:
         host_account_repository = HostAccountRepository(self.uow, HostAccount)  # type: ignore
 
