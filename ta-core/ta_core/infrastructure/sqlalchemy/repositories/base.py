@@ -1,28 +1,16 @@
-from typing import Any, Protocol, TypeVar
+from typing import Any
 
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import Mapped, joinedload
+from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.attributes import QueryableAttribute
 
-from ta_core.domain.entities.base import IEntity
-from ta_core.domain.repositories.base import IRepository
+from ta_core.domain.repositories.base import IRepository, TEntity, TModel
 from ta_core.use_case.unit_of_work_base import IUnitOfWork
 
-TEntity = TypeVar("TEntity", bound=IEntity)
 
-
-class ModelProtocol(Protocol):
-    id: Mapped[str]
-
-    def to_entity(self) -> TEntity: ...  # type: ignore
-
-    @staticmethod
-    def from_entity(entity: TEntity) -> "ModelProtocol": ...
-
-
-class AbstractRepository(IRepository):
-    def __init__(self, uow: IUnitOfWork, model: type[ModelProtocol]) -> None:
+class AbstractRepository(IRepository[TEntity, TModel]):
+    def __init__(self, uow: IUnitOfWork, model: type[TModel]) -> None:
         self._uow = uow
         self._model = model
 

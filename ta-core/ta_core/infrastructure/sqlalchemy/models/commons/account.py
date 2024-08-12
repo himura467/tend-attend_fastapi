@@ -47,9 +47,9 @@ class HostAccount(AbstractCommonDynamicBase):
             guests=guests,
         )
 
-    @staticmethod
-    def from_entity(entity: HostAccountEntity) -> "HostAccount":
-        return HostAccount(
+    @classmethod
+    def from_entity(cls, entity: HostAccountEntity) -> "HostAccount":
+        return cls(
             id=entity.id,
             host_name=entity.host_name,
             hashed_password=entity.hashed_password,
@@ -94,9 +94,9 @@ class GuestAccount(AbstractCommonDynamicBase):
             host_id=self.host_id,
         )
 
-    @staticmethod
-    def from_entity(entity: GuestAccountEntity) -> "GuestAccount":
-        return GuestAccount(
+    @classmethod
+    def from_entity(cls, entity: GuestAccountEntity) -> "GuestAccount":
+        return cls(
             id=entity.id,
             guest_first_name=entity.guest_first_name,
             guest_last_name=entity.guest_last_name,

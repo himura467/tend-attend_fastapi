@@ -32,9 +32,9 @@ class HostVerification(AbstractShardDynamicBase):
             token_expires_at=self.token_expires_at,
         )
 
-    @staticmethod
-    def from_entity(entity: HostVerificationEntity) -> "HostVerification":
-        return HostVerification(
+    @classmethod
+    def from_entity(cls, entity: HostVerificationEntity) -> "HostVerification":
+        return cls(
             id=entity.id,
             host_email=entity.host_email,
             verification_token=entity.verification_token,

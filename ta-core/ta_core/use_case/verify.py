@@ -27,8 +27,10 @@ class VerifyUseCase:
     async def request_email_verification_async(
         self, host_email: EmailStr
     ) -> RequestEmailVerificationResponse:
-        host_account_repository = HostAccountRepository(self.uow, HostAccount)  # type: ignore
-        host_verification_repository = HostVerificationRepository(self.uow, HostVerification)  # type: ignore
+        host_account_repository = HostAccountRepository(self.uow, HostAccount)
+        host_verification_repository = HostVerificationRepository(
+            self.uow, HostVerification
+        )
 
         host_account = await host_account_repository.read_by_email_or_none_async(
             host_email

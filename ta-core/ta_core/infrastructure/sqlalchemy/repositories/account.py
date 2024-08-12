@@ -1,10 +1,15 @@
 from pydantic.networks import EmailStr
 
-from ta_core.domain.entities.account import GuestAccount, HostAccount
+from ta_core.domain.entities.account import GuestAccount as GuestAccountEntity
+from ta_core.domain.entities.account import HostAccount as HostAccountEntity
+from ta_core.infrastructure.sqlalchemy.models.commons.account import (
+    GuestAccount,
+    HostAccount,
+)
 from ta_core.infrastructure.sqlalchemy.repositories.base import AbstractRepository
 
 
-class HostAccountRepository(AbstractRepository):
+class HostAccountRepository(AbstractRepository[HostAccountEntity, HostAccount]):
     async def create_host_account_async(
         self,
         entity_id: str,
@@ -13,8 +18,8 @@ class HostAccountRepository(AbstractRepository):
         email: EmailStr,
         refresh_token: str | None = None,
         user_id: int | None = None,
-    ) -> HostAccount | None:
-        host_account = HostAccount(
+    ) -> HostAccountEntity | None:
+        host_account = HostAccountEntity(
             entity_id=entity_id,
             host_name=host_name,
             hashed_password=hashed_password,
@@ -26,14 +31,16 @@ class HostAccountRepository(AbstractRepository):
 
     async def read_by_host_name_or_none_async(
         self, host_name: str
-    ) -> HostAccount | None:
-        return await self.read_one_or_none_async(self._model.host_name == host_name)  # type: ignore
+    ) -> HostAccountEntity | None:
+        return await self.read_one_or_none_async(self._model.host_name == host_name)
 
-    async def read_by_email_or_none_async(self, email: EmailStr) -> HostAccount | None:
-        return await self.read_one_or_none_async(self._model.email == email)  # type: ignore
+    async def read_by_email_or_none_async(
+        self, email: EmailStr
+    ) -> HostAccountEntity | None:
+        return await self.read_one_or_none_async(self._model.email == email)
 
 
-class GuestAccountRepository(AbstractRepository):
+class GuestAccountRepository(AbstractRepository[GuestAccountEntity, GuestAccount]):
     async def create_guest_account_async(
         self,
         entity_id: str,
@@ -44,8 +51,8 @@ class GuestAccountRepository(AbstractRepository):
         user_id: int,
         host_id: str,
         refresh_token: str | None = None,
-    ) -> GuestAccount | None:
-        guest_account = GuestAccount(
+    ) -> GuestAccountEntity | None:
+        guest_account = GuestAccountEntity(
             entity_id=entity_id,
             guest_first_name=guest_first_name,
             guest_last_name=guest_last_name,
@@ -63,10 +70,10 @@ class GuestAccountRepository(AbstractRepository):
         guest_last_name: str,
         guest_nickname: str | None,
         host_id: str,
-    ) -> GuestAccount | None:
+    ) -> GuestAccountEntity | None:
         return await self.read_one_or_none_async(
-            self._model.guest_first_name == guest_first_name,  # type: ignore
-            self._model.guest_last_name == guest_last_name,  # type: ignore
-            self._model.guest_nickname == guest_nickname,  # type: ignore
-            self._model.host_id == host_id,  # type: ignore
+            self._model.guest_first_name == guest_first_name,
+            self._model.guest_last_name == guest_last_name,
+            self._model.guest_nickname == guest_nickname,
+            self._model.host_id == host_id,
         )
