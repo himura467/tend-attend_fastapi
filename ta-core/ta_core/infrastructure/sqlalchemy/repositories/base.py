@@ -1,3 +1,4 @@
+from abc import abstractmethod
 from typing import Any
 
 from sqlalchemy import select
@@ -10,9 +11,13 @@ from ta_core.use_case.unit_of_work_base import IUnitOfWork
 
 
 class AbstractRepository(IRepository[TEntity, TModel]):
-    def __init__(self, uow: IUnitOfWork, model: type[TModel]) -> None:
+    def __init__(self, uow: IUnitOfWork) -> None:
         self._uow = uow
-        self._model = model
+
+    @property
+    @abstractmethod
+    def _model(self) -> type[TModel]:
+        raise NotImplementedError()
 
     async def create_async(self, entity: TEntity) -> TEntity | None:
         model = self._model.from_entity(entity)

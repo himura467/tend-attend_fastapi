@@ -12,10 +12,6 @@ from ta_core.error.error_code import ErrorCode
 from ta_core.features.account import Group
 from ta_core.features.auth import TokenType
 from ta_core.infrastructure.db.transaction import rollbackable
-from ta_core.infrastructure.sqlalchemy.models.commons.account import (
-    GuestAccount,
-    HostAccount,
-)
 from ta_core.infrastructure.sqlalchemy.repositories.account import (
     GuestAccountRepository,
     HostAccountRepository,
@@ -53,7 +49,7 @@ class AuthUseCase:
         account_id, group = token_info
 
         if group == Group.HOST:
-            host_account_repository = HostAccountRepository(self.uow, HostAccount)
+            host_account_repository = HostAccountRepository(self.uow)
 
             host_account = await host_account_repository.read_by_id_or_none_async(
                 account_id
@@ -63,7 +59,7 @@ class AuthUseCase:
 
             user_id = host_account.user_id
         elif group == Group.GUEST:
-            guest_account_repository = GuestAccountRepository(self.uow, GuestAccount)
+            guest_account_repository = GuestAccountRepository(self.uow)
 
             guest_account = await guest_account_repository.read_by_id_or_none_async(
                 account_id
@@ -82,7 +78,7 @@ class AuthUseCase:
         )
 
     async def auth_host_async(self, host_name: str, password: str) -> AuthTokenResponse:
-        host_account_repository = HostAccountRepository(self.uow, HostAccount)
+        host_account_repository = HostAccountRepository(self.uow)
 
         host_account = await host_account_repository.read_by_host_name_or_none_async(
             host_name
@@ -122,8 +118,8 @@ class AuthUseCase:
         password: str,
         host_name: str,
     ) -> AuthTokenResponse:
-        host_account_repository = HostAccountRepository(self.uow, HostAccount)
-        guest_account_repository = GuestAccountRepository(self.uow, GuestAccount)
+        host_account_repository = HostAccountRepository(self.uow)
+        guest_account_repository = GuestAccountRepository(self.uow)
 
         host_account = await host_account_repository.read_by_host_name_or_none_async(
             host_name
@@ -211,7 +207,7 @@ class AuthUseCase:
             )
 
         if account_dto.group == Group.HOST:
-            host_account_repository = HostAccountRepository(self.uow, HostAccount)
+            host_account_repository = HostAccountRepository(self.uow)
 
             host_account: HostAccountEntity = (
                 await host_account_repository.read_by_id_async(account_dto.account_id)
@@ -229,7 +225,7 @@ class AuthUseCase:
                 refresh_token_max_age=int(self._REFRESH_TOKEN_EXPIRES.total_seconds()),
             )
         elif account_dto.group == Group.GUEST:
-            guest_account_repository = GuestAccountRepository(self.uow, GuestAccount)
+            guest_account_repository = GuestAccountRepository(self.uow)
 
             guest_account: GuestAccountEntity = (
                 await guest_account_repository.read_by_id_async(account_dto.account_id)

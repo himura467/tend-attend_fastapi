@@ -10,6 +10,10 @@ from ta_core.infrastructure.sqlalchemy.repositories.base import AbstractReposito
 class HostVerificationRepository(
     AbstractRepository[HostVerificationEntity, HostVerification]
 ):
+    @property
+    def _model(self) -> type[HostVerification]:
+        return HostVerification
+
     async def create_host_verification_async(
         self,
         entity_id: str,

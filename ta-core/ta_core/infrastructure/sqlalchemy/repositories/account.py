@@ -10,6 +10,10 @@ from ta_core.infrastructure.sqlalchemy.repositories.base import AbstractReposito
 
 
 class HostAccountRepository(AbstractRepository[HostAccountEntity, HostAccount]):
+    @property
+    def _model(self) -> type[HostAccount]:
+        return HostAccount
+
     async def create_host_account_async(
         self,
         entity_id: str,
@@ -41,6 +45,10 @@ class HostAccountRepository(AbstractRepository[HostAccountEntity, HostAccount]):
 
 
 class GuestAccountRepository(AbstractRepository[GuestAccountEntity, GuestAccount]):
+    @property
+    def _model(self) -> type[GuestAccount]:
+        return GuestAccount
+
     async def create_guest_account_async(
         self,
         entity_id: str,

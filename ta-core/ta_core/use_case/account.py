@@ -11,10 +11,7 @@ from ta_core.dtos.account import (
 )
 from ta_core.error.error_code import ErrorCode
 from ta_core.infrastructure.db.transaction import rollbackable
-from ta_core.infrastructure.sqlalchemy.models.commons.account import (
-    GuestAccount,
-    HostAccount,
-)
+from ta_core.infrastructure.sqlalchemy.models.commons.account import HostAccount
 from ta_core.infrastructure.sqlalchemy.models.sequences.sequence import SequenceUserId
 from ta_core.infrastructure.sqlalchemy.repositories.account import (
     GuestAccountRepository,
@@ -34,7 +31,7 @@ class AccountUseCase:
     async def create_host_account_async(
         self, host_name: str, password: str, email: EmailStr
     ) -> CreateHostAccountResponse:
-        host_account_repository = HostAccountRepository(self.uow, HostAccount)
+        host_account_repository = HostAccountRepository(self.uow)
 
         host_account = await host_account_repository.create_host_account_async(
             entity_id=generate_uuid(),
@@ -58,8 +55,8 @@ class AccountUseCase:
         password: str,
         host_name: str,
     ) -> CreateGuestAccountResponse:
-        host_account_repository = HostAccountRepository(self.uow, HostAccount)
-        guest_account_repository = GuestAccountRepository(self.uow, GuestAccount)
+        host_account_repository = HostAccountRepository(self.uow)
+        guest_account_repository = GuestAccountRepository(self.uow)
 
         user_id = await SequenceUserId.id_generator(self.uow)
 
@@ -89,7 +86,7 @@ class AccountUseCase:
 
     @rollbackable
     async def get_guests_info_async(self, host_id: str) -> GetGuestsInfoResponse:
-        host_account_repository = HostAccountRepository(self.uow, HostAccount)
+        host_account_repository = HostAccountRepository(self.uow)
 
         host_account = await host_account_repository.read_by_id_or_none_async(
             host_id, HostAccount.guests

@@ -6,8 +6,6 @@ from pydantic.networks import EmailStr
 from ta_core.dtos.verify import RequestEmailVerificationResponse
 from ta_core.error.error_code import ErrorCode
 from ta_core.infrastructure.db.transaction import rollbackable
-from ta_core.infrastructure.sqlalchemy.models.commons.account import HostAccount
-from ta_core.infrastructure.sqlalchemy.models.shards.verify import HostVerification
 from ta_core.infrastructure.sqlalchemy.repositories.account import HostAccountRepository
 from ta_core.infrastructure.sqlalchemy.repositories.verify import (
     HostVerificationRepository,
@@ -27,10 +25,8 @@ class VerifyUseCase:
     async def request_email_verification_async(
         self, host_email: EmailStr
     ) -> RequestEmailVerificationResponse:
-        host_account_repository = HostAccountRepository(self.uow, HostAccount)
-        host_verification_repository = HostVerificationRepository(
-            self.uow, HostVerification
-        )
+        host_account_repository = HostAccountRepository(self.uow)
+        host_verification_repository = HostVerificationRepository(self.uow)
 
         host_account = await host_account_repository.read_by_email_or_none_async(
             host_email
