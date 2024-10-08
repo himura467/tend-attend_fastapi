@@ -1,10 +1,11 @@
 from abc import abstractmethod
 from typing import Any
 
-from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.attributes import QueryableAttribute
+from sqlalchemy.orm.strategy_options import joinedload
+from sqlalchemy.sql import select
+from sqlalchemy.sql.elements import UnaryExpression
 
 from ta_core.domain.repositories.base import IRepository, TEntity, TModel
 from ta_core.use_case.unit_of_work_base import IUnitOfWork
@@ -53,21 +54,21 @@ class AbstractRepository(IRepository[TEntity, TModel]):
         if joined_args is not None:
             stmt = stmt.options(joinedload(joined_args))
         result = await self._uow.execute_async(stmt)
-        return tuple(record.to_entity() for record in result.unique().all())
+        return tuple(record.to_entity() for record in result.unique().scalars().all())
 
     async def read_one_async(
-        self, *whereclause: Any, joined_args: QueryableAttribute[Any] | None = None
+        self, where: tuple[Any, ...], joined_args: QueryableAttribute[Any] | None = None
     ) -> TEntity:
-        stmt = select(self._model).where(*whereclause)
+        stmt = select(self._model).where(*where)
         if joined_args is not None:
             stmt = stmt.options(joinedload(joined_args))
         result = await self._uow.execute_async(stmt)
         return result.unique().scalar_one().to_entity()
 
     async def read_one_or_none_async(
-        self, *whereclause: Any, joined_args: QueryableAttribute[Any] | None = None
+        self, where: tuple[Any, ...], joined_args: QueryableAttribute[Any] | None = None
     ) -> TEntity | None:
-        stmt = select(self._model).where(*whereclause)
+        stmt = select(self._model).where(*where)
         if joined_args is not None:
             stmt = stmt.options(joinedload(joined_args))
         record = (await self._uow.execute_async(stmt)).unique().scalar_one_or_none()
@@ -80,7 +81,20 @@ class AbstractRepository(IRepository[TEntity, TModel]):
         if joined_args is not None:
             stmt = stmt.options(joinedload(joined_args))
         result = await self._uow.execute_async(stmt)
-        return tuple(record.to_entity() for record in result.unique().all())
+        return tuple(record.to_entity() for record in result.unique().scalars().all())
+
+    async def read_order_by_limit_async(
+        self,
+        where: tuple[Any, ...],
+        order_by: UnaryExpression[Any],
+        limit: int,
+        joined_args: QueryableAttribute[Any] | None = None,
+    ) -> tuple[TEntity, ...]:
+        stmt = select(self._model).where(*where).order_by(order_by).limit(limit)
+        if joined_args is not None:
+            stmt = stmt.options(joinedload(joined_args))
+        result = await self._uow.execute_async(stmt)
+        return tuple(record.to_entity() for record in result.unique().scalars().all())
 
     async def update_async(self, entity: TEntity) -> TEntity | None:
         stmt = select(self._model).where(self._model.id == entity.id)

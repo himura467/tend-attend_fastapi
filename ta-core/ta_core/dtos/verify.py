@@ -10,3 +10,12 @@ class RequestEmailVerificationRequest(BaseModel):
 
 class RequestEmailVerificationResponse(BaseModelWithErrorCodes):
     pass
+
+
+class VerifyEmailRequest(BaseModel):
+    host_email: EmailStr
+    verification_token: str
+
+
+class VerifyEmailResponse(BaseModelWithErrorCodes):
+    pass

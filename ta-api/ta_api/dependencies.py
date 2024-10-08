@@ -2,7 +2,7 @@ from dataclasses import dataclass
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio.session import AsyncSession
 from ta_core.dtos.account import Account
 from ta_core.features.account import Role, groupRoleMap
 from ta_core.features.auth import TokenType

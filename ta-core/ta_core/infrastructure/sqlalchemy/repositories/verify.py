@@ -3,7 +3,7 @@ from datetime import datetime
 from pydantic.networks import EmailStr
 
 from ta_core.domain.entities.verify import HostVerification as HostVerificationEntity
-from ta_core.infrastructure.sqlalchemy.models.shards.verify import HostVerification
+from ta_core.infrastructure.sqlalchemy.models.commons.verify import HostVerification
 from ta_core.infrastructure.sqlalchemy.repositories.base import AbstractRepository
 
 
@@ -28,3 +28,13 @@ class HostVerificationRepository(
             token_expires_at=token_expires_at,
         )
         return await self.create_async(host_verification)
+
+    async def read_latest_by_host_email_or_none_async(
+        self, host_email: EmailStr
+    ) -> HostVerificationEntity | None:
+        host_verifications = await self.read_order_by_limit_async(
+            where=(self._model.host_email == host_email,),
+            order_by=self._model.token_expires_at.desc(),
+            limit=1,
+        )
+        return host_verifications[0] if host_verifications else None

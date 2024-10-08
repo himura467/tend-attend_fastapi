@@ -1,27 +1,26 @@
 from datetime import datetime
 
 from pydantic.networks import EmailStr
-from sqlalchemy import ForeignKey
-from sqlalchemy.dialects.mysql import DATETIME, VARCHAR
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.dialects.mysql.types import DATETIME, VARCHAR
+from sqlalchemy.orm import mapped_column
+from sqlalchemy.orm.base import Mapped
+from sqlalchemy.sql.schema import ForeignKey
 
 from ta_core.domain.entities.verify import HostVerification as HostVerificationEntity
-from ta_core.infrastructure.sqlalchemy.models.commons.account import HostAccount
-from ta_core.infrastructure.sqlalchemy.models.shards.base import (
-    AbstractShardDynamicBase,
+from ta_core.infrastructure.sqlalchemy.models.commons.base import (
+    AbstractCommonDynamicBase,
 )
 
 
-class HostVerification(AbstractShardDynamicBase):
+class HostVerification(AbstractCommonDynamicBase):
     host_email: Mapped[EmailStr] = mapped_column(
         VARCHAR(64), ForeignKey("host_account.email", ondelete="CASCADE")
     )
-    host: Mapped[HostAccount] = relationship(back_populates="host_verifications")
     verification_token: Mapped[str] = mapped_column(
         VARCHAR(36), comment="Verification Token"
     )
     token_expires_at: Mapped[datetime] = mapped_column(
-        DATETIME(timezone=True), comment="Token Expires At"
+        DATETIME(timezone=True), index=True, comment="Token Expires At"
     )
 
     def to_entity(self) -> HostVerificationEntity:

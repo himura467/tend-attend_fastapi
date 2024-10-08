@@ -1,7 +1,7 @@
 from abc import ABCMeta, abstractmethod
 from typing import Any, Generic, Protocol, Type, TypeVar
 
-from sqlalchemy.orm import Mapped
+from sqlalchemy.orm.base import Mapped
 
 from ta_core.domain.entities.base import IEntity
 

@@ -36,12 +36,14 @@ class HostAccountRepository(AbstractRepository[HostAccountEntity, HostAccount]):
     async def read_by_host_name_or_none_async(
         self, host_name: str
     ) -> HostAccountEntity | None:
-        return await self.read_one_or_none_async(self._model.host_name == host_name)
+        return await self.read_one_or_none_async(
+            where=(self._model.host_name == host_name,)
+        )
 
     async def read_by_email_or_none_async(
         self, email: EmailStr
     ) -> HostAccountEntity | None:
-        return await self.read_one_or_none_async(self._model.email == email)
+        return await self.read_one_or_none_async(where=(self._model.email == email,))
 
 
 class GuestAccountRepository(AbstractRepository[GuestAccountEntity, GuestAccount]):
@@ -80,8 +82,10 @@ class GuestAccountRepository(AbstractRepository[GuestAccountEntity, GuestAccount
         host_id: str,
     ) -> GuestAccountEntity | None:
         return await self.read_one_or_none_async(
-            self._model.guest_first_name == guest_first_name,
-            self._model.guest_last_name == guest_last_name,
-            self._model.guest_nickname == guest_nickname,
-            self._model.host_id == host_id,
+            where=(
+                self._model.guest_first_name == guest_first_name,
+                self._model.guest_last_name == guest_last_name,
+                self._model.guest_nickname == guest_nickname,
+                self._model.host_id == host_id,
+            )
         )

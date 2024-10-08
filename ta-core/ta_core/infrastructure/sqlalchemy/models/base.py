@@ -1,7 +1,6 @@
 from typing import Any
 
-from sqlalchemy.ext.declarative import declared_attr
-from sqlalchemy.orm import DeclarativeBase
+from sqlalchemy.orm.decl_api import DeclarativeBase, declared_attr
 
 from ta_core.utils.case_converter import pascal_to_snake
 

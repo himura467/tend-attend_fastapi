@@ -1,10 +1,11 @@
 from typing import List
 
 from pydantic.networks import EmailStr
-from sqlalchemy import ForeignKey, UniqueConstraint
-from sqlalchemy.dialects.mysql import BIGINT, VARCHAR
+from sqlalchemy.dialects.mysql.types import BIGINT, VARCHAR
 from sqlalchemy.exc import StatementError
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import mapped_column, relationship
+from sqlalchemy.orm.base import Mapped
+from sqlalchemy.sql.schema import ForeignKey, UniqueConstraint
 
 from ta_core.domain.entities.account import GuestAccount as GuestAccountEntity
 from ta_core.domain.entities.account import HostAccount as HostAccountEntity
