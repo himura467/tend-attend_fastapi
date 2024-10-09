@@ -1,9 +1,11 @@
 from typing import List
 
-from sqlalchemy import ForeignKey, UniqueConstraint
-from sqlalchemy.dialects.mysql import BIGINT, VARCHAR
+from pydantic.networks import EmailStr
+from sqlalchemy.dialects.mysql.types import BIGINT, VARCHAR
 from sqlalchemy.exc import StatementError
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import mapped_column, relationship
+from sqlalchemy.orm.base import Mapped
+from sqlalchemy.sql.schema import ForeignKey, UniqueConstraint
 
 from ta_core.domain.entities.account import GuestAccount as GuestAccountEntity
 from ta_core.domain.entities.account import HostAccount as HostAccountEntity
@@ -22,7 +24,7 @@ class HostAccount(AbstractCommonDynamicBase):
     refresh_token: Mapped[str] = mapped_column(
         VARCHAR(512), nullable=True, comment="Refresh Token"
     )
-    email: Mapped[str] = mapped_column(
+    email: Mapped[EmailStr] = mapped_column(
         VARCHAR(64), unique=True, comment="Email Address"
     )
     user_id: Mapped[int] = mapped_column(
@@ -46,9 +48,9 @@ class HostAccount(AbstractCommonDynamicBase):
             guests=guests,
         )
 
-    @staticmethod
-    def from_entity(entity: HostAccountEntity) -> "HostAccount":
-        return HostAccount(
+    @classmethod
+    def from_entity(cls, entity: HostAccountEntity) -> "HostAccount":
+        return cls(
             id=entity.id,
             host_name=entity.host_name,
             hashed_password=entity.hashed_password,
@@ -93,9 +95,9 @@ class GuestAccount(AbstractCommonDynamicBase):
             host_id=self.host_id,
         )
 
-    @staticmethod
-    def from_entity(entity: GuestAccountEntity) -> "GuestAccount":
-        return GuestAccount(
+    @classmethod
+    def from_entity(cls, entity: GuestAccountEntity) -> "GuestAccount":
+        return cls(
             id=entity.id,
             guest_first_name=entity.guest_first_name,
             guest_last_name=entity.guest_last_name,

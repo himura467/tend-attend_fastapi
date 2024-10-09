@@ -1,9 +1,10 @@
 from typing import Any
 
-from sqlalchemy import select
-from sqlalchemy.dialects.mysql import BIGINT
-from sqlalchemy.ext.declarative import declared_attr
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.dialects.mysql.types import BIGINT
+from sqlalchemy.orm import mapped_column
+from sqlalchemy.orm.base import Mapped
+from sqlalchemy.orm.decl_api import declared_attr
+from sqlalchemy.sql import select
 
 from ta_core.infrastructure.db.settings import DB_SEQUENCE_CONNECTION_KEY
 from ta_core.infrastructure.sqlalchemy.models.base import AbstractBase

@@ -1,11 +1,12 @@
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import text
-from sqlalchemy.dialects.mysql import DATETIME, VARCHAR
-from sqlalchemy.ext.declarative import declared_attr
-from sqlalchemy.orm import Mapped, mapped_column
-from sqlalchemy.sql import func
+from sqlalchemy.dialects.mysql.types import DATETIME, VARCHAR
+from sqlalchemy.orm import mapped_column
+from sqlalchemy.orm.base import Mapped
+from sqlalchemy.orm.decl_api import declared_attr
+from sqlalchemy.sql import text
+from sqlalchemy.sql.functions import func
 
 from ta_core.infrastructure.db.settings import DB_COMMON_CONNECTION_KEY
 from ta_core.infrastructure.sqlalchemy.models.base import AbstractBase

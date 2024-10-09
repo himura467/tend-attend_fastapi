@@ -1,7 +1,7 @@
 from typing import Any
 
-from sqlalchemy.engine import Result
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.engine.result import Result
+from sqlalchemy.ext.asyncio.session import AsyncSession
 from sqlalchemy.sql.base import Executable
 
 from ta_core.use_case.unit_of_work_base import IUnitOfWork

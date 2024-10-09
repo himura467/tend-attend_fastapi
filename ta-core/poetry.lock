@@ -19,6 +19,21 @@ rsa = ["PyMySQL[rsa] (>=1.0)"]
 sa = ["sqlalchemy (>=1.3,<1.4)"]
 
 [[package]]
+name = "aiosmtplib"
+version = "3.0.2"
+description = "asyncio SMTP client"
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "aiosmtplib-3.0.2-py3-none-any.whl", hash = "sha256:8783059603a34834c7c90ca51103c3aa129d5922003b5ce98dbaa6d4440f10fc"},
+    {file = "aiosmtplib-3.0.2.tar.gz", hash = "sha256:08fd840f9dbc23258025dca229e8a8f04d2ccf3ecb1319585615bfc7933f7f47"},
+]
+
+[package.extras]
+docs = ["furo (>=2023.9.10)", "sphinx (>=7.0.0)", "sphinx-autodoc-typehints (>=1.24.0)", "sphinx-copybutton (>=0.5.0)"]
+uvloop = ["uvloop (>=0.18)"]
+
+[[package]]
 name = "annotated-types"
 version = "0.7.0"
 description = "Reusable constraint types to use with typing.Annotated"
@@ -910,4 +925,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "3.11.4"
-content-hash = "9661342cae2e612f4050182120855690b7585f40257f04ce5a623fffe91d78c5"
+content-hash = "0dc0f43945ca6410f0ef81044a9cd628093d9cfac9c4f6de6b812ca8ce369e88"

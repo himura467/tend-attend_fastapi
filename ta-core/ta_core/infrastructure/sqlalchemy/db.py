@@ -1,6 +1,7 @@
 from typing import AsyncGenerator
 
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio.engine import create_async_engine
+from sqlalchemy.ext.asyncio.session import AsyncSession, async_sessionmaker
 from sqlalchemy.ext.horizontal_shard import ShardedSession
 
 from ta_core.infrastructure.db.settings import CONNECTIONS

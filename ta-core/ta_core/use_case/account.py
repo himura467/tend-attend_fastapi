@@ -1,5 +1,7 @@
 from dataclasses import dataclass
 
+from pydantic.networks import EmailStr
+
 from ta_core.cryptography.hash import PasswordHasher
 from ta_core.dtos.account import (
     CreateGuestAccountResponse,
@@ -9,10 +11,7 @@ from ta_core.dtos.account import (
 )
 from ta_core.error.error_code import ErrorCode
 from ta_core.infrastructure.db.transaction import rollbackable
-from ta_core.infrastructure.sqlalchemy.models.commons.account import (
-    GuestAccount,
-    HostAccount,
-)
+from ta_core.infrastructure.sqlalchemy.models.commons.account import HostAccount
 from ta_core.infrastructure.sqlalchemy.models.sequences.sequence import SequenceUserId
 from ta_core.infrastructure.sqlalchemy.repositories.account import (
     GuestAccountRepository,
@@ -30,9 +29,9 @@ class AccountUseCase:
 
     @rollbackable
     async def create_host_account_async(
-        self, host_name: str, password: str, email: str
+        self, host_name: str, password: str, email: EmailStr
     ) -> CreateHostAccountResponse:
-        host_account_repository = HostAccountRepository(self.uow, HostAccount)  # type: ignore
+        host_account_repository = HostAccountRepository(self.uow)
 
         host_account = await host_account_repository.create_host_account_async(
             entity_id=generate_uuid(),
@@ -56,8 +55,8 @@ class AccountUseCase:
         password: str,
         host_name: str,
     ) -> CreateGuestAccountResponse:
-        host_account_repository = HostAccountRepository(self.uow, HostAccount)  # type: ignore
-        guest_account_repository = GuestAccountRepository(self.uow, GuestAccount)  # type: ignore
+        host_account_repository = HostAccountRepository(self.uow)
+        guest_account_repository = GuestAccountRepository(self.uow)
 
         user_id = await SequenceUserId.id_generator(self.uow)
 
@@ -87,21 +86,27 @@ class AccountUseCase:
 
     @rollbackable
     async def get_guests_info_async(self, host_id: str) -> GetGuestsInfoResponse:
-        host_account_repository = HostAccountRepository(self.uow, HostAccount)  # type: ignore
+        host_account_repository = HostAccountRepository(self.uow)
 
-        host_account = await host_account_repository.read_by_id_or_none_async(host_id, HostAccount.guests)  # type: ignore[func-returns-value]
+        host_account = await host_account_repository.read_by_id_or_none_async(
+            host_id, HostAccount.guests
+        )
         if host_account is None:
             raise ValueError("Host ID not found")
 
         return GetGuestsInfoResponse(
             error_codes=(),
             guests=(
-                GuestInfo(
-                    account_id=guest.id,
-                    first_name=guest.guest_first_name,
-                    last_name=guest.guest_last_name,
-                    nickname=guest.guest_nickname,
+                tuple(
+                    GuestInfo(
+                        account_id=guest.id,
+                        first_name=guest.guest_first_name,
+                        last_name=guest.guest_last_name,
+                        nickname=guest.guest_nickname,
+                    )
+                    for guest in host_account.guests
                 )
-                for guest in host_account.guests
+                if host_account.guests
+                else tuple()
             ),
         )
