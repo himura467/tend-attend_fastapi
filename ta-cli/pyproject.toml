@@ -6,7 +6,7 @@ authors = ["Your Name <you@example.com>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "3.11.4"
+python = "3.12.7"
 typer = {extras = ["all"], version = "^0.12.3"}
 ta-core = {path = "../ta-core", develop = true}
 
