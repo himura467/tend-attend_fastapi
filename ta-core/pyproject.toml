@@ -21,6 +21,9 @@ flake8 = "^7.0.0"
 black = "^24.3.0"
 isort = "^5.13.2"
 poethepoet = "^0.25.0"
+pytest = "^8.3.3"
+pytest-asyncio = "^0.24.0"
+pytest-mysql = "^3.0.0"
 
 [build-system]
 requires = ["poetry-core"]
@@ -37,3 +40,4 @@ black = "black ta_core tests"
 isort = "isort ta_core tests"
 lint = ["mypy", "flake8"]
 format = ["black", "isort"]
+test = "pytest tests"
