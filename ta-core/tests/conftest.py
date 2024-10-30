@@ -20,8 +20,8 @@ from ta_core.infrastructure.sqlalchemy.models.commons.verify import (  # noqa: F
 from ta_core.infrastructure.sqlalchemy.models.sequences.sequence import (  # noqa: F401
     SequenceUserId,
 )
-from tests.test_settings import CONNECTIONS
-from tests.test_sharding import execute_chooser, identity_chooser, shard_chooser
+from tests.db_settings import CONNECTIONS
+from tests.db_sharding import execute_chooser, identity_chooser, shard_chooser
 
 
 @pytest.fixture(scope="session")

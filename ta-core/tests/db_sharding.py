@@ -6,7 +6,7 @@ from sqlalchemy.orm.session import ORMExecuteState
 from sqlalchemy.orm.state import InstanceState
 from sqlalchemy.sql.elements import ClauseElement
 
-from tests.test_settings import (
+from tests.db_settings import (
     CONNECTIONS,
     TEST_DB_COMMON_CONNECTION_KEY,
     TEST_DB_SEQUENCE_CONNECTION_KEY,
