@@ -6,6 +6,9 @@ from sqlalchemy.orm.session import ORMExecuteState
 from sqlalchemy.orm.state import InstanceState
 from sqlalchemy.sql.elements import ClauseElement
 
+from ta_core.infrastructure.sqlalchemy.models.commons.base import AbstractCommonBase
+from ta_core.infrastructure.sqlalchemy.models.sequences.base import AbstractSequenceBase
+from ta_core.infrastructure.sqlalchemy.models.shards.base import AbstractShardBase
 from tests.db_settings import (
     CONNECTIONS,
     TEST_DB_COMMON_CONNECTION_KEY,
@@ -13,9 +16,6 @@ from tests.db_settings import (
     TEST_DB_SHARD_CONNECTION_KEYS,
     TEST_DB_SHARD_COUNT,
 )
-from ta_core.infrastructure.sqlalchemy.models.commons.base import AbstractCommonBase
-from ta_core.infrastructure.sqlalchemy.models.sequences.base import AbstractSequenceBase
-from ta_core.infrastructure.sqlalchemy.models.shards.base import AbstractShardBase
 
 _T = TypeVar("_T", bound=Any)
 
