@@ -1,5 +1,6 @@
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
+from pydantic.networks import EmailStr
 
 from ta_core.infrastructure.sqlalchemy.repositories.account import (
     GuestAccountRepository,
@@ -17,7 +18,7 @@ from ta_core.utils.uuid import generate_uuid
     ],
 )
 async def test_create_host_account_async(
-    test_session: AsyncSession, host_name: str, hashed_password: str, email: str
+    test_session: AsyncSession, host_name: str, hashed_password: str, email: EmailStr
 ):
     uow = SqlalchemyUnitOfWork(session=test_session)
     host_account_repository = HostAccountRepository(uow)
@@ -43,7 +44,7 @@ async def test_create_host_account_async(
     ],
 )
 async def test_read_by_host_name_or_none_async(
-    test_session: AsyncSession, host_name: str, hashed_password: str, email: str
+    test_session: AsyncSession, host_name: str, hashed_password: str, email: EmailStr
 ):
     uow = SqlalchemyUnitOfWork(session=test_session)
     host_account_repository = HostAccountRepository(uow)
@@ -72,7 +73,7 @@ async def test_read_by_host_name_or_none_async(
     ],
 )
 async def test_read_by_email_or_none_async(
-    test_session: AsyncSession, host_name: str, hashed_password: str, email: str
+    test_session: AsyncSession, host_name: str, hashed_password: str, email: EmailStr
 ):
     uow = SqlalchemyUnitOfWork(session=test_session)
     host_account_repository = HostAccountRepository(uow)
@@ -113,7 +114,7 @@ async def test_create_guest_account_async(
     test_session: AsyncSession,
     host_name: str,
     host_hashed_password: str,
-    email: str,
+    email: EmailStr,
     guest_first_name: str,
     guest_last_name: str,
     guest_nickname: str,
@@ -170,7 +171,7 @@ async def test_read_by_guest_name_and_host_id_or_none_async(
     test_session: AsyncSession,
     host_name: str,
     host_hashed_password: str,
-    email: str,
+    email: EmailStr,
     guest_first_name: str,
     guest_last_name: str,
     guest_nickname: str,
