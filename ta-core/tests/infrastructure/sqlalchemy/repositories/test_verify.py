@@ -32,7 +32,7 @@ async def test_create_host_verification_async(
     host_email: EmailStr,
     verification_token: str,
     token_expires_at: datetime,
-):
+) -> None:
     uow = SqlalchemyUnitOfWork(session=test_session)
     host_account_repository = HostAccountRepository(uow)
     host_verification_repository = HostVerificationRepository(uow)
@@ -78,7 +78,7 @@ async def test_read_latest_by_host_email_or_none_async(
     host_email: EmailStr,
     verification_token: str,
     token_expires_at: datetime,
-):
+) -> None:
     uow = SqlalchemyUnitOfWork(session=test_session)
     host_account_repository = HostAccountRepository(uow)
     host_verification_repository = HostVerificationRepository(uow)
