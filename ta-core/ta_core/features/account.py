@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from enum import IntEnum, StrEnum
 
 
@@ -15,3 +16,10 @@ groupRoleMap: dict[Group, list[Role]] = {
     Group.HOST: [Role.HOST, Role.GUEST],
     Group.GUEST: [Role.GUEST],
 }
+
+
+@dataclass(frozen=True)
+class Account:
+    account_id: str
+    group: Group
+    disabled: bool
