@@ -17,10 +17,10 @@ class HostVerification(AbstractCommonDynamicBase):
         VARCHAR(64), ForeignKey("host_account.email", ondelete="CASCADE")
     )
     verification_token: Mapped[str] = mapped_column(
-        VARCHAR(36), comment="Verification Token"
+        VARCHAR(36), nullable=False, comment="Verification Token"
     )
     token_expires_at: Mapped[datetime] = mapped_column(
-        DATETIME(timezone=True), index=True, comment="Token Expires At"
+        DATETIME(timezone=True), index=True, nullable=False, comment="Token Expires At"
     )
 
     def to_entity(self) -> HostVerificationEntity:

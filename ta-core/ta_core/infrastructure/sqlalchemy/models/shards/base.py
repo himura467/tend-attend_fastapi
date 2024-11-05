@@ -30,9 +30,11 @@ class AbstractShardDynamicBase(AbstractShardBase):
 
     id: Mapped[str] = mapped_column(VARCHAR(36), primary_key=True, autoincrement=False)
     created_at: Mapped[datetime] = mapped_column(
-        DATETIME(timezone=True), server_default=func.now()
+        DATETIME(timezone=True), server_default=func.now(), index=True, nullable=False
     )
     updated_at: Mapped[datetime] = mapped_column(
         DATETIME(timezone=True),
         server_default=text("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"),
+        index=True,
+        nullable=False,
     )
