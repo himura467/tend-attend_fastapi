@@ -1,7 +1,7 @@
 from typing import List
 
 from pydantic.networks import EmailStr
-from sqlalchemy.dialects.mysql.types import BIGINT, VARCHAR
+from sqlalchemy.dialects.mysql import BIGINT, VARCHAR
 from sqlalchemy.exc import StatementError
 from sqlalchemy.orm import mapped_column, relationship
 from sqlalchemy.orm.base import Mapped
@@ -30,7 +30,7 @@ class HostAccount(AbstractCommonDynamicBase):
     user_id: Mapped[int | None] = mapped_column(
         BIGINT(unsigned=True), unique=True, nullable=True, comment="User ID"
     )
-    guests: Mapped[List["GuestAccount"]] = relationship(back_populates="host")
+    guests: Mapped[List["GuestAccount"]] = relationship(back_populates="host", uselist=True)
 
     def to_entity(self) -> HostAccountEntity:
         try:
@@ -80,9 +80,9 @@ class GuestAccount(AbstractCommonDynamicBase):
         BIGINT(unsigned=True), unique=True, nullable=False, comment="User ID"
     )
     host_id: Mapped[str] = mapped_column(
-        VARCHAR(36), ForeignKey("host_account.id", ondelete="CASCADE")
+        VARCHAR(36), ForeignKey("host_account.id", ondelete="CASCADE"), nullable=False
     )
-    host: Mapped["HostAccount"] = relationship(back_populates="guests")
+    host: Mapped["HostAccount"] = relationship(back_populates="guests", uselist=False)
     UniqueConstraint("guest_first_name", "guest_last_name", "guest_nickname", "host_id")
 
     def to_entity(self) -> GuestAccountEntity:

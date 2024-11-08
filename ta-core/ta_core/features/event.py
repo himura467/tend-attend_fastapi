@@ -100,10 +100,10 @@ class Recurrence:
 
     # EXDATE and RDATE can have a time zone, and must be dates (not date-times) for all-day events.
 
-    # The RDATE property specifies additional dates or date-times when the event occurrences should happen.
+    # The RDATE property specifies additional dates when the event occurrences should happen.
     rdate: tuple[date, ...]
 
-    # The EXDATE property is similar to RDATE, but specifies dates or date-times when the event should not happen.
+    # The EXDATE property is similar to RDATE, but specifies dates when the event should not happen.
     exdate: tuple[date, ...]
 
 

@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from pydantic.networks import EmailStr
-from sqlalchemy.dialects.mysql.types import DATETIME, VARCHAR
+from sqlalchemy.dialects.mysql import DATETIME, VARCHAR
 from sqlalchemy.orm import mapped_column
 from sqlalchemy.orm.base import Mapped
 from sqlalchemy.sql.schema import ForeignKey
@@ -14,7 +14,7 @@ from ta_core.infrastructure.sqlalchemy.models.commons.base import (
 
 class HostVerification(AbstractCommonDynamicBase):
     host_email: Mapped[EmailStr] = mapped_column(
-        VARCHAR(64), ForeignKey("host_account.email", ondelete="CASCADE")
+        VARCHAR(64), ForeignKey("host_account.email", ondelete="CASCADE"), nullable=False
     )
     verification_token: Mapped[str] = mapped_column(
         VARCHAR(36), nullable=False, comment="Verification Token"

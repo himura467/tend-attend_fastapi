@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy.dialects.mysql.types import DATETIME, VARCHAR
+from sqlalchemy.dialects.mysql import DATETIME, VARCHAR
 from sqlalchemy.orm import mapped_column
 from sqlalchemy.orm.base import Mapped
 from sqlalchemy.orm.decl_api import declared_attr
