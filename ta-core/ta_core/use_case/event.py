@@ -21,7 +21,7 @@ from ta_core.use_case.unit_of_work_base import IUnitOfWork
 from ta_core.utils.uuid import generate_uuid
 
 
-def convert_tuple_to_list(t: tuple | None) -> list | None:
+def convert_tuple_to_list(t: tuple[int, ...] | None) -> list[int] | None:
     return list(t) if t is not None else None
 
 
@@ -53,9 +53,14 @@ class EventUseCase:
 
         user_id = host_account.user_id
 
-        recurrence_rule_repository: AbstractRecurrenceRuleRepository
+        recurrence_rule_repository: (
+            AbstractRecurrenceRuleRepository[date]
+            | AbstractRecurrenceRuleRepository[datetime]
+        )
         recurrence_repository: AbstractRecurrenceRepository
-        event_repository: AbstractEventRepository
+        event_repository: (
+            AbstractEventRepository[date] | AbstractEventRepository[datetime]
+        )
 
         if isinstance(event.start, date):
             recurrence_rule_repository = AllDayRecurrenceRuleRepository(self.uow)
