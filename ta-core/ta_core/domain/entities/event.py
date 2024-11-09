@@ -82,7 +82,12 @@ class TimedRecurrenceRule(IEntity):
 
 class AllDayRecurrence(IEntity):
     def __init__(
-        self, entity_id: str, user_id: int, rrule_id: str, rdate: list[str], exdate: list[str]
+        self,
+        entity_id: str,
+        user_id: int,
+        rrule_id: str,
+        rdate: list[str],
+        exdate: list[str],
     ) -> None:
         super().__init__(entity_id)
         self.user_id = user_id

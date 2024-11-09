@@ -14,7 +14,9 @@ from ta_core.infrastructure.sqlalchemy.models.commons.base import (
 
 class HostVerification(AbstractCommonDynamicBase):
     host_email: Mapped[EmailStr] = mapped_column(
-        VARCHAR(64), ForeignKey("host_account.email", ondelete="CASCADE"), nullable=False
+        VARCHAR(64),
+        ForeignKey("host_account.email", ondelete="CASCADE"),
+        nullable=False,
     )
     verification_token: Mapped[str] = mapped_column(
         VARCHAR(36), nullable=False, comment="Verification Token"

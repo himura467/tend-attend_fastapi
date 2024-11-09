@@ -30,7 +30,9 @@ class HostAccount(AbstractCommonDynamicBase):
     user_id: Mapped[int | None] = mapped_column(
         BIGINT(unsigned=True), unique=True, nullable=True, comment="User ID"
     )
-    guests: Mapped[List["GuestAccount"]] = relationship(back_populates="host", uselist=True)
+    guests: Mapped[List["GuestAccount"]] = relationship(
+        back_populates="host", uselist=True
+    )
 
     def to_entity(self) -> HostAccountEntity:
         try:
