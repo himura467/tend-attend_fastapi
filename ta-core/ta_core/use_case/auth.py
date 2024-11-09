@@ -6,10 +6,9 @@ from ta_core.cryptography.hash import PasswordHasher
 from ta_core.cryptography.jwt import JWTCryptography
 from ta_core.domain.entities.account import GuestAccount as GuestAccountEntity
 from ta_core.domain.entities.account import HostAccount as HostAccountEntity
-from ta_core.dtos.account import Account
 from ta_core.dtos.auth import AuthTokenResponse
 from ta_core.error.error_code import ErrorCode
-from ta_core.features.account import Group
+from ta_core.features.account import Account, Group
 from ta_core.features.auth import TokenType
 from ta_core.infrastructure.db.transaction import rollbackable
 from ta_core.infrastructure.sqlalchemy.repositories.account import (
@@ -189,8 +188,8 @@ class AuthUseCase:
 
     @rollbackable
     async def refresh_auth_token_async(self, refresh_token: str) -> AuthTokenResponse:
-        account_dto = await self.get_account_by_token(refresh_token, TokenType.REFRESH)
-        if account_dto is None:
+        account = await self.get_account_by_token(refresh_token, TokenType.REFRESH)
+        if account is None:
             return AuthTokenResponse(
                 error_codes=(ErrorCode.REFRESH_TOKEN_INVALID,),
                 auth_token=None,
@@ -198,7 +197,7 @@ class AuthUseCase:
                 refresh_token_max_age=None,
             )
 
-        if account_dto.disabled:
+        if account.disabled:
             return AuthTokenResponse(
                 error_codes=(ErrorCode.ACCOUNT_DISABLED,),
                 auth_token=None,
@@ -206,11 +205,11 @@ class AuthUseCase:
                 refresh_token_max_age=None,
             )
 
-        if account_dto.group == Group.HOST:
+        if account.group == Group.HOST:
             host_account_repository = HostAccountRepository(self.uow)
 
             host_account: HostAccountEntity = (
-                await host_account_repository.read_by_id_async(account_dto.account_id)
+                await host_account_repository.read_by_id_async(account.account_id)
             )
             token = self._jwt_cryptography.create_auth_token(
                 host_account.id, Group.HOST
@@ -224,11 +223,11 @@ class AuthUseCase:
                 access_token_max_age=int(self._ACCESS_TOKEN_EXPIRES.total_seconds()),
                 refresh_token_max_age=int(self._REFRESH_TOKEN_EXPIRES.total_seconds()),
             )
-        elif account_dto.group == Group.GUEST:
+        elif account.group == Group.GUEST:
             guest_account_repository = GuestAccountRepository(self.uow)
 
             guest_account: GuestAccountEntity = (
-                await guest_account_repository.read_by_id_async(account_dto.account_id)
+                await guest_account_repository.read_by_id_async(account.account_id)
             )
             token = self._jwt_cryptography.create_auth_token(
                 guest_account.id, Group.GUEST

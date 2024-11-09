@@ -10,6 +10,14 @@ from ta_core.infrastructure.sqlalchemy.models.commons.verify import (  # noqa: F
 from ta_core.infrastructure.sqlalchemy.models.sequences.sequence import (  # noqa: F401
     SequenceUserId,
 )
+from ta_core.infrastructure.sqlalchemy.models.shards.event import (  # noqa: F401
+    AllDayEvent,
+    AllDayRecurrence,
+    AllDayRecurrenceRule,
+    TimedEvent,
+    TimedRecurrence,
+    TimedRecurrenceRule,
+)
 
 
 async def reset_db_async() -> None:

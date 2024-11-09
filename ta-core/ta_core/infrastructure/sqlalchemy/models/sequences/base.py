@@ -1,6 +1,6 @@
 from typing import Any
 
-from sqlalchemy.dialects.mysql.types import BIGINT
+from sqlalchemy.dialects.mysql import BIGINT
 from sqlalchemy.orm import mapped_column
 from sqlalchemy.orm.base import Mapped
 from sqlalchemy.orm.decl_api import declared_attr

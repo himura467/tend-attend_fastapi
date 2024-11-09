@@ -1,7 +1,7 @@
 from typing import List
 
 from pydantic.networks import EmailStr
-from sqlalchemy.dialects.mysql.types import BIGINT, VARCHAR
+from sqlalchemy.dialects.mysql import BIGINT, VARCHAR
 from sqlalchemy.exc import StatementError
 from sqlalchemy.orm import mapped_column, relationship
 from sqlalchemy.orm.base import Mapped
@@ -16,21 +16,23 @@ from ta_core.infrastructure.sqlalchemy.models.commons.base import (
 
 class HostAccount(AbstractCommonDynamicBase):
     host_name: Mapped[str] = mapped_column(
-        VARCHAR(64), unique=True, comment="Host Name"
+        VARCHAR(64), unique=True, nullable=False, comment="Host Name"
     )
     hashed_password: Mapped[str] = mapped_column(
-        VARCHAR(512), comment="Hashed Password"
+        VARCHAR(512), nullable=False, comment="Hashed Password"
     )
-    refresh_token: Mapped[str] = mapped_column(
+    refresh_token: Mapped[str | None] = mapped_column(
         VARCHAR(512), nullable=True, comment="Refresh Token"
     )
     email: Mapped[EmailStr] = mapped_column(
-        VARCHAR(64), unique=True, comment="Email Address"
+        VARCHAR(64), unique=True, nullable=False, comment="Email Address"
     )
-    user_id: Mapped[int] = mapped_column(
+    user_id: Mapped[int | None] = mapped_column(
         BIGINT(unsigned=True), unique=True, nullable=True, comment="User ID"
     )
-    guests: Mapped[List["GuestAccount"]] = relationship(back_populates="host")
+    guests: Mapped[List["GuestAccount"]] = relationship(
+        back_populates="host", uselist=True
+    )
 
     def to_entity(self) -> HostAccountEntity:
         try:
@@ -62,25 +64,27 @@ class HostAccount(AbstractCommonDynamicBase):
 
 class GuestAccount(AbstractCommonDynamicBase):
     guest_first_name: Mapped[str] = mapped_column(
-        VARCHAR(64), comment="Guest First Name"
+        VARCHAR(64), nullable=False, comment="Guest First Name"
     )
-    guest_last_name: Mapped[str] = mapped_column(VARCHAR(64), comment="Guest Last Name")
-    guest_nickname: Mapped[str] = mapped_column(
+    guest_last_name: Mapped[str] = mapped_column(
+        VARCHAR(64), nullable=False, comment="Guest Last Name"
+    )
+    guest_nickname: Mapped[str | None] = mapped_column(
         VARCHAR(64), nullable=True, comment="Guest Nickname"
     )
     hashed_password: Mapped[str] = mapped_column(
-        VARCHAR(512), comment="Hashed Password"
+        VARCHAR(512), nullable=False, comment="Hashed Password"
     )
-    refresh_token: Mapped[str] = mapped_column(
+    refresh_token: Mapped[str | None] = mapped_column(
         VARCHAR(512), nullable=True, comment="Refresh Token"
     )
     user_id: Mapped[int] = mapped_column(
-        BIGINT(unsigned=True), unique=True, comment="User ID"
+        BIGINT(unsigned=True), unique=True, nullable=False, comment="User ID"
     )
     host_id: Mapped[str] = mapped_column(
-        VARCHAR(36), ForeignKey("host_account.id", ondelete="CASCADE")
+        VARCHAR(36), ForeignKey("host_account.id", ondelete="CASCADE"), nullable=False
     )
-    host: Mapped["HostAccount"] = relationship(back_populates="guests")
+    host: Mapped["HostAccount"] = relationship(back_populates="guests", uselist=False)
     UniqueConstraint("guest_first_name", "guest_last_name", "guest_nickname", "host_id")
 
     def to_entity(self) -> GuestAccountEntity:

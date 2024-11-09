@@ -3,13 +3,6 @@ from pydantic.fields import Field
 from pydantic.networks import EmailStr
 
 from ta_core.dtos.base import BaseModelWithErrorCodes
-from ta_core.features.account import Group
-
-
-class Account(BaseModel):
-    account_id: str = Field(..., title="Account ID")
-    group: Group = Field(..., title="Group")
-    disabled: bool = Field(..., title="Is Disabled")
 
 
 class CreateHostAccountRequest(BaseModel):

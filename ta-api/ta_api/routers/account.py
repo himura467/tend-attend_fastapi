@@ -1,14 +1,13 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio.session import AsyncSession
 from ta_core.dtos.account import (
-    Account,
     CreateGuestAccountRequest,
     CreateGuestAccountResponse,
     CreateHostAccountRequest,
     CreateHostAccountResponse,
     GetGuestsInfoResponse,
 )
-from ta_core.features.account import Role
+from ta_core.features.account import Account, Role
 from ta_core.infrastructure.sqlalchemy.db import get_db_async
 from ta_core.infrastructure.sqlalchemy.unit_of_work import SqlalchemyUnitOfWork
 from ta_core.use_case.account import AccountUseCase

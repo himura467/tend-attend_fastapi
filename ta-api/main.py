@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from ta_api.routers import account, auth, verify
+from ta_api.routers import account, auth, verify, event
 
 app = FastAPI()
 
@@ -31,4 +31,10 @@ app.include_router(
     verify.router,
     prefix="/verify",
     tags=["verify"],
+)
+
+app.include_router(
+    event.router,
+    prefix="/events",
+    tags=["events"],
 )
