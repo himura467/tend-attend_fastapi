@@ -15,14 +15,16 @@ def parse_rrule(rrule_str: str, is_all_day: bool) -> RecurrenceRule:
     rules = dict(pair.split("=") for pair in rrule_str.split(";"))
     freq = Frequency(rules["FREQ"])
     until: date | datetime | None = None
+    count = int(rules["COUNT"]) if "COUNT" in rules else None
     if "UNTIL" in rules:
+        if count is not None:
+            raise ValueError("RRULE cannot have both COUNT and UNTIL")
         until_str = rules["UNTIL"]
         validate_date(is_all_day, until_str)
         if is_all_day:
             until = date.fromisoformat(until_str)
         else:
             until = datetime.fromisoformat(until_str)
-    count = int(rules["COUNT"]) if "COUNT" in rules else None
     interval = int(rules["INTERVAL"]) if "INTERVAL" in rules else 1
     bysecond = (
         tuple(map(int, rules["BYSECOND"].split(","))) if "BYSECOND" in rules else None

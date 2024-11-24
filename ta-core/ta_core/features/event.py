@@ -28,6 +28,8 @@ class RecurrenceRule:
     # The FREQ rule part identifies the type of recurrence rule.
     freq: Frequency
 
+    # RRULE can have either COUNT or UNTIL to specify the end of the event recurrence. Don't use both in the same rule.
+
     # The UNTIL rule part defines a DATE or DATE-TIME value that bounds the recurrence rule in an inclusive manner.
 
     # If the value specified by UNTIL is synchronized with the specified recurrence,
