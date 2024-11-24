@@ -26,7 +26,7 @@ async def create_event(
     start = request.start
     end = request.end
     recurrence_list = request.recurrence_list
-    is_all_day = request.isAllDay
+    is_all_day = request.is_all_day
 
     uow = SqlalchemyUnitOfWork(session=session)
     use_case = EventUseCase(uow=uow)

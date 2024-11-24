@@ -12,7 +12,7 @@ class CreateEventRequest(BaseModel):
     start: datetime = Field(..., title="Start")
     end: datetime = Field(..., title="End")
     recurrence_list: list[str] = Field([], title="Recurrence List")
-    isAllDay: bool = Field(True, title="Is All Day")
+    is_all_day: bool = Field(True, title="Is All Day")
 
 
 class CreateEventResponse(BaseModelWithErrorCodes):
