@@ -91,11 +91,15 @@ def parse_recurrence(recurrence_list: list[str], is_all_day: bool) -> Recurrence
         if rec.startswith("RRULE:"):
             rrule = parse_rrule(rec, is_all_day)
         elif rec.startswith("RDATE;"):
+            if not is_all_day:
+                raise ValueError("RDATE must be date-only for all-day events")
             rdate.extend(
                 datetime.strptime(date_str, "%Y%m%d").date()
                 for date_str in rec.replace("RDATE;VALUE=DATE:", "").split(",")
             )
         elif rec.startswith("EXDATE;"):
+            if not is_all_day:
+                raise ValueError("EXDATE must be date-only for all-day events")
             exdate.extend(
                 datetime.strptime(date_str, "%Y%m%d").date()
                 for date_str in rec.replace("EXDATE;VALUE=DATE:", "").split(",")
