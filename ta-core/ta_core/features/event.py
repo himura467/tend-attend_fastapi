@@ -145,4 +145,4 @@ def validate_date(is_all_day: bool, date_value: date | datetime | str) -> None:
     except ValueError:
         raise ValueError(f"Invalid date format: {date_value}")
     except AssertionError:
-        raise AssertionError(f"Invalid time: {date_value}")
+        raise ValueError(f"Invalid time: {date_value}")
