@@ -4,13 +4,13 @@ from enum import StrEnum
 
 
 class Frequency(StrEnum):
-    SECONDLY = "secondly"
-    MINUTELY = "minutely"
-    HOURLY = "hourly"
-    DAILY = "daily"
-    WEEKLY = "weekly"
-    MONTHLY = "monthly"
-    YEARLY = "yearly"
+    SECONDLY = "SECONDLY"
+    MINUTELY = "MINUTELY"
+    HOURLY = "HOURLY"
+    DAILY = "DAILY"
+    WEEKLY = "WEEKLY"
+    MONTHLY = "MONTHLY"
+    YEARLY = "YEARLY"
 
 
 class Weekday(StrEnum):
