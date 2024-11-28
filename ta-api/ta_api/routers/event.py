@@ -21,9 +21,22 @@ async def create_event(
     session: AsyncSession = Depends(get_db_async),
     account: Account = Depends(AccessControl(permit={Role.HOST})),
 ) -> CreateEventResponse:
-    event = request.event
+    summary = request.summary
+    location = request.location
+    start = request.start
+    end = request.end
+    recurrence_list = request.recurrence_list
+    is_all_day = request.is_all_day
 
     uow = SqlalchemyUnitOfWork(session=session)
     use_case = EventUseCase(uow=uow)
 
-    return await use_case.create_event_async(host_id=account.account_id, event=event)
+    return await use_case.create_event_async(
+        host_id=account.account_id,
+        summary=summary,
+        location=location,
+        start_dt=start,
+        end_dt=end,
+        recurrence_list=recurrence_list,
+        is_all_day=is_all_day,
+    )

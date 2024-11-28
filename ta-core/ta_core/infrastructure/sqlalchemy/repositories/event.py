@@ -153,8 +153,8 @@ class AbstractRecurrenceRepository:
         entity_id: str,
         user_id: int,
         rrule_id: str,
-        rdate: list[str] | None = None,
-        exdate: list[str] | None = None,
+        rdate: list[str],
+        exdate: list[str],
     ) -> Any:
         raise NotImplementedError()
 
@@ -172,12 +172,9 @@ class AllDayRecurrenceRepository(
         entity_id: str,
         user_id: int,
         rrule_id: str,
-        rdate: list[str] | None = None,
-        exdate: list[str] | None = None,
+        rdate: list[str],
+        exdate: list[str],
     ) -> AllDayRecurrenceEntity | None:
-        if rdate is None or exdate is None:
-            raise ValueError("rdate and exdate must be provided")
-
         all_day_recurrence = AllDayRecurrenceEntity(
             entity_id=entity_id,
             user_id=user_id,
@@ -201,11 +198,11 @@ class TimedRecurrenceRepository(
         entity_id: str,
         user_id: int,
         rrule_id: str,
-        rdate: list[str] | None = None,
-        exdate: list[str] | None = None,
+        rdate: list[str],
+        exdate: list[str],
     ) -> TimedRecurrenceEntity | None:
-        if rdate is not None or exdate is not None:
-            raise ValueError("rdate and exdate must not be provided")
+        if rdate or exdate:
+            raise ValueError("rdate and exdate must not be provided for timed events")
 
         timed_recurrence = TimedRecurrenceEntity(
             entity_id=entity_id, user_id=user_id, rrule_id=rrule_id

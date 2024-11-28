@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from datetime import date, datetime
+from typing import Any
 
 from ta_core.dtos.event import CreateEventResponse
 from ta_core.error.error_code import ErrorCode
@@ -18,6 +19,8 @@ from ta_core.infrastructure.sqlalchemy.repositories.event import (
     TimedRecurrenceRuleRepository,
 )
 from ta_core.use_case.unit_of_work_base import IUnitOfWork
+from ta_core.utils.datetime import validate_date
+from ta_core.utils.rfc5545_parser import parse_recurrence
 from ta_core.utils.uuid import generate_uuid
 
 
@@ -41,9 +44,31 @@ class EventUseCase:
 
     @rollbackable
     async def create_event_async(
-        self, host_id: str, event: Event
+        self,
+        host_id: str,
+        summary: str,
+        location: str | None,
+        start_dt: datetime,
+        end_dt: datetime,
+        recurrence_list: list[str],
+        is_all_day: bool,
     ) -> CreateEventResponse:
         host_account_repository = HostAccountRepository(self.uow)
+
+        validate_date(is_all_day, start_dt)
+        validate_date(is_all_day, end_dt)
+        start = start_dt.date() if is_all_day else start_dt
+        end = end_dt.date() if is_all_day else end_dt
+        recurrence = (
+            parse_recurrence(recurrence_list, is_all_day) if recurrence_list else None
+        )
+        event = Event(
+            summary=summary,
+            location=location,
+            start=start,
+            end=end,
+            recurrence=recurrence,
+        )
 
         host_account = await host_account_repository.read_by_id_or_none_async(host_id)
         if host_account is None:
@@ -53,20 +78,15 @@ class EventUseCase:
 
         user_id = host_account.user_id
 
-        recurrence_rule_repository: (
-            AbstractRecurrenceRuleRepository[date]
-            | AbstractRecurrenceRuleRepository[datetime]
-        )
+        recurrence_rule_repository: AbstractRecurrenceRuleRepository[Any]
         recurrence_repository: AbstractRecurrenceRepository
-        event_repository: (
-            AbstractEventRepository[date] | AbstractEventRepository[datetime]
-        )
+        event_repository: AbstractEventRepository[Any]
 
-        if isinstance(event.start, date):
+        if type(event.start) is date:
             recurrence_rule_repository = AllDayRecurrenceRuleRepository(self.uow)
             recurrence_repository = AllDayRecurrenceRepository(self.uow)
             event_repository = AllDayEventRepository(self.uow)
-        elif isinstance(event.start, datetime):
+        elif type(event.start) is datetime:
             recurrence_rule_repository = TimedRecurrenceRuleRepository(self.uow)
             recurrence_repository = TimedRecurrenceRepository(self.uow)
             event_repository = TimedEventRepository(self.uow)
@@ -99,16 +119,16 @@ class EventUseCase:
             )
             if recurrence_rule is None:
                 raise ValueError("Failed to create recurrence rule")
-            recurrence = await recurrence_repository.create_recurrence_async(
+            recurrence_entity = await recurrence_repository.create_recurrence_async(
                 entity_id=generate_uuid(),
                 user_id=user_id,
                 rrule_id=recurrence_rule.id,
                 rdate=convert_dates_to_str(event.recurrence.rdate),
                 exdate=convert_dates_to_str(event.recurrence.exdate),
             )
-            if recurrence is None:
+            if recurrence_entity is None:
                 raise ValueError("Failed to create recurrence")
-            recurrence_id = recurrence.id
+            recurrence_id = recurrence_entity.id
         event_entity = await event_repository.create_event_async(
             entity_id=generate_uuid(),
             user_id=user_id,

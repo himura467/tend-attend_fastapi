@@ -4,13 +4,13 @@ from enum import StrEnum
 
 
 class Frequency(StrEnum):
-    SECONDLY = "secondly"
-    MINUTELY = "minutely"
-    HOURLY = "hourly"
-    DAILY = "daily"
-    WEEKLY = "weekly"
-    MONTHLY = "monthly"
-    YEARLY = "yearly"
+    SECONDLY = "SECONDLY"
+    MINUTELY = "MINUTELY"
+    HOURLY = "HOURLY"
+    DAILY = "DAILY"
+    WEEKLY = "WEEKLY"
+    MONTHLY = "MONTHLY"
+    YEARLY = "YEARLY"
 
 
 class Weekday(StrEnum):
@@ -27,6 +27,8 @@ class Weekday(StrEnum):
 class RecurrenceRule:
     # The FREQ rule part identifies the type of recurrence rule.
     freq: Frequency
+
+    # RRULE can have either COUNT or UNTIL to specify the end of the event recurrence. Don't use both in the same rule.
 
     # The UNTIL rule part defines a DATE or DATE-TIME value that bounds the recurrence rule in an inclusive manner.
 
