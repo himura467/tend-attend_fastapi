@@ -1,13 +1,8 @@
 import re
 from datetime import date, datetime
 
-from ta_core.features.event import (
-    Frequency,
-    Recurrence,
-    RecurrenceRule,
-    Weekday,
-    validate_date,
-)
+from ta_core.features.event import Frequency, Recurrence, RecurrenceRule, Weekday
+from ta_core.utils.datetime import validate_date
 
 
 def parse_rrule(rrule_str: str, is_all_day: bool) -> RecurrenceRule:

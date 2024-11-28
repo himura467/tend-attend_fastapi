@@ -1,9 +1,10 @@
 from dataclasses import dataclass
 from datetime import date, datetime
+from typing import Any
 
 from ta_core.dtos.event import CreateEventResponse
 from ta_core.error.error_code import ErrorCode
-from ta_core.features.event import Event, Weekday, validate_date
+from ta_core.features.event import Event, Weekday
 from ta_core.infrastructure.db.transaction import rollbackable
 from ta_core.infrastructure.sqlalchemy.repositories.account import HostAccountRepository
 from ta_core.infrastructure.sqlalchemy.repositories.event import (
@@ -18,6 +19,7 @@ from ta_core.infrastructure.sqlalchemy.repositories.event import (
     TimedRecurrenceRuleRepository,
 )
 from ta_core.use_case.unit_of_work_base import IUnitOfWork
+from ta_core.utils.datetime import validate_date
 from ta_core.utils.rfc5545_parser import parse_recurrence
 from ta_core.utils.uuid import generate_uuid
 
@@ -76,20 +78,15 @@ class EventUseCase:
 
         user_id = host_account.user_id
 
-        recurrence_rule_repository: (
-            AbstractRecurrenceRuleRepository[date]
-            | AbstractRecurrenceRuleRepository[datetime]
-        )
+        recurrence_rule_repository: AbstractRecurrenceRuleRepository[Any]
         recurrence_repository: AbstractRecurrenceRepository
-        event_repository: (
-            AbstractEventRepository[date] | AbstractEventRepository[datetime]
-        )
+        event_repository: AbstractEventRepository[Any]
 
-        if isinstance(event.start, date):
+        if type(event.start) is date:
             recurrence_rule_repository = AllDayRecurrenceRuleRepository(self.uow)
             recurrence_repository = AllDayRecurrenceRepository(self.uow)
             event_repository = AllDayEventRepository(self.uow)
-        elif isinstance(event.start, datetime):
+        elif type(event.start) is datetime:
             recurrence_rule_repository = TimedRecurrenceRuleRepository(self.uow)
             recurrence_repository = TimedRecurrenceRepository(self.uow)
             event_repository = TimedEventRepository(self.uow)
