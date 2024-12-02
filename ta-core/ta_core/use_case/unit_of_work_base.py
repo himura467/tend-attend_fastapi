@@ -8,6 +8,10 @@ class IUnitOfWork(metaclass=ABCMeta):
         raise NotImplementedError()
 
     @abstractmethod
+    async def flush_async(self) -> None:
+        raise NotImplementedError()
+
+    @abstractmethod
     async def commit_async(self) -> None:
         raise NotImplementedError()
 
