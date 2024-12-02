@@ -2,7 +2,7 @@ from abc import abstractmethod
 from typing import Any
 
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.sql import select
+from sqlalchemy.sql import select, update
 from sqlalchemy.sql.elements import UnaryExpression
 
 from ta_core.domain.repositories.base import IRepository, TEntity, TModel
@@ -69,12 +69,7 @@ class AbstractRepository(IRepository[TEntity, TModel]):
         result = await self._uow.execute_async(stmt)
         return tuple(record.to_entity() for record in result.scalars().all())
 
-    async def update_async(self, entity: TEntity) -> TEntity | None:
-        stmt = select(self._model).where(self._model.id == entity.id)
-        result = await self._uow.execute_async(stmt)
-        record = result.scalar_one_or_none()
-        if record is None:
-            return None
+    async def update_async(self, entity: TEntity) -> TEntity:
         model = self._model.from_entity(entity)
         update_dict = {
             key: value for key, value in model.__dict__.items() if key != "id"
@@ -82,9 +77,8 @@ class AbstractRepository(IRepository[TEntity, TModel]):
         # Remove SQLAlchemy internal state
         if "_sa_instance_state" in update_dict:
             del update_dict["_sa_instance_state"]
-        for key, value in update_dict.items():
-            setattr(record, key, value)
-        self._uow.add(record)
+        stmt = update(self._model).where(self._model.id == model.id).values(update_dict)
+        await self._uow.execute_async(stmt)
         return entity
 
     async def delete_by_id_async(self, record_id: str) -> bool:
