@@ -11,7 +11,6 @@ from ta_core.dtos.account import (
 )
 from ta_core.error.error_code import ErrorCode
 from ta_core.infrastructure.db.transaction import rollbackable
-from ta_core.infrastructure.sqlalchemy.models.commons.account import HostAccount
 from ta_core.infrastructure.sqlalchemy.models.sequences.sequence import SequenceUserId
 from ta_core.infrastructure.sqlalchemy.repositories.account import (
     GuestAccountRepository,
@@ -88,8 +87,8 @@ class AccountUseCase:
     async def get_guests_info_async(self, host_id: str) -> GetGuestsInfoResponse:
         host_account_repository = HostAccountRepository(self.uow)
 
-        host_account = await host_account_repository.read_by_id_or_none_async(
-            host_id, HostAccount.guests
+        host_account = (
+            await host_account_repository.read_with_guests_by_id_or_none_async(host_id)
         )
         if host_account is None:
             raise ValueError("Host ID not found")

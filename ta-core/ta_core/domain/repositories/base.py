@@ -24,25 +24,19 @@ class IRepository(Generic[TEntity, TModel], metaclass=ABCMeta):
         raise NotImplementedError()
 
     @abstractmethod
-    async def read_by_id_async(
-        self, record_id: str, joined_args: Any = None
-    ) -> TEntity:
+    async def read_by_id_async(self, record_id: str) -> TEntity:
         raise NotImplementedError()
 
     @abstractmethod
-    async def read_by_id_or_none_async(
-        self, record_id: str, joined_args: Any = None
-    ) -> TEntity | None:
+    async def read_by_id_or_none_async(self, record_id: str) -> TEntity | None:
         raise NotImplementedError()
 
     @abstractmethod
-    async def read_by_ids_async(
-        self, record_ids: set[str], joined_args: Any = None
-    ) -> tuple[TEntity, ...]:
+    async def read_by_ids_async(self, record_ids: set[str]) -> tuple[TEntity, ...]:
         raise NotImplementedError()
 
     @abstractmethod
-    async def read_all_async(self, joined_args: Any = None) -> tuple[TEntity, ...]:
+    async def read_all_async(self) -> tuple[TEntity, ...]:
         raise NotImplementedError()
 
     @abstractmethod
