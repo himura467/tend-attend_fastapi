@@ -31,7 +31,9 @@ class AbstractSequenceId(AbstractSequenceBase):
 
     @classmethod
     async def id_generator(cls, uow: IUnitOfWork) -> int:
-        record = (await uow.execute_async(select(cls))).scalar_one_or_none()
+        stmt = select(cls)
+        result = await uow.execute_async(stmt)
+        record = result.scalar_one_or_none()
         if record is None:
             new_id = 0
         else:
@@ -39,4 +41,5 @@ class AbstractSequenceId(AbstractSequenceBase):
             await uow.delete_async(record)
         model = cls(id=new_id)
         uow.add(model)
+        await uow.flush_async()
         return new_id

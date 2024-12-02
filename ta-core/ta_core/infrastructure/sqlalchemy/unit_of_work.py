@@ -14,6 +14,9 @@ class SqlalchemyUnitOfWork(IUnitOfWork):
     def add(self, model: object) -> None:
         self._session.add(model)
 
+    async def flush_async(self) -> None:
+        await self._session.flush()
+
     async def commit_async(self) -> None:
         await self._session.commit()
 

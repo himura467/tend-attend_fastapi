@@ -22,6 +22,7 @@ class AbstractRepository(IRepository[TEntity, TModel]):
         model = self._model.from_entity(entity)
         try:
             self._uow.add(model)
+            await self._uow.flush_async()
             return entity
         except IntegrityError:
             await self._uow.rollback_async()
