@@ -100,8 +100,7 @@ class AuthUseCase:
             )
         token = self._jwt_cryptography.create_auth_token(host_account.id, Group.HOST)
         host_account = host_account.set_refresh_token(token.refresh_token)
-        if await host_account_repository.update_async(host_account) is None:
-            raise ValueError("Failed to update host account")
+        await host_account_repository.update_async(host_account)
         return AuthTokenResponse(
             error_codes=(),
             auth_token=token,
@@ -153,8 +152,7 @@ class AuthUseCase:
             )
         token = self._jwt_cryptography.create_auth_token(guest_account.id, Group.GUEST)
         guest_account = guest_account.set_refresh_token(token.refresh_token)
-        if await guest_account_repository.update_async(guest_account) is None:
-            raise ValueError("Failed to update guest account")
+        await guest_account_repository.update_async(guest_account)
         return AuthTokenResponse(
             error_codes=(),
             auth_token=token,
@@ -215,8 +213,7 @@ class AuthUseCase:
                 host_account.id, Group.HOST
             )
             host_account = host_account.set_refresh_token(token.refresh_token)
-            if await host_account_repository.update_async(host_account) is None:
-                raise ValueError("Failed to update host account")
+            await host_account_repository.update_async(host_account)
             return AuthTokenResponse(
                 error_codes=(),
                 auth_token=token,
@@ -233,8 +230,7 @@ class AuthUseCase:
                 guest_account.id, Group.GUEST
             )
             guest_account = guest_account.set_refresh_token(token.refresh_token)
-            if await guest_account_repository.update_async(guest_account) is None:
-                raise ValueError("Failed to update guest account")
+            await guest_account_repository.update_async(guest_account)
             return AuthTokenResponse(
                 error_codes=(),
                 auth_token=token,

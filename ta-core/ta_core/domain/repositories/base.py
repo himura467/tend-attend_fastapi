@@ -40,7 +40,7 @@ class IRepository(Generic[TEntity, TModel], metaclass=ABCMeta):
         raise NotImplementedError()
 
     @abstractmethod
-    async def update_async(self, entity: TEntity) -> TEntity | None:
+    async def update_async(self, entity: TEntity) -> TEntity:
         raise NotImplementedError()
 
     @abstractmethod
