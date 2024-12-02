@@ -1,4 +1,6 @@
 from pydantic.networks import EmailStr
+from sqlalchemy.orm.strategy_options import joinedload
+from sqlalchemy.sql import select
 
 from ta_core.domain.entities.account import GuestAccount as GuestAccountEntity
 from ta_core.domain.entities.account import HostAccount as HostAccountEntity
@@ -44,6 +46,18 @@ class HostAccountRepository(AbstractRepository[HostAccountEntity, HostAccount]):
         self, email: EmailStr
     ) -> HostAccountEntity | None:
         return await self.read_one_or_none_async(where=(self._model.email == email,))
+
+    async def read_with_guests_by_id_or_none_async(
+        self, record_id: str
+    ) -> HostAccountEntity | None:
+        stmt = (
+            select(self._model)
+            .where(self._model.id == record_id)
+            .options(joinedload(HostAccount.guests))
+        )
+        result = await self._uow.execute_async(stmt)
+        record = result.unique().scalar_one_or_none()
+        return record.to_entity() if record is not None else None
 
 
 class GuestAccountRepository(AbstractRepository[GuestAccountEntity, GuestAccount]):
