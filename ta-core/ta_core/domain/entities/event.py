@@ -86,21 +86,26 @@ class AllDayRecurrence(IEntity):
         entity_id: str,
         user_id: int,
         rrule_id: str,
+        rrule: AllDayRecurrenceRule,
         rdate: list[str],
         exdate: list[str],
     ) -> None:
         super().__init__(entity_id)
         self.user_id = user_id
         self.rrule_id = rrule_id
+        self.rrule = rrule
         self.rdate = rdate
         self.exdate = exdate
 
 
 class TimedRecurrence(IEntity):
-    def __init__(self, entity_id: str, user_id: int, rrule_id: str) -> None:
+    def __init__(
+        self, entity_id: str, user_id: int, rrule_id: str, rrule: TimedRecurrenceRule
+    ) -> None:
         super().__init__(entity_id)
         self.user_id = user_id
         self.rrule_id = rrule_id
+        self.rrule = rrule
 
 
 class AllDayEvent(IEntity):
@@ -113,6 +118,7 @@ class AllDayEvent(IEntity):
         start: date,
         end: date,
         recurrence_id: str | None,
+        recurrence: AllDayRecurrence | None = None,
     ) -> None:
         super().__init__(entity_id)
         self.user_id = user_id
@@ -121,6 +127,7 @@ class AllDayEvent(IEntity):
         self.start = start
         self.end = end
         self.recurrence_id = recurrence_id
+        self.recurrence = recurrence
 
 
 class TimedEvent(IEntity):
@@ -133,6 +140,7 @@ class TimedEvent(IEntity):
         start: datetime,
         end: datetime,
         recurrence_id: str | None,
+        recurrence: TimedRecurrence | None = None,
     ) -> None:
         super().__init__(entity_id)
         self.user_id = user_id
@@ -141,3 +149,4 @@ class TimedEvent(IEntity):
         self.start = start
         self.end = end
         self.recurrence_id = recurrence_id
+        self.recurrence = recurrence

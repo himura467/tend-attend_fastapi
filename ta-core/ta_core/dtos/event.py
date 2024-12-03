@@ -6,7 +6,7 @@ from pydantic.fields import Field
 from ta_core.dtos.base import BaseModelWithErrorCodes
 
 
-class CreateEventRequest(BaseModel):
+class Event(BaseModel):
     summary: str = Field(..., title="Summary")
     location: str | None = Field(None, title="Location")
     start: datetime = Field(..., title="Start")
@@ -15,5 +15,13 @@ class CreateEventRequest(BaseModel):
     is_all_day: bool = Field(True, title="Is All Day")
 
 
+class CreateEventRequest(BaseModel):
+    event: Event = Field(..., title="Event")
+
+
 class CreateEventResponse(BaseModelWithErrorCodes):
     pass
+
+
+class GetHostEventsResponse(BaseModelWithErrorCodes):
+    events: list[Event] = Field([], title="Host Events")
