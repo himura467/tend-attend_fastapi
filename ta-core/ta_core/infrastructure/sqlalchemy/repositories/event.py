@@ -2,6 +2,9 @@ from abc import abstractmethod
 from datetime import date, datetime
 from typing import Any, Generic, TypeVar
 
+from sqlalchemy.orm.strategy_options import joinedload
+from sqlalchemy.sql import select
+
 from ta_core.domain.entities.event import AllDayEvent as AllDayEventEntity
 from ta_core.domain.entities.event import AllDayRecurrence as AllDayRecurrenceEntity
 from ta_core.domain.entities.event import (
@@ -153,6 +156,7 @@ class AbstractRecurrenceRepository:
         entity_id: str,
         user_id: int,
         rrule_id: str,
+        rrule: Any,
         rdate: list[str],
         exdate: list[str],
     ) -> Any:
@@ -172,6 +176,7 @@ class AllDayRecurrenceRepository(
         entity_id: str,
         user_id: int,
         rrule_id: str,
+        rrule: AllDayRecurrenceRuleEntity,
         rdate: list[str],
         exdate: list[str],
     ) -> AllDayRecurrenceEntity | None:
@@ -179,6 +184,7 @@ class AllDayRecurrenceRepository(
             entity_id=entity_id,
             user_id=user_id,
             rrule_id=rrule_id,
+            rrule=rrule,
             rdate=rdate,
             exdate=exdate,
         )
@@ -198,6 +204,7 @@ class TimedRecurrenceRepository(
         entity_id: str,
         user_id: int,
         rrule_id: str,
+        rrule: TimedRecurrenceRuleEntity,
         rdate: list[str],
         exdate: list[str],
     ) -> TimedRecurrenceEntity | None:
@@ -205,7 +212,7 @@ class TimedRecurrenceRepository(
             raise ValueError("rdate and exdate must not be provided for timed events")
 
         timed_recurrence = TimedRecurrenceEntity(
-            entity_id=entity_id, user_id=user_id, rrule_id=rrule_id
+            entity_id=entity_id, user_id=user_id, rrule_id=rrule_id, rrule=rrule
         )
         return await self.create_async(timed_recurrence)
 
@@ -253,6 +260,19 @@ class AllDayEventRepository(
         )
         return await self.create_async(all_day_event)
 
+    async def read_with_recurrence_by_user_id_async(
+        self, user_id: int
+    ) -> tuple[AllDayEventEntity, ...]:
+        stmt = (
+            select(self._model)
+            .where(self._model.user_id == user_id)
+            .options(
+                joinedload(AllDayEvent.recurrence).joinedload(AllDayRecurrence.rrule)
+            )
+        )
+        result = await self._uow.execute_async(stmt)
+        return tuple(record.to_entity() for record in result.unique().scalars().all())
+
 
 class TimedEventRepository(
     AbstractRepository[TimedEventEntity, TimedEvent], AbstractEventRepository[datetime]
@@ -281,3 +301,16 @@ class TimedEventRepository(
             recurrence_id=recurrence_id,
         )
         return await self.create_async(timed_event)
+
+    async def read_with_recurrence_by_user_id_async(
+        self, user_id: int
+    ) -> tuple[TimedEventEntity, ...]:
+        stmt = (
+            select(self._model)
+            .where(self._model.user_id == user_id)
+            .options(
+                joinedload(TimedEvent.recurrence).joinedload(TimedRecurrence.rrule)
+            )
+        )
+        result = await self._uow.execute_async(stmt)
+        return tuple(record.to_entity() for record in result.unique().scalars().all())

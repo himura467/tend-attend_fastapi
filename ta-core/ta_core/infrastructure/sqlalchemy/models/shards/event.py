@@ -1,6 +1,7 @@
 from datetime import date, datetime
 
 from sqlalchemy.dialects.mysql import DATE, DATETIME, ENUM, JSON, SMALLINT, VARCHAR
+from sqlalchemy.exc import StatementError
 from sqlalchemy.orm import mapped_column, relationship
 from sqlalchemy.orm.base import Mapped
 from sqlalchemy.sql.schema import ForeignKey
@@ -199,10 +200,13 @@ class AllDayRecurrence(AbstractShardStaticBase):
     exdate: Mapped[list[str]] = mapped_column(JSON, nullable=False, comment="EXDATE")
 
     def to_entity(self) -> AllDayRecurrenceEntity:
+        rrule = self.rrule.to_entity()
+
         return AllDayRecurrenceEntity(
             entity_id=self.id,
             user_id=self.user_id,
             rrule_id=self.rrule_id,
+            rrule=rrule,
             rdate=self.rdate,
             exdate=self.exdate,
         )
@@ -227,10 +231,13 @@ class TimedRecurrence(AbstractShardStaticBase):
     rrule: Mapped[TimedRecurrenceRule] = relationship(uselist=False)
 
     def to_entity(self) -> TimedRecurrenceEntity:
+        rrule = self.rrule.to_entity()
+
         return TimedRecurrenceEntity(
             entity_id=self.id,
             user_id=self.user_id,
             rrule_id=self.rrule_id,
+            rrule=rrule,
         )
 
     @classmethod
@@ -259,6 +266,11 @@ class AllDayEvent(AbstractShardDynamicBase):
     recurrence: Mapped[AllDayRecurrence | None] = relationship(uselist=False)
 
     def to_entity(self) -> AllDayEventEntity:
+        try:
+            recurrence = self.recurrence.to_entity() if self.recurrence else None
+        except StatementError:
+            recurrence = None
+
         return AllDayEventEntity(
             entity_id=self.id,
             user_id=self.user_id,
@@ -267,6 +279,7 @@ class AllDayEvent(AbstractShardDynamicBase):
             start=self.start,
             end=self.end,
             recurrence_id=self.recurrence_id,
+            recurrence=recurrence,
         )
 
     @classmethod
@@ -303,6 +316,11 @@ class TimedEvent(AbstractShardDynamicBase):
     recurrence: Mapped[TimedRecurrence | None] = relationship(uselist=False)
 
     def to_entity(self) -> TimedEventEntity:
+        try:
+            recurrence = self.recurrence.to_entity() if self.recurrence else None
+        except StatementError:
+            recurrence = None
+
         return TimedEventEntity(
             entity_id=self.id,
             user_id=self.user_id,
@@ -311,6 +329,7 @@ class TimedEvent(AbstractShardDynamicBase):
             start=self.start,
             end=self.end,
             recurrence_id=self.recurrence_id,
+            recurrence=recurrence,
         )
 
     @classmethod
