@@ -16,7 +16,7 @@ router = APIRouter()
 
 
 @router.post(
-    path="/",
+    path="/hosts",
     name="Create Event",
     response_model=CreateEventResponse,
 )
