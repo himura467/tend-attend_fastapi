@@ -77,10 +77,13 @@ def parse_rrule(rrule_str: str, is_all_day: bool) -> RecurrenceRule:
     )
 
 
-def parse_recurrence(recurrence_list: list[str], is_all_day: bool) -> Recurrence:
+def parse_recurrence(recurrence_list: list[str], is_all_day: bool) -> Recurrence | None:
     rrule: RecurrenceRule | None = None
     rdate: list[date] = []
     exdate: list[date] = []
+
+    if not recurrence_list:
+        return None
 
     for rec in recurrence_list:
         if rec.startswith("RRULE:"):

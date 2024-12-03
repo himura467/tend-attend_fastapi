@@ -20,7 +20,7 @@ from ta_core.infrastructure.sqlalchemy.repositories.event import (
 )
 from ta_core.use_case.unit_of_work_base import IUnitOfWork
 from ta_core.utils.datetime import validate_date
-from ta_core.utils.rfc5545_parser import parse_recurrence
+from ta_core.utils.rfc5545 import parse_recurrence
 from ta_core.utils.uuid import generate_uuid
 
 
