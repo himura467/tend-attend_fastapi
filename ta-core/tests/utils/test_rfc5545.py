@@ -3,108 +3,86 @@ from datetime import UTC, date, datetime
 import pytest
 
 from ta_core.features.event import Frequency, Recurrence, RecurrenceRule, Weekday
-from ta_core.utils.rfc5545 import parse_recurrence, parse_rrule
+from ta_core.utils.rfc5545 import parse_recurrence, parse_rrule, serialize_recurrence
 
 
 @pytest.mark.parametrize(
-    "rrule_str, is_all_day, expected_freq, expected_until, expected_count, expected_interval, expected_bysecond, expected_byminute, expected_byhour, expected_byday, expected_bymonthday, expected_byyearday, expected_byweekno, expected_bymonth, expected_bysetpos, expected_wkst",
+    "rrule_str, is_all_day, expected_rrule",
     [
         (
             "FREQ=DAILY;UNTIL=20000101;INTERVAL=1;BYSECOND=0;BYMINUTE=0;BYHOUR=0;BYDAY=MO,TU,WE,TH,FR;BYMONTHDAY=1,2,3,4,5;BYYEARDAY=1,2,3,4,5;BYWEEKNO=1,2,3,4,5;BYMONTH=1,2,3,4,5;BYSETPOS=1,2,3,4,5;WKST=MO",
             True,
-            Frequency.DAILY,
-            date(2000, 1, 1),
-            None,
-            1,
-            (0,),
-            (0,),
-            (0,),
-            (
-                (0, Weekday.MO),
-                (0, Weekday.TU),
-                (0, Weekday.WE),
-                (0, Weekday.TH),
-                (0, Weekday.FR),
+            RecurrenceRule(
+                freq=Frequency.DAILY,
+                until=date(2000, 1, 1),
+                count=None,
+                interval=1,
+                bysecond=(0,),
+                byminute=(0,),
+                byhour=(0,),
+                byday=(
+                    (0, Weekday.MO),
+                    (0, Weekday.TU),
+                    (0, Weekday.WE),
+                    (0, Weekday.TH),
+                    (0, Weekday.FR),
+                ),
+                bymonthday=(1, 2, 3, 4, 5),
+                byyearday=(1, 2, 3, 4, 5),
+                byweekno=(1, 2, 3, 4, 5),
+                bymonth=(1, 2, 3, 4, 5),
+                bysetpos=(1, 2, 3, 4, 5),
+                wkst=Weekday.MO,
             ),
-            (1, 2, 3, 4, 5),
-            (1, 2, 3, 4, 5),
-            (1, 2, 3, 4, 5),
-            (1, 2, 3, 4, 5),
-            (1, 2, 3, 4, 5),
-            Weekday.MO,
         ),
         (
             "FREQ=WEEKLY;UNTIL=20000101T120000Z;INTERVAL=1;BYSECOND=0,1,2;BYMONTHDAY=1,2,3;WKST=TU",
             False,
-            Frequency.WEEKLY,
-            datetime(2000, 1, 1, 12, 0, 0, tzinfo=UTC),
-            None,
-            1,
-            (0, 1, 2),
-            None,
-            None,
-            None,
-            (1, 2, 3),
-            None,
-            None,
-            None,
-            None,
-            Weekday.TU,
+            RecurrenceRule(
+                freq=Frequency.WEEKLY,
+                until=datetime(2000, 1, 1, 12, 0, 0, tzinfo=UTC),
+                count=None,
+                interval=1,
+                bysecond=(0, 1, 2),
+                byminute=None,
+                byhour=None,
+                byday=None,
+                bymonthday=(1, 2, 3),
+                byyearday=None,
+                byweekno=None,
+                bymonth=None,
+                bysetpos=None,
+                wkst=Weekday.TU,
+            ),
         ),
         (
             "FREQ=MONTHLY;COUNT=1;INTERVAL=1;BYDAY=1MO;WKST=WE",
             True,
-            Frequency.MONTHLY,
-            None,
-            1,
-            1,
-            None,
-            None,
-            None,
-            ((1, Weekday.MO),),
-            None,
-            None,
-            None,
-            None,
-            None,
-            Weekday.WE,
+            RecurrenceRule(
+                freq=Frequency.MONTHLY,
+                until=None,
+                count=1,
+                interval=1,
+                bysecond=None,
+                byminute=None,
+                byhour=None,
+                byday=((1, Weekday.MO),),
+                bymonthday=None,
+                byyearday=None,
+                byweekno=None,
+                bymonth=None,
+                bysetpos=None,
+                wkst=Weekday.WE,
+            ),
         ),
     ],
 )
 def test_parse_rrule(
     rrule_str: str,
     is_all_day: bool,
-    expected_freq: Frequency,
-    expected_until: date | datetime | None,
-    expected_count: int | None,
-    expected_interval: int,
-    expected_bysecond: tuple[int, ...] | None,
-    expected_byminute: tuple[int, ...] | None,
-    expected_byhour: tuple[int, ...] | None,
-    expected_byday: tuple[tuple[int, Weekday], ...] | None,
-    expected_bymonthday: tuple[int, ...] | None,
-    expected_byyearday: tuple[int, ...] | None,
-    expected_byweekno: tuple[int, ...] | None,
-    expected_bymonth: tuple[int, ...] | None,
-    expected_bysetpos: tuple[int, ...] | None,
-    expected_wkst: Weekday,
+    expected_rrule: RecurrenceRule,
 ) -> None:
-    rrule = parse_rrule(rrule_str, is_all_day)
-
-    assert rrule.freq == expected_freq
-    assert rrule.until == expected_until
-    assert rrule.count == expected_count
-    assert rrule.interval == expected_interval
-    assert rrule.bysecond == expected_bysecond
-    assert rrule.byminute == expected_byminute
-    assert rrule.byhour == expected_byhour
-    assert rrule.byday == expected_byday
-    assert rrule.bymonthday == expected_bymonthday
-    assert rrule.byyearday == expected_byyearday
-    assert rrule.byweekno == expected_byweekno
-    assert rrule.bymonth == expected_bymonth
-    assert rrule.bysetpos == expected_bysetpos
-    assert rrule.wkst == expected_wkst
+    assert parse_rrule(rrule_str, is_all_day) == expected_rrule
 
 
 @pytest.mark.parametrize(
@@ -217,9 +195,7 @@ def test_parse_recurrence(
     is_all_day: bool,
     expected_recurrence: Recurrence | None,
 ) -> None:
-    recurrence = parse_recurrence(recurrence_list, is_all_day)
-
-    assert recurrence == expected_recurrence
+    assert parse_recurrence(recurrence_list, is_all_day) == expected_recurrence
 
 
 @pytest.mark.parametrize(
@@ -264,3 +240,45 @@ def test_parse_recurrence_error(
         parse_recurrence(recurrence_list, is_all_day)
 
     assert str(error.value) == expected_error_message
+
+
+@pytest.mark.parametrize(
+    "recurrence, expected_recurrence_list",
+    [
+        (
+            None,
+            [],
+        ),
+        (
+            Recurrence(
+                rrule=RecurrenceRule(
+                    freq=Frequency.DAILY,
+                    until=date(2000, 1, 1),
+                    count=None,
+                    interval=1,
+                    bysecond=(0,),
+                    byminute=(0,),
+                    byhour=(0,),
+                    byday=((0, Weekday.MO), (0, Weekday.TU), (0, Weekday.WE)),
+                    bymonthday=(1, 2, 3),
+                    byyearday=(1, 2, 3),
+                    byweekno=(1, 2, 3),
+                    bymonth=(1, 2, 3),
+                    bysetpos=(1, 2, 3),
+                    wkst=Weekday.MO,
+                ),
+                rdate=(date(2000, 1, 2), date(2000, 1, 3)),
+                exdate=(date(1999, 12, 31),),
+            ),
+            [
+                "RRULE:FREQ=DAILY;UNTIL=2000-01-01;INTERVAL=1;BYSECOND=0;BYMINUTE=0;BYHOUR=0;BYDAY=0MO,0TU,0WE;BYMONTHDAY=1,2,3;BYYEARDAY=1,2,3;BYWEEKNO=1,2,3;BYMONTH=1,2,3;BYSETPOS=1,2,3;WKST=MO",
+                "RDATE;VALUE=DATE:20000102,20000103",
+                "EXDATE;VALUE=DATE:19991231",
+            ],
+        ),
+    ],
+)
+def test_serialize_recurrence(
+    recurrence: Recurrence | None, expected_recurrence_list: list[str]
+) -> None:
+    assert serialize_recurrence(recurrence) == expected_recurrence_list

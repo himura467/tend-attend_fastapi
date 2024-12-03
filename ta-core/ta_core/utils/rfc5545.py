@@ -106,3 +106,44 @@ def parse_recurrence(recurrence_list: list[str], is_all_day: bool) -> Recurrence
         raise ValueError("Missing RRULE in recurrence list")
 
     return Recurrence(rrule=rrule, rdate=tuple(rdate), exdate=tuple(exdate))
+
+
+def serialize_recurrence(recurrence: Recurrence | None) -> list[str]:
+    if not recurrence:
+        return []
+
+    rrule_str = f"RRULE:FREQ={recurrence.rrule.freq.value}"
+    if recurrence.rrule.until:
+        rrule_str += f";UNTIL={recurrence.rrule.until.isoformat()}"
+    if recurrence.rrule.count:
+        rrule_str += f";COUNT={recurrence.rrule.count}"
+    rrule_str += f";INTERVAL={recurrence.rrule.interval}"
+    if recurrence.rrule.bysecond:
+        rrule_str += f";BYSECOND={','.join(map(str, recurrence.rrule.bysecond))}"
+    if recurrence.rrule.byminute:
+        rrule_str += f";BYMINUTE={','.join(map(str, recurrence.rrule.byminute))}"
+    if recurrence.rrule.byhour:
+        rrule_str += f";BYHOUR={','.join(map(str, recurrence.rrule.byhour))}"
+    if recurrence.rrule.byday:
+        rrule_str += f";BYDAY={','.join(f'{byday[0]}{byday[1].value}' for byday in recurrence.rrule.byday)}"
+    if recurrence.rrule.bymonthday:
+        rrule_str += f";BYMONTHDAY={','.join(map(str, recurrence.rrule.bymonthday))}"
+    if recurrence.rrule.byyearday:
+        rrule_str += f";BYYEARDAY={','.join(map(str, recurrence.rrule.byyearday))}"
+    if recurrence.rrule.byweekno:
+        rrule_str += f";BYWEEKNO={','.join(map(str, recurrence.rrule.byweekno))}"
+    if recurrence.rrule.bymonth:
+        rrule_str += f";BYMONTH={','.join(map(str, recurrence.rrule.bymonth))}"
+    if recurrence.rrule.bysetpos:
+        rrule_str += f";BYSETPOS={','.join(map(str, recurrence.rrule.bysetpos))}"
+    rrule_str += f";WKST={recurrence.rrule.wkst.value}"
+
+    recurrence_list = [rrule_str]
+    if recurrence.rdate:
+        rdate_str = f"RDATE;VALUE=DATE:{','.join(rdate.strftime("%Y%m%d") for rdate in recurrence.rdate)}"
+        recurrence_list.append(rdate_str)
+    if recurrence.exdate:
+        exdate_str = f"EXDATE;VALUE=DATE:{','.join(exdate.strftime("%Y%m%d") for exdate in recurrence.exdate)}"
+        recurrence_list.append(exdate_str)
+
+    return recurrence_list
