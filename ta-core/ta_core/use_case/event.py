@@ -94,16 +94,30 @@ def serialize_events(
                     else tuple()
                 ),
             )
-        event_dto_list.append(
-            EventDto(
-                summary=event.summary,
-                location=event.location,
-                start=datetime.combine(event.start, datetime.min.time()),
-                end=datetime.combine(event.end, datetime.min.time()),
-                recurrence_list=serialize_recurrence(recurrence),
-                is_all_day=isinstance(event.start, date),
+        if isinstance(event, AllDayEventEntity):
+            event_dto_list.append(
+                EventDto(
+                    summary=event.summary,
+                    location=event.location,
+                    start=datetime.combine(event.start, datetime.min.time()),
+                    end=datetime.combine(event.end, datetime.min.time()),
+                    recurrence_list=serialize_recurrence(recurrence),
+                    is_all_day=True,
+                )
             )
-        )
+        elif isinstance(event, TimedEventEntity):
+            event_dto_list.append(
+                EventDto(
+                    summary=event.summary,
+                    location=event.location,
+                    start=event.start,
+                    end=event.end,
+                    recurrence_list=serialize_recurrence(recurrence),
+                    is_all_day=False,
+                )
+            )
+        else:
+            raise ValueError("Invalid event type")
     return event_dto_list
 
 
