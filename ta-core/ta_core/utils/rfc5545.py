@@ -125,7 +125,7 @@ def serialize_recurrence(recurrence: Recurrence | None) -> list[str]:
     if recurrence.rrule.byhour:
         rrule_str += f";BYHOUR={','.join(map(str, recurrence.rrule.byhour))}"
     if recurrence.rrule.byday:
-        rrule_str += f";BYDAY={','.join(f'{byday[0]}{byday[1].value}' for byday in recurrence.rrule.byday)}"
+        rrule_str += f";BYDAY={','.join(f'{byday[1].value}' if byday[0] == 0 else f'{byday[0]}{byday[1].value}' for byday in recurrence.rrule.byday)}"
     if recurrence.rrule.bymonthday:
         rrule_str += f";BYMONTHDAY={','.join(map(str, recurrence.rrule.bymonthday))}"
     if recurrence.rrule.byyearday:
