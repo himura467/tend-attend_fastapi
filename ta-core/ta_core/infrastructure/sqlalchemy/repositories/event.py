@@ -1,113 +1,26 @@
-from abc import abstractmethod
-from datetime import date, datetime
-from typing import Any, Generic, TypeVar
+from datetime import datetime
 
 from sqlalchemy.orm.strategy_options import joinedload
 from sqlalchemy.sql import select
 
-from ta_core.domain.entities.event import AllDayEvent as AllDayEventEntity
-from ta_core.domain.entities.event import AllDayRecurrence as AllDayRecurrenceEntity
-from ta_core.domain.entities.event import (
-    AllDayRecurrenceRule as AllDayRecurrenceRuleEntity,
-)
-from ta_core.domain.entities.event import TimedEvent as TimedEventEntity
-from ta_core.domain.entities.event import TimedRecurrence as TimedRecurrenceEntity
-from ta_core.domain.entities.event import (
-    TimedRecurrenceRule as TimedRecurrenceRuleEntity,
-)
+from ta_core.domain.entities.event import Event as EventEntity
+from ta_core.domain.entities.event import Recurrence as RecurrenceEntity
+from ta_core.domain.entities.event import RecurrenceRule as RecurrenceRuleEntity
 from ta_core.features.event import Frequency, Weekday
 from ta_core.infrastructure.sqlalchemy.models.shards.event import (
-    AllDayEvent,
-    AllDayRecurrence,
-    AllDayRecurrenceRule,
-    TimedEvent,
-    TimedRecurrence,
-    TimedRecurrenceRule,
+    Event,
+    Recurrence,
+    RecurrenceRule,
 )
 from ta_core.infrastructure.sqlalchemy.repositories.base import AbstractRepository
 
-TDatetime = TypeVar("TDatetime", date, datetime)
 
-
-class AbstractRecurrenceRuleRepository(Generic[TDatetime]):
-    @abstractmethod
-    async def create_recurrence_rule_async(
-        self,
-        entity_id: str,
-        user_id: int,
-        freq: Frequency,
-        until: TDatetime | None,
-        count: int | None,
-        interval: int,
-        bysecond: list[int] | None,
-        byminute: list[int] | None,
-        byhour: list[int] | None,
-        byday: list[list[int | Weekday]] | None,
-        bymonthday: list[int] | None,
-        byyearday: list[int] | None,
-        byweekno: list[int] | None,
-        bymonth: list[int] | None,
-        bysetpos: list[int] | None,
-        wkst: Weekday,
-    ) -> Any:
-        raise NotImplementedError()
-
-
-class AllDayRecurrenceRuleRepository(
-    AbstractRepository[AllDayRecurrenceRuleEntity, AllDayRecurrenceRule],
-    AbstractRecurrenceRuleRepository[date],
+class RecurrenceRuleRepository(
+    AbstractRepository[RecurrenceRuleEntity, RecurrenceRule],
 ):
     @property
-    def _model(self) -> type[AllDayRecurrenceRule]:
-        return AllDayRecurrenceRule
-
-    async def create_recurrence_rule_async(
-        self,
-        entity_id: str,
-        user_id: int,
-        freq: Frequency,
-        until: date | None,
-        count: int | None,
-        interval: int,
-        bysecond: list[int] | None,
-        byminute: list[int] | None,
-        byhour: list[int] | None,
-        byday: list[list[int | Weekday]] | None,
-        bymonthday: list[int] | None,
-        byyearday: list[int] | None,
-        byweekno: list[int] | None,
-        bymonth: list[int] | None,
-        bysetpos: list[int] | None,
-        wkst: Weekday,
-    ) -> AllDayRecurrenceRuleEntity | None:
-        all_day_recurrence_rule = AllDayRecurrenceRuleEntity(
-            entity_id=entity_id,
-            user_id=user_id,
-            freq=freq,
-            until=until,
-            count=count,
-            interval=interval,
-            bysecond=bysecond,
-            byminute=byminute,
-            byhour=byhour,
-            byday=byday,
-            bymonthday=bymonthday,
-            byyearday=byyearday,
-            byweekno=byweekno,
-            bymonth=bymonth,
-            bysetpos=bysetpos,
-            wkst=wkst,
-        )
-        return await self.create_async(all_day_recurrence_rule)
-
-
-class TimedRecurrenceRuleRepository(
-    AbstractRepository[TimedRecurrenceRuleEntity, TimedRecurrenceRule],
-    AbstractRecurrenceRuleRepository[datetime],
-):
-    @property
-    def _model(self) -> type[TimedRecurrenceRule]:
-        return TimedRecurrenceRule
+    def _model(self) -> type[RecurrenceRule]:
+        return RecurrenceRule
 
     async def create_recurrence_rule_async(
         self,
@@ -127,8 +40,8 @@ class TimedRecurrenceRuleRepository(
         bymonth: list[int] | None,
         bysetpos: list[int] | None,
         wkst: Weekday,
-    ) -> TimedRecurrenceRuleEntity | None:
-        timed_recurrence_rule = TimedRecurrenceRuleEntity(
+    ) -> RecurrenceRuleEntity | None:
+        recurrence_rule = RecurrenceRuleEntity(
             entity_id=entity_id,
             user_id=user_id,
             freq=freq,
@@ -146,41 +59,26 @@ class TimedRecurrenceRuleRepository(
             bysetpos=bysetpos,
             wkst=wkst,
         )
-        return await self.create_async(timed_recurrence_rule)
+        return await self.create_async(recurrence_rule)
 
 
-class AbstractRecurrenceRepository:
-    @abstractmethod
-    async def create_recurrence_async(
-        self,
-        entity_id: str,
-        user_id: int,
-        rrule_id: str,
-        rrule: Any,
-        rdate: list[str],
-        exdate: list[str],
-    ) -> Any:
-        raise NotImplementedError()
-
-
-class AllDayRecurrenceRepository(
-    AbstractRepository[AllDayRecurrenceEntity, AllDayRecurrence],
-    AbstractRecurrenceRepository,
+class RecurrenceRepository(
+    AbstractRepository[RecurrenceEntity, Recurrence],
 ):
     @property
-    def _model(self) -> type[AllDayRecurrence]:
-        return AllDayRecurrence
+    def _model(self) -> type[Recurrence]:
+        return Recurrence
 
     async def create_recurrence_async(
         self,
         entity_id: str,
         user_id: int,
         rrule_id: str,
-        rrule: AllDayRecurrenceRuleEntity,
+        rrule: RecurrenceRuleEntity,
         rdate: list[str],
         exdate: list[str],
-    ) -> AllDayRecurrenceEntity | None:
-        all_day_recurrence = AllDayRecurrenceEntity(
+    ) -> RecurrenceEntity | None:
+        recurrence = RecurrenceEntity(
             entity_id=entity_id,
             user_id=user_id,
             rrule_id=rrule_id,
@@ -188,98 +86,13 @@ class AllDayRecurrenceRepository(
             rdate=rdate,
             exdate=exdate,
         )
-        return await self.create_async(all_day_recurrence)
+        return await self.create_async(recurrence)
 
 
-class TimedRecurrenceRepository(
-    AbstractRepository[TimedRecurrenceEntity, TimedRecurrence],
-    AbstractRecurrenceRepository,
-):
+class EventRepository(AbstractRepository[EventEntity, Event]):
     @property
-    def _model(self) -> type[TimedRecurrence]:
-        return TimedRecurrence
-
-    async def create_recurrence_async(
-        self,
-        entity_id: str,
-        user_id: int,
-        rrule_id: str,
-        rrule: TimedRecurrenceRuleEntity,
-        rdate: list[str],
-        exdate: list[str],
-    ) -> TimedRecurrenceEntity | None:
-        if rdate or exdate:
-            raise ValueError("rdate and exdate must not be provided for timed events")
-
-        timed_recurrence = TimedRecurrenceEntity(
-            entity_id=entity_id, user_id=user_id, rrule_id=rrule_id, rrule=rrule
-        )
-        return await self.create_async(timed_recurrence)
-
-
-class AbstractEventRepository(Generic[TDatetime]):
-    @abstractmethod
-    async def create_event_async(
-        self,
-        entity_id: str,
-        user_id: int,
-        summary: str,
-        location: str | None,
-        start: TDatetime,
-        end: TDatetime,
-        recurrence_id: str | None,
-    ) -> Any:
-        raise NotImplementedError()
-
-
-class AllDayEventRepository(
-    AbstractRepository[AllDayEventEntity, AllDayEvent], AbstractEventRepository[date]
-):
-    @property
-    def _model(self) -> type[AllDayEvent]:
-        return AllDayEvent
-
-    async def create_event_async(
-        self,
-        entity_id: str,
-        user_id: int,
-        summary: str,
-        location: str | None,
-        start: date,
-        end: date,
-        recurrence_id: str | None,
-    ) -> AllDayEventEntity | None:
-        all_day_event = AllDayEventEntity(
-            entity_id=entity_id,
-            user_id=user_id,
-            summary=summary,
-            location=location,
-            start=start,
-            end=end,
-            recurrence_id=recurrence_id,
-        )
-        return await self.create_async(all_day_event)
-
-    async def read_with_recurrence_by_user_id_async(
-        self, user_id: int
-    ) -> tuple[AllDayEventEntity, ...]:
-        stmt = (
-            select(self._model)
-            .where(self._model.user_id == user_id)
-            .options(
-                joinedload(AllDayEvent.recurrence).joinedload(AllDayRecurrence.rrule)
-            )
-        )
-        result = await self._uow.execute_async(stmt)
-        return tuple(record.to_entity() for record in result.unique().scalars().all())
-
-
-class TimedEventRepository(
-    AbstractRepository[TimedEventEntity, TimedEvent], AbstractEventRepository[datetime]
-):
-    @property
-    def _model(self) -> type[TimedEvent]:
-        return TimedEvent
+    def _model(self) -> type[Event]:
+        return Event
 
     async def create_event_async(
         self,
@@ -289,28 +102,30 @@ class TimedEventRepository(
         location: str | None,
         start: datetime,
         end: datetime,
+        is_all_day: bool,
         recurrence_id: str | None,
-    ) -> TimedEventEntity | None:
-        timed_event = TimedEventEntity(
+        timezone: str,
+    ) -> EventEntity | None:
+        event = EventEntity(
             entity_id=entity_id,
             user_id=user_id,
             summary=summary,
             location=location,
             start=start,
             end=end,
+            is_all_day=is_all_day,
             recurrence_id=recurrence_id,
+            timezone=timezone,
         )
-        return await self.create_async(timed_event)
+        return await self.create_async(event)
 
     async def read_with_recurrence_by_user_id_async(
         self, user_id: int
-    ) -> tuple[TimedEventEntity, ...]:
+    ) -> tuple[EventEntity, ...]:
         stmt = (
             select(self._model)
             .where(self._model.user_id == user_id)
-            .options(
-                joinedload(TimedEvent.recurrence).joinedload(TimedRecurrence.rrule)
-            )
+            .options(joinedload(Event.recurrence).joinedload(Recurrence.rrule))
         )
         result = await self._uow.execute_async(stmt)
         return tuple(record.to_entity() for record in result.unique().scalars().all())

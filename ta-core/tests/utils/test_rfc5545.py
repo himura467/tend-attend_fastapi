@@ -14,7 +14,7 @@ from ta_core.utils.rfc5545 import parse_recurrence, parse_rrule, serialize_recur
             True,
             RecurrenceRule(
                 freq=Frequency.DAILY,
-                until=date(2000, 1, 1),
+                until=datetime(2000, 1, 1),
                 count=None,
                 interval=1,
                 bysecond=(0,),
@@ -138,7 +138,7 @@ def test_parse_rrule_error(
             Recurrence(
                 rrule=RecurrenceRule(
                     freq=Frequency.DAILY,
-                    until=date(2000, 1, 1),
+                    until=datetime(2000, 1, 1),
                     count=None,
                     interval=1,
                     bysecond=(0,),
@@ -247,13 +247,14 @@ def test_parse_recurrence_error(
     [
         (
             None,
+            True,
             [],
         ),
         (
             Recurrence(
                 rrule=RecurrenceRule(
                     freq=Frequency.DAILY,
-                    until=date(2000, 1, 1),
+                    until=datetime(2000, 1, 1),
                     count=None,
                     interval=1,
                     bysecond=(0,),
@@ -270,6 +271,7 @@ def test_parse_recurrence_error(
                 rdate=(date(2000, 1, 2), date(2000, 1, 3)),
                 exdate=(date(1999, 12, 31),),
             ),
+            True,
             [
                 "RRULE:FREQ=DAILY;UNTIL=2000-01-01;INTERVAL=1;BYSECOND=0;BYMINUTE=0;BYHOUR=0;BYDAY=0MO,0TU,0WE;BYMONTHDAY=1,2,3;BYYEARDAY=1,2,3;BYWEEKNO=1,2,3;BYMONTH=1,2,3;BYSETPOS=1,2,3;WKST=MO",
                 "RDATE;VALUE=DATE:20000102,20000103",
@@ -279,6 +281,6 @@ def test_parse_recurrence_error(
     ],
 )
 def test_serialize_recurrence(
-    recurrence: Recurrence | None, expected_recurrence_list: list[str]
+    recurrence: Recurrence | None, is_all_day: bool, expected_recurrence_list: list[str]
 ) -> None:
-    assert serialize_recurrence(recurrence) == expected_recurrence_list
+    assert serialize_recurrence(recurrence, is_all_day) == expected_recurrence_list

@@ -1,29 +1,31 @@
-from datetime import date, datetime
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 
-def validate_date(is_all_day: bool, date_value: date | datetime | str) -> None:
+def apply_timezone(date_value: datetime, timezone: str) -> datetime:
+    return date_value.astimezone(ZoneInfo(timezone))
+
+
+def validate_date(
+    is_all_day: bool, date_value: datetime | str, timezone: str | None = None
+) -> None:
     try:
-        parsed_datetime = (
-            datetime.combine(date_value, datetime.min.time())
-            if type(date_value) is date
-            else (
-                date_value
-                if type(date_value) is datetime
-                else datetime.fromisoformat(str(date_value))
-            )
-        )
+        if isinstance(date_value, str):
+            date_value = datetime.fromisoformat(date_value)
+        if timezone is not None:
+            date_value = apply_timezone(date_value, timezone)
         if is_all_day:
             assert (
-                parsed_datetime.hour == 0
-                and parsed_datetime.minute == 0
-                and parsed_datetime.second == 0
-                and parsed_datetime.microsecond == 0
+                date_value.hour == 0
+                and date_value.minute == 0
+                and date_value.second == 0
+                and date_value.microsecond == 0
             )
         else:
             assert (
-                parsed_datetime.minute in (0, 15, 30, 45)
-                and parsed_datetime.second == 0
-                and parsed_datetime.microsecond == 0
+                date_value.minute in (0, 15, 30, 45)
+                and date_value.second == 0
+                and date_value.microsecond == 0
             )
     except ValueError:
         raise ValueError(f"Invalid date format: {date_value}")

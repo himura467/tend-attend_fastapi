@@ -1,21 +1,14 @@
-from datetime import date, datetime
+from datetime import datetime
 
-from sqlalchemy.dialects.mysql import DATE, DATETIME, ENUM, JSON, SMALLINT, VARCHAR
+from sqlalchemy.dialects.mysql import BOOLEAN, DATETIME, ENUM, JSON, SMALLINT, VARCHAR
 from sqlalchemy.exc import StatementError
 from sqlalchemy.orm import mapped_column, relationship
 from sqlalchemy.orm.base import Mapped
 from sqlalchemy.sql.schema import ForeignKey
 
-from ta_core.domain.entities.event import AllDayEvent as AllDayEventEntity
-from ta_core.domain.entities.event import AllDayRecurrence as AllDayRecurrenceEntity
-from ta_core.domain.entities.event import (
-    AllDayRecurrenceRule as AllDayRecurrenceRuleEntity,
-)
-from ta_core.domain.entities.event import TimedEvent as TimedEventEntity
-from ta_core.domain.entities.event import TimedRecurrence as TimedRecurrenceEntity
-from ta_core.domain.entities.event import (
-    TimedRecurrenceRule as TimedRecurrenceRuleEntity,
-)
+from ta_core.domain.entities.event import Event as EventEntity
+from ta_core.domain.entities.event import Recurrence as RecurrenceEntity
+from ta_core.domain.entities.event import RecurrenceRule as RecurrenceRuleEntity
 from ta_core.features.event import Frequency, Weekday
 from ta_core.infrastructure.sqlalchemy.models.shards.base import (
     AbstractShardDynamicBase,
@@ -23,89 +16,7 @@ from ta_core.infrastructure.sqlalchemy.models.shards.base import (
 )
 
 
-class AllDayRecurrenceRule(AbstractShardStaticBase):
-    freq: Mapped[Frequency] = mapped_column(
-        ENUM(Frequency), nullable=False, comment="FREQ"
-    )
-    until: Mapped[date | None] = mapped_column(DATE, nullable=True, comment="UNTIL")
-    count: Mapped[int | None] = mapped_column(
-        SMALLINT(unsigned=True), nullable=True, comment="COUNT"
-    )
-    interval: Mapped[int] = mapped_column(
-        SMALLINT(unsigned=True), nullable=False, comment="INTERVAL"
-    )
-    bysecond: Mapped[list[int] | None] = mapped_column(
-        JSON, nullable=True, comment="BYSECOND"
-    )
-    byminute: Mapped[list[int] | None] = mapped_column(
-        JSON, nullable=True, comment="BYMINUTE"
-    )
-    byhour: Mapped[list[int] | None] = mapped_column(
-        JSON, nullable=True, comment="BYHOUR"
-    )
-    byday: Mapped[list[list[int | Weekday]] | None] = mapped_column(
-        JSON, nullable=True, comment="BYDAY"
-    )
-    bymonthday: Mapped[list[int] | None] = mapped_column(
-        JSON, nullable=True, comment="BYMONTHDAY"
-    )
-    byyearday: Mapped[list[int] | None] = mapped_column(
-        JSON, nullable=True, comment="BYYEARDAY"
-    )
-    byweekno: Mapped[list[int] | None] = mapped_column(
-        JSON, nullable=True, comment="BYWEEKNO"
-    )
-    bymonth: Mapped[list[int] | None] = mapped_column(
-        JSON, nullable=True, comment="BYMONTH"
-    )
-    bysetpos: Mapped[list[int] | None] = mapped_column(
-        JSON, nullable=True, comment="BYSETPOS"
-    )
-    wkst: Mapped[Weekday] = mapped_column(ENUM(Weekday), nullable=False, comment="WKST")
-
-    def to_entity(self) -> AllDayRecurrenceRuleEntity:
-        return AllDayRecurrenceRuleEntity(
-            entity_id=self.id,
-            user_id=self.user_id,
-            freq=self.freq,
-            until=self.until,
-            count=self.count,
-            interval=self.interval,
-            bysecond=self.bysecond,
-            byminute=self.byminute,
-            byhour=self.byhour,
-            byday=self.byday,
-            bymonthday=self.bymonthday,
-            byyearday=self.byyearday,
-            byweekno=self.byweekno,
-            bymonth=self.bymonth,
-            bysetpos=self.bysetpos,
-            wkst=self.wkst,
-        )
-
-    @classmethod
-    def from_entity(cls, entity: AllDayRecurrenceRuleEntity) -> "AllDayRecurrenceRule":
-        return cls(
-            id=entity.id,
-            user_id=entity.user_id,
-            freq=entity.freq,
-            until=entity.until,
-            count=entity.count,
-            interval=entity.interval,
-            bysecond=entity.bysecond,
-            byminute=entity.byminute,
-            byhour=entity.byhour,
-            byday=entity.byday,
-            bymonthday=entity.bymonthday,
-            byyearday=entity.byyearday,
-            byweekno=entity.byweekno,
-            bymonth=entity.bymonth,
-            bysetpos=entity.bysetpos,
-            wkst=entity.wkst,
-        )
-
-
-class TimedRecurrenceRule(AbstractShardStaticBase):
+class RecurrenceRule(AbstractShardStaticBase):
     freq: Mapped[Frequency] = mapped_column(
         ENUM(Frequency), nullable=False, comment="FREQ"
     )
@@ -147,8 +58,8 @@ class TimedRecurrenceRule(AbstractShardStaticBase):
     )
     wkst: Mapped[Weekday] = mapped_column(ENUM(Weekday), nullable=False, comment="WKST")
 
-    def to_entity(self) -> TimedRecurrenceRuleEntity:
-        return TimedRecurrenceRuleEntity(
+    def to_entity(self) -> RecurrenceRuleEntity:
+        return RecurrenceRuleEntity(
             entity_id=self.id,
             user_id=self.user_id,
             freq=self.freq,
@@ -168,7 +79,7 @@ class TimedRecurrenceRule(AbstractShardStaticBase):
         )
 
     @classmethod
-    def from_entity(cls, entity: TimedRecurrenceRuleEntity) -> "TimedRecurrenceRule":
+    def from_entity(cls, entity: RecurrenceRuleEntity) -> "RecurrenceRule":
         return cls(
             id=entity.id,
             user_id=entity.user_id,
@@ -189,20 +100,20 @@ class TimedRecurrenceRule(AbstractShardStaticBase):
         )
 
 
-class AllDayRecurrence(AbstractShardStaticBase):
+class Recurrence(AbstractShardStaticBase):
     rrule_id: Mapped[str] = mapped_column(
         VARCHAR(36),
-        ForeignKey("all_day_recurrence_rule.id", ondelete="RESTRICT"),
+        ForeignKey("recurrence_rule.id", ondelete="RESTRICT"),
         nullable=False,
     )
-    rrule: Mapped[AllDayRecurrenceRule] = relationship(uselist=False)
+    rrule: Mapped[RecurrenceRule] = relationship(uselist=False)
     rdate: Mapped[list[str]] = mapped_column(JSON, nullable=False, comment="RDATE")
     exdate: Mapped[list[str]] = mapped_column(JSON, nullable=False, comment="EXDATE")
 
-    def to_entity(self) -> AllDayRecurrenceEntity:
+    def to_entity(self) -> RecurrenceEntity:
         rrule = self.rrule.to_entity()
 
-        return AllDayRecurrenceEntity(
+        return RecurrenceEntity(
             entity_id=self.id,
             user_id=self.user_id,
             rrule_id=self.rrule_id,
@@ -212,7 +123,7 @@ class AllDayRecurrence(AbstractShardStaticBase):
         )
 
     @classmethod
-    def from_entity(cls, entity: AllDayRecurrenceEntity) -> "AllDayRecurrence":
+    def from_entity(cls, entity: RecurrenceEntity) -> "Recurrence":
         return cls(
             id=entity.id,
             user_id=entity.user_id,
@@ -222,68 +133,49 @@ class AllDayRecurrence(AbstractShardStaticBase):
         )
 
 
-class TimedRecurrence(AbstractShardStaticBase):
-    rrule_id: Mapped[str] = mapped_column(
-        VARCHAR(36),
-        ForeignKey("timed_recurrence_rule.id", ondelete="RESTRICT"),
-        nullable=False,
-    )
-    rrule: Mapped[TimedRecurrenceRule] = relationship(uselist=False)
-
-    def to_entity(self) -> TimedRecurrenceEntity:
-        rrule = self.rrule.to_entity()
-
-        return TimedRecurrenceEntity(
-            entity_id=self.id,
-            user_id=self.user_id,
-            rrule_id=self.rrule_id,
-            rrule=rrule,
-        )
-
-    @classmethod
-    def from_entity(cls, entity: TimedRecurrenceEntity) -> "TimedRecurrence":
-        return cls(
-            id=entity.id,
-            user_id=entity.user_id,
-            rrule_id=entity.rrule_id,
-        )
-
-
-class AllDayEvent(AbstractShardDynamicBase):
+class Event(AbstractShardDynamicBase):
     summary: Mapped[str] = mapped_column(
         VARCHAR(64), unique=True, nullable=False, comment="Summary"
     )
     location: Mapped[str | None] = mapped_column(
         VARCHAR(64), nullable=True, comment="Location"
     )
-    start: Mapped[date] = mapped_column(DATE, nullable=False, comment="Start Date")
-    end: Mapped[date] = mapped_column(DATE, nullable=False, comment="End Date")
+    start: Mapped[datetime] = mapped_column(DATETIME, nullable=False, comment="Start")
+    end: Mapped[datetime] = mapped_column(DATETIME, nullable=False, comment="End")
+    is_all_day: Mapped[bool] = mapped_column(
+        BOOLEAN, nullable=False, comment="Is All Day"
+    )
     recurrence_id: Mapped[str | None] = mapped_column(
         VARCHAR(36),
-        ForeignKey("all_day_recurrence.id", ondelete="RESTRICT"),
+        ForeignKey("recurrence.id", ondelete="RESTRICT"),
         nullable=True,
     )
-    recurrence: Mapped[AllDayRecurrence | None] = relationship(uselist=False)
+    timezone: Mapped[str] = mapped_column(
+        VARCHAR(64), nullable=False, comment="Timezone"
+    )
+    recurrence: Mapped[Recurrence | None] = relationship(uselist=False)
 
-    def to_entity(self) -> AllDayEventEntity:
+    def to_entity(self) -> EventEntity:
         try:
             recurrence = self.recurrence.to_entity() if self.recurrence else None
         except StatementError:
             recurrence = None
 
-        return AllDayEventEntity(
+        return EventEntity(
             entity_id=self.id,
             user_id=self.user_id,
             summary=self.summary,
             location=self.location,
             start=self.start,
             end=self.end,
+            is_all_day=self.is_all_day,
             recurrence_id=self.recurrence_id,
+            timezone=self.timezone,
             recurrence=recurrence,
         )
 
     @classmethod
-    def from_entity(cls, entity: AllDayEventEntity) -> "AllDayEvent":
+    def from_entity(cls, entity: EventEntity) -> "Event":
         return cls(
             id=entity.id,
             user_id=entity.user_id,
@@ -291,55 +183,7 @@ class AllDayEvent(AbstractShardDynamicBase):
             location=entity.location,
             start=entity.start,
             end=entity.end,
+            is_all_day=entity.is_all_day,
             recurrence_id=entity.recurrence_id,
-        )
-
-
-class TimedEvent(AbstractShardDynamicBase):
-    summary: Mapped[str] = mapped_column(
-        VARCHAR(64), unique=True, nullable=False, comment="Summary"
-    )
-    location: Mapped[str | None] = mapped_column(
-        VARCHAR(64), nullable=True, comment="Location"
-    )
-    start: Mapped[datetime] = mapped_column(
-        DATETIME, nullable=False, comment="Start Date-Time"
-    )
-    end: Mapped[datetime] = mapped_column(
-        DATETIME, nullable=False, comment="End Date-Time"
-    )
-    recurrence_id: Mapped[str | None] = mapped_column(
-        VARCHAR(36),
-        ForeignKey("timed_recurrence.id", ondelete="RESTRICT"),
-        nullable=True,
-    )
-    recurrence: Mapped[TimedRecurrence | None] = relationship(uselist=False)
-
-    def to_entity(self) -> TimedEventEntity:
-        try:
-            recurrence = self.recurrence.to_entity() if self.recurrence else None
-        except StatementError:
-            recurrence = None
-
-        return TimedEventEntity(
-            entity_id=self.id,
-            user_id=self.user_id,
-            summary=self.summary,
-            location=self.location,
-            start=self.start,
-            end=self.end,
-            recurrence_id=self.recurrence_id,
-            recurrence=recurrence,
-        )
-
-    @classmethod
-    def from_entity(cls, entity: TimedEventEntity) -> "TimedEvent":
-        return cls(
-            id=entity.id,
-            user_id=entity.user_id,
-            summary=entity.summary,
-            location=entity.location,
-            start=entity.start,
-            end=entity.end,
-            recurrence_id=entity.recurrence_id,
+            timezone=entity.timezone,
         )
