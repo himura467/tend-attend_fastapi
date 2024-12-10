@@ -1,10 +1,7 @@
 from dataclasses import dataclass
-from datetime import date, datetime
-from typing import Any
+from datetime import date
 
-from ta_core.domain.entities.event import AllDayEvent as AllDayEventEntity
-from ta_core.domain.entities.event import AllDayRecurrence as AllDayRecurrenceEntity
-from ta_core.domain.entities.event import TimedEvent as TimedEventEntity
+from ta_core.domain.entities.event import Event as EventEntity
 from ta_core.dtos.event import CreateEventResponse
 from ta_core.dtos.event import Event as EventDto
 from ta_core.dtos.event import GetHostEventsResponse
@@ -13,15 +10,9 @@ from ta_core.features.event import Event, Recurrence, RecurrenceRule, Weekday
 from ta_core.infrastructure.db.transaction import rollbackable
 from ta_core.infrastructure.sqlalchemy.repositories.account import HostAccountRepository
 from ta_core.infrastructure.sqlalchemy.repositories.event import (
-    AbstractEventRepository,
-    AbstractRecurrenceRepository,
-    AbstractRecurrenceRuleRepository,
-    AllDayEventRepository,
-    AllDayRecurrenceRepository,
-    AllDayRecurrenceRuleRepository,
-    TimedEventRepository,
-    TimedRecurrenceRepository,
-    TimedRecurrenceRuleRepository,
+    EventRepository,
+    RecurrenceRepository,
+    RecurrenceRuleRepository,
 )
 from ta_core.use_case.unit_of_work_base import IUnitOfWork
 from ta_core.utils.datetime import validate_date
@@ -29,8 +20,8 @@ from ta_core.utils.rfc5545 import parse_recurrence, serialize_recurrence
 from ta_core.utils.uuid import generate_uuid
 
 
-def convert_tuple_to_list[T](t: tuple[T, ...] | None) -> list[T] | None:
-    return list(t) if t is not None else None
+def convert_tuple_to_list[T](tpl: tuple[T, ...] | None) -> list[T] | None:
+    return list(tpl) if tpl is not None else None
 
 
 def convert_list_to_tuple[T](lst: list[T] | None) -> tuple[T, ...] | None:
@@ -38,15 +29,17 @@ def convert_list_to_tuple[T](lst: list[T] | None) -> tuple[T, ...] | None:
 
 
 def convert_byday_tuple_to_byday_list(
-    t: tuple[tuple[int, Weekday], ...] | None
+    tpl: tuple[tuple[int, Weekday], ...] | None
 ) -> list[list[int | Weekday]] | None:
-    return [list(i) for i in t] if t is not None else None
+    return [list(i) for i in tpl] if tpl is not None else None
 
 
 def convert_byday_list_to_byday_tuple(
-    l: list[list[int | Weekday]] | None,
+    lst: list[list[int | Weekday]] | None,
 ) -> tuple[tuple[int, Weekday], ...] | None:
-    return tuple((int(i[0]), Weekday(str(i[1]))) for i in l) if l is not None else None
+    return (
+        tuple((int(i[0]), Weekday(str(i[1]))) for i in lst) if lst is not None else None
+    )
 
 
 def convert_date_tuple_to_str_list(dates: tuple[date, ...]) -> list[str]:
@@ -57,9 +50,7 @@ def convert_str_list_to_date_tuple(dates: list[str]) -> tuple[date, ...]:
     return tuple(date.fromisoformat(d) for d in dates)
 
 
-def serialize_events(
-    events: tuple[AllDayEventEntity | TimedEventEntity, ...]
-) -> list[EventDto]:
+def serialize_events(events: tuple[EventEntity, ...]) -> list[EventDto]:
     event_dto_list = []
     for event in events:
         recurrence: Recurrence | None = None
@@ -85,39 +76,26 @@ def serialize_events(
                 ),
                 rdate=(
                     convert_str_list_to_date_tuple(event.recurrence.rdate)
-                    if isinstance(event.recurrence, AllDayRecurrenceEntity)
+                    if event.is_all_day
                     else tuple()
                 ),
                 exdate=(
                     convert_str_list_to_date_tuple(event.recurrence.exdate)
-                    if isinstance(event.recurrence, AllDayRecurrenceEntity)
+                    if event.is_all_day
                     else tuple()
                 ),
             )
-        if isinstance(event, AllDayEventEntity):
-            event_dto_list.append(
-                EventDto(
-                    summary=event.summary,
-                    location=event.location,
-                    start=datetime.combine(event.start, datetime.min.time()),
-                    end=datetime.combine(event.end, datetime.min.time()),
-                    recurrence_list=serialize_recurrence(recurrence),
-                    is_all_day=True,
-                )
+        event_dto_list.append(
+            EventDto(
+                summary=event.summary,
+                location=event.location,
+                start=event.start,
+                end=event.end,
+                is_all_day=event.is_all_day,
+                recurrence_list=serialize_recurrence(recurrence, event.is_all_day),
+                timezone=event.timezone,
             )
-        elif isinstance(event, TimedEventEntity):
-            event_dto_list.append(
-                EventDto(
-                    summary=event.summary,
-                    location=event.location,
-                    start=event.start,
-                    end=event.end,
-                    recurrence_list=serialize_recurrence(recurrence),
-                    is_all_day=False,
-                )
-            )
-        else:
-            raise ValueError("Invalid event type")
+        )
     return event_dto_list
 
 
@@ -132,18 +110,31 @@ class EventUseCase:
         event_dto: EventDto,
     ) -> CreateEventResponse:
         host_account_repository = HostAccountRepository(self.uow)
+        recurrence_rule_repository = RecurrenceRuleRepository(self.uow)
+        recurrence_repository = RecurrenceRepository(self.uow)
+        event_repository = EventRepository(self.uow)
 
-        validate_date(event_dto.is_all_day, event_dto.start)
-        validate_date(event_dto.is_all_day, event_dto.end)
-        start = event_dto.start.date() if event_dto.is_all_day else event_dto.start
-        end = event_dto.end.date() if event_dto.is_all_day else event_dto.end
+        assert event_dto.start.tzname() == "UTC"
+        assert event_dto.end.tzname() == "UTC"
+        validate_date(
+            is_all_day=event_dto.is_all_day,
+            date_value=event_dto.start,
+            timezone=event_dto.timezone,
+        )
+        validate_date(
+            is_all_day=event_dto.is_all_day,
+            date_value=event_dto.end,
+            timezone=event_dto.timezone,
+        )
         recurrence = parse_recurrence(event_dto.recurrence_list, event_dto.is_all_day)
         event = Event(
             summary=event_dto.summary,
             location=event_dto.location,
-            start=start,
-            end=end,
+            start=event_dto.start,
+            end=event_dto.end,
+            timezone=event_dto.timezone,
             recurrence=recurrence,
+            is_all_day=event_dto.is_all_day,
         )
 
         host_account = await host_account_repository.read_by_id_or_none_async(host_id)
@@ -153,21 +144,6 @@ class EventUseCase:
             return CreateEventResponse(error_codes=(ErrorCode.ACCOUNT_DISABLED,))
 
         user_id = host_account.user_id
-
-        recurrence_rule_repository: AbstractRecurrenceRuleRepository[Any]
-        recurrence_repository: AbstractRecurrenceRepository
-        event_repository: AbstractEventRepository[Any]
-
-        if type(event.start) is date:
-            recurrence_rule_repository = AllDayRecurrenceRuleRepository(self.uow)
-            recurrence_repository = AllDayRecurrenceRepository(self.uow)
-            event_repository = AllDayEventRepository(self.uow)
-        elif type(event.start) is datetime:
-            recurrence_rule_repository = TimedRecurrenceRuleRepository(self.uow)
-            recurrence_repository = TimedRecurrenceRepository(self.uow)
-            event_repository = TimedEventRepository(self.uow)
-        else:
-            raise ValueError("Invalid start type")
 
         recurrence_id: str | None
         if event.recurrence is None:
@@ -215,7 +191,9 @@ class EventUseCase:
             location=event.location,
             start=event.start,
             end=event.end,
+            is_all_day=event.is_all_day,
             recurrence_id=recurrence_id,
+            timezone=event.timezone,
         )
         if event_entity is None:
             raise ValueError("Failed to create event")
@@ -225,8 +203,7 @@ class EventUseCase:
     @rollbackable
     async def get_host_events_async(self, host_id: str) -> GetHostEventsResponse:
         host_account_repository = HostAccountRepository(self.uow)
-        all_day_event_repository = AllDayEventRepository(self.uow)
-        timed_event_repository = TimedEventRepository(self.uow)
+        event_repository = EventRepository(self.uow)
 
         host_account = await host_account_repository.read_by_id_or_none_async(host_id)
         if host_account is None:
@@ -240,15 +217,6 @@ class EventUseCase:
 
         user_id = host_account.user_id
 
-        all_day_events = (
-            await all_day_event_repository.read_with_recurrence_by_user_id_async(
-                user_id
-            )
-        )
-        timed_events = (
-            await timed_event_repository.read_with_recurrence_by_user_id_async(user_id)
-        )
+        events = await event_repository.read_with_recurrence_by_user_id_async(user_id)
 
-        return GetHostEventsResponse(
-            events=serialize_events(all_day_events + timed_events), error_codes=()
-        )
+        return GetHostEventsResponse(events=serialize_events(events), error_codes=())

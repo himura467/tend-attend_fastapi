@@ -11,8 +11,9 @@ class Event(BaseModel):
     location: str | None = Field(None, title="Location")
     start: datetime = Field(..., title="Start")
     end: datetime = Field(..., title="End")
-    recurrence_list: list[str] = Field([], title="Recurrence List")
     is_all_day: bool = Field(True, title="Is All Day")
+    recurrence_list: list[str] = Field([], title="Recurrence List")
+    timezone: str = Field(..., title="Timezone")
 
 
 class CreateEventRequest(BaseModel):

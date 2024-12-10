@@ -38,7 +38,7 @@ class RecurrenceRule:
     # The value of the UNTIL rule part MUST have the same value type as the "start" property.
 
     # If not present, and the COUNT rule part is also not present, the "RRULE" is considered to repeat forever.
-    until: date | datetime | None
+    until: datetime | None
 
     # The COUNT rule part defines the number of occurrences at which to range-bound the recurrence.
     count: int | None
@@ -113,6 +113,8 @@ class Recurrence:
 class Event:
     summary: str
     location: str | None
-    start: date | datetime
-    end: date | datetime
+    start: datetime
+    end: datetime
+    timezone: str
     recurrence: Recurrence | None
+    is_all_day: bool

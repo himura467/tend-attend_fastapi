@@ -7,27 +7,26 @@ from ta_core.utils.datetime import validate_date
 
 def parse_rrule(rrule_str: str, is_all_day: bool) -> RecurrenceRule:
     rrule_str = rrule_str.replace("RRULE:", "")
-    rules = dict(pair.split("=") for pair in rrule_str.split(";"))
-    freq = Frequency(rules["FREQ"])
-    until: date | datetime | None = None
-    count = int(rules["COUNT"]) if "COUNT" in rules else None
-    if "UNTIL" in rules:
+    rrules = dict(pair.split("=") for pair in rrule_str.split(";"))
+    freq = Frequency(rrules["FREQ"])
+    until: datetime | None = None
+    count = int(rrules["COUNT"]) if "COUNT" in rrules else None
+    if "UNTIL" in rrules:
         if count is not None:
             raise ValueError("RRULE cannot have both COUNT and UNTIL")
-        until_str = rules["UNTIL"]
-        validate_date(is_all_day, until_str)
-        if is_all_day:
-            until = date.fromisoformat(until_str)
-        else:
-            until = datetime.fromisoformat(until_str)
-    interval = int(rules["INTERVAL"]) if "INTERVAL" in rules else 1
+        until_str = rrules["UNTIL"]
+        validate_date(is_all_day=is_all_day, date_value=until_str)
+        until = datetime.fromisoformat(until_str)
+    interval = int(rrules["INTERVAL"]) if "INTERVAL" in rrules else 1
     bysecond = (
-        tuple(map(int, rules["BYSECOND"].split(","))) if "BYSECOND" in rules else None
+        tuple(map(int, rrules["BYSECOND"].split(","))) if "BYSECOND" in rrules else None
     )
     byminute = (
-        tuple(map(int, rules["BYMINUTE"].split(","))) if "BYMINUTE" in rules else None
+        tuple(map(int, rrules["BYMINUTE"].split(","))) if "BYMINUTE" in rrules else None
     )
-    byhour = tuple(map(int, rules["BYHOUR"].split(","))) if "BYHOUR" in rules else None
+    byhour = (
+        tuple(map(int, rrules["BYHOUR"].split(","))) if "BYHOUR" in rrules else None
+    )
     byday = (
         tuple(
             (
@@ -35,29 +34,31 @@ def parse_rrule(rrule_str: str, is_all_day: bool) -> RecurrenceRule:
                 if m.group(1)
                 else (0, Weekday(m.group(2)))
             )
-            for m in re.finditer(r"(-?\d+)?(\w{2})", rules["BYDAY"])
+            for m in re.finditer(r"(-?\d+)?(\w{2})", rrules["BYDAY"])
         )
-        if "BYDAY" in rules
+        if "BYDAY" in rrules
         else None
     )
     bymonthday = (
-        tuple(map(int, rules["BYMONTHDAY"].split(",")))
-        if "BYMONTHDAY" in rules
+        tuple(map(int, rrules["BYMONTHDAY"].split(",")))
+        if "BYMONTHDAY" in rrules
         else None
     )
     byyearday = (
-        tuple(map(int, rules["BYYEARDAY"].split(","))) if "BYYEARDAY" in rules else None
+        tuple(map(int, rrules["BYYEARDAY"].split(",")))
+        if "BYYEARDAY" in rrules
+        else None
     )
     byweekno = (
-        tuple(map(int, rules["BYWEEKNO"].split(","))) if "BYWEEKNO" in rules else None
+        tuple(map(int, rrules["BYWEEKNO"].split(","))) if "BYWEEKNO" in rrules else None
     )
     bymonth = (
-        tuple(map(int, rules["BYMONTH"].split(","))) if "BYMONTH" in rules else None
+        tuple(map(int, rrules["BYMONTH"].split(","))) if "BYMONTH" in rrules else None
     )
     bysetpos = (
-        tuple(map(int, rules["BYSETPOS"].split(","))) if "BYSETPOS" in rules else None
+        tuple(map(int, rrules["BYSETPOS"].split(","))) if "BYSETPOS" in rrules else None
     )
-    wkst = Weekday(rules["WKST"]) if "WKST" in rules else Weekday.MO
+    wkst = Weekday(rrules["WKST"]) if "WKST" in rrules else Weekday.MO
 
     return RecurrenceRule(
         freq=freq,
@@ -108,13 +109,13 @@ def parse_recurrence(recurrence_list: list[str], is_all_day: bool) -> Recurrence
     return Recurrence(rrule=rrule, rdate=tuple(rdate), exdate=tuple(exdate))
 
 
-def serialize_recurrence(recurrence: Recurrence | None) -> list[str]:
+def serialize_recurrence(recurrence: Recurrence | None, is_all_day: bool) -> list[str]:
     if not recurrence:
         return []
 
     rrule_str = f"RRULE:FREQ={recurrence.rrule.freq.value}"
     if recurrence.rrule.until:
-        rrule_str += f";UNTIL={recurrence.rrule.until.isoformat()}"
+        rrule_str += f";UNTIL={recurrence.rrule.until.date().isoformat() if is_all_day else recurrence.rrule.until.isoformat()}"
     if recurrence.rrule.count:
         rrule_str += f";COUNT={recurrence.rrule.count}"
     rrule_str += f";INTERVAL={recurrence.rrule.interval}"

@@ -21,12 +21,9 @@ from ta_core.infrastructure.sqlalchemy.models.sequences.sequence import (  # noq
     SequenceUserId,
 )
 from ta_core.infrastructure.sqlalchemy.models.shards.event import (  # noqa: F401
-    AllDayEvent,
-    AllDayRecurrence,
-    AllDayRecurrenceRule,
-    TimedEvent,
-    TimedRecurrence,
-    TimedRecurrenceRule,
+    Event,
+    Recurrence,
+    RecurrenceRule,
 )
 from tests.db_settings import CONNECTIONS
 from tests.db_sharding import execute_chooser, identity_chooser, shard_chooser
