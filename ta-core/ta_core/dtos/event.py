@@ -28,5 +28,13 @@ class CreateEventResponse(BaseModelWithErrorCodes):
     pass
 
 
+class AttendEventRequest(BaseModel):
+    event_id: str = Field(..., title="Event ID")
+
+
+class AttendEventResponse(BaseModelWithErrorCodes):
+    pass
+
+
 class GetHostEventsResponse(BaseModelWithErrorCodes):
     events: list[EventWithId] = Field([], title="Host Events")
