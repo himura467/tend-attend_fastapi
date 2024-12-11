@@ -12,9 +12,9 @@ from ta_core.infrastructure.sqlalchemy.models.sequences.sequence import (  # noq
 )
 from ta_core.infrastructure.sqlalchemy.models.shards.event import (  # noqa: F401
     Event,
+    EventAttendance,
     Recurrence,
     RecurrenceRule,
-    EventAttendance,
 )
 
 

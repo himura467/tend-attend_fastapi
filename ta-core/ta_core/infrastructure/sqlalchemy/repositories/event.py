@@ -145,7 +145,7 @@ class EventAttendanceRepository(
         entity_id: str,
         user_id: int,
         event_id: str,
-        event: Event,
+        event: EventEntity,
     ) -> EventAttendanceEntity | None:
         event_attendance = EventAttendanceEntity(
             entity_id=entity_id,

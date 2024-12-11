@@ -7,9 +7,9 @@ from sqlalchemy.orm.base import Mapped
 from sqlalchemy.sql.schema import ForeignKey
 
 from ta_core.domain.entities.event import Event as EventEntity
+from ta_core.domain.entities.event import EventAttendance as EventAttendanceEntity
 from ta_core.domain.entities.event import Recurrence as RecurrenceEntity
 from ta_core.domain.entities.event import RecurrenceRule as RecurrenceRuleEntity
-from ta_core.domain.entities.event import EventAttendance as EventAttendanceEntity
 from ta_core.features.event import Frequency, Weekday
 from ta_core.infrastructure.sqlalchemy.models.shards.base import (
     AbstractShardDynamicBase,

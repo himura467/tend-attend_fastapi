@@ -2,15 +2,19 @@ from dataclasses import dataclass
 from datetime import date
 
 from ta_core.domain.entities.event import Event as EventEntity
-from ta_core.dtos.event import CreateEventResponse
+from ta_core.dtos.event import AttendEventResponse, CreateEventResponse
 from ta_core.dtos.event import Event as EventDto
 from ta_core.dtos.event import EventWithId as EventWithIdDto
 from ta_core.dtos.event import GetHostEventsResponse
 from ta_core.error.error_code import ErrorCode
 from ta_core.features.event import Event, Recurrence, RecurrenceRule, Weekday
 from ta_core.infrastructure.db.transaction import rollbackable
-from ta_core.infrastructure.sqlalchemy.repositories.account import HostAccountRepository
+from ta_core.infrastructure.sqlalchemy.repositories.account import (
+    GuestAccountRepository,
+    HostAccountRepository,
+)
 from ta_core.infrastructure.sqlalchemy.repositories.event import (
+    EventAttendanceRepository,
     EventRepository,
     RecurrenceRepository,
     RecurrenceRuleRepository,
@@ -201,6 +205,39 @@ class EventUseCase:
             raise ValueError("Failed to create event")
 
         return CreateEventResponse(error_codes=())
+
+    @rollbackable
+    async def attend_event_async(
+        self, guest_id: str, event_id: str
+    ) -> AttendEventResponse:
+        guest_account_repository = GuestAccountRepository(self.uow)
+        event_repository = EventRepository(self.uow)
+        event_attendance_repository = EventAttendanceRepository(self.uow)
+
+        guest_account = await guest_account_repository.read_by_id_or_none_async(
+            guest_id
+        )
+        if guest_account is None:
+            return AttendEventResponse(error_codes=(ErrorCode.GUEST_ACCOUNT_NOT_FOUND,))
+
+        user_id = guest_account.user_id
+
+        event = await event_repository.read_by_id_or_none_async(event_id)
+        if event is None:
+            return AttendEventResponse(error_codes=(ErrorCode.EVENT_NOT_FOUND,))
+
+        event_attendance = (
+            await event_attendance_repository.create_event_attendance_async(
+                entity_id=generate_uuid(),
+                user_id=user_id,
+                event_id=event.id,
+                event=event,
+            )
+        )
+        if event_attendance is None:
+            raise ValueError("Failed to attend event")
+
+        return AttendEventResponse(error_codes=())
 
     @rollbackable
     async def get_host_events_async(self, host_id: str) -> GetHostEventsResponse:

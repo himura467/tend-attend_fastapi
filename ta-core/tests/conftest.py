@@ -22,9 +22,9 @@ from ta_core.infrastructure.sqlalchemy.models.sequences.sequence import (  # noq
 )
 from ta_core.infrastructure.sqlalchemy.models.shards.event import (  # noqa: F401
     Event,
+    EventAttendance,
     Recurrence,
     RecurrenceRule,
-    EventAttendance,
 )
 from tests.db_settings import CONNECTIONS
 from tests.db_sharding import execute_chooser, identity_chooser, shard_chooser
