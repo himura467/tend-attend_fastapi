@@ -14,6 +14,7 @@ from ta_core.infrastructure.sqlalchemy.models.shards.event import (  # noqa: F40
     Event,
     Recurrence,
     RecurrenceRule,
+    EventAttendance,
 )
 
 

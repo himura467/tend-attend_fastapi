@@ -24,6 +24,7 @@ from ta_core.infrastructure.sqlalchemy.models.shards.event import (  # noqa: F40
     Event,
     Recurrence,
     RecurrenceRule,
+    EventAttendance,
 )
 from tests.db_settings import CONNECTIONS
 from tests.db_sharding import execute_chooser, identity_chooser, shard_chooser

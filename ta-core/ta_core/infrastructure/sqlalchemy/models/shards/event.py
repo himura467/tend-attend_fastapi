@@ -9,6 +9,7 @@ from sqlalchemy.sql.schema import ForeignKey
 from ta_core.domain.entities.event import Event as EventEntity
 from ta_core.domain.entities.event import Recurrence as RecurrenceEntity
 from ta_core.domain.entities.event import RecurrenceRule as RecurrenceRuleEntity
+from ta_core.domain.entities.event import EventAttendance as EventAttendanceEntity
 from ta_core.features.event import Frequency, Weekday
 from ta_core.infrastructure.sqlalchemy.models.shards.base import (
     AbstractShardDynamicBase,
@@ -186,4 +187,31 @@ class Event(AbstractShardDynamicBase):
             is_all_day=entity.is_all_day,
             recurrence_id=entity.recurrence_id,
             timezone=entity.timezone,
+        )
+
+
+class EventAttendance(AbstractShardDynamicBase):
+    event_id: Mapped[str] = mapped_column(
+        VARCHAR(36),
+        ForeignKey("event.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    event: Mapped[Event] = relationship(uselist=False)
+
+    def to_entity(self) -> EventAttendanceEntity:
+        event = self.event.to_entity()
+
+        return EventAttendanceEntity(
+            entity_id=self.id,
+            user_id=self.user_id,
+            event_id=self.event_id,
+            event=event,
+        )
+
+    @classmethod
+    def from_entity(cls, entity: EventAttendanceEntity) -> "EventAttendance":
+        return cls(
+            id=entity.id,
+            user_id=entity.user_id,
+            event_id=entity.event_id,
         )
