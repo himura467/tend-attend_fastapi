@@ -16,6 +16,10 @@ class Event(BaseModel):
     timezone: str = Field(..., title="Timezone")
 
 
+class EventWithId(Event):
+    id: str = Field(..., title="Event ID")
+
+
 class CreateEventRequest(BaseModel):
     event: Event = Field(..., title="Event")
 
@@ -25,4 +29,4 @@ class CreateEventResponse(BaseModelWithErrorCodes):
 
 
 class GetHostEventsResponse(BaseModelWithErrorCodes):
-    events: list[Event] = Field([], title="Host Events")
+    events: list[EventWithId] = Field([], title="Host Events")

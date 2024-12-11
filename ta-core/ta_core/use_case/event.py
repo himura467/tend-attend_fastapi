@@ -4,6 +4,7 @@ from datetime import date
 from ta_core.domain.entities.event import Event as EventEntity
 from ta_core.dtos.event import CreateEventResponse
 from ta_core.dtos.event import Event as EventDto
+from ta_core.dtos.event import EventWithId as EventWithIdDto
 from ta_core.dtos.event import GetHostEventsResponse
 from ta_core.error.error_code import ErrorCode
 from ta_core.features.event import Event, Recurrence, RecurrenceRule, Weekday
@@ -50,7 +51,7 @@ def convert_str_list_to_date_tuple(dates: list[str]) -> tuple[date, ...]:
     return tuple(date.fromisoformat(d) for d in dates)
 
 
-def serialize_events(events: tuple[EventEntity, ...]) -> list[EventDto]:
+def serialize_events(events: tuple[EventEntity, ...]) -> list[EventWithIdDto]:
     event_dto_list = []
     for event in events:
         recurrence: Recurrence | None = None
@@ -86,7 +87,8 @@ def serialize_events(events: tuple[EventEntity, ...]) -> list[EventDto]:
                 ),
             )
         event_dto_list.append(
-            EventDto(
+            EventWithIdDto(
+                id=event.id,
                 summary=event.summary,
                 location=event.location,
                 start=event.start,
