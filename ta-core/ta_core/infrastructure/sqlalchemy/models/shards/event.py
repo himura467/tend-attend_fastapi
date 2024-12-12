@@ -4,13 +4,13 @@ from sqlalchemy.dialects.mysql import BOOLEAN, DATETIME, ENUM, JSON, SMALLINT, V
 from sqlalchemy.exc import StatementError
 from sqlalchemy.orm import mapped_column, relationship
 from sqlalchemy.orm.base import Mapped
-from sqlalchemy.sql.schema import ForeignKey
+from sqlalchemy.sql.schema import ForeignKey, UniqueConstraint
 
 from ta_core.domain.entities.event import Event as EventEntity
 from ta_core.domain.entities.event import EventAttendance as EventAttendanceEntity
 from ta_core.domain.entities.event import Recurrence as RecurrenceEntity
 from ta_core.domain.entities.event import RecurrenceRule as RecurrenceRuleEntity
-from ta_core.features.event import Frequency, Weekday
+from ta_core.features.event import AttendanceStatus, Frequency, Weekday
 from ta_core.infrastructure.sqlalchemy.models.shards.base import (
     AbstractShardDynamicBase,
     AbstractShardStaticBase,
@@ -194,6 +194,10 @@ class EventAttendance(AbstractShardDynamicBase):
     event_id: Mapped[str] = mapped_column(
         VARCHAR(36),
         nullable=False,
+        comment="Event ID",
+    )
+    status: Mapped[AttendanceStatus] = mapped_column(
+        ENUM(AttendanceStatus), nullable=False, comment="Attendance Status"
     )
 
     def to_entity(self) -> EventAttendanceEntity:
@@ -201,6 +205,7 @@ class EventAttendance(AbstractShardDynamicBase):
             entity_id=self.id,
             user_id=self.user_id,
             event_id=self.event_id,
+            status=self.status,
         )
 
     @classmethod
@@ -209,4 +214,5 @@ class EventAttendance(AbstractShardDynamicBase):
             id=entity.id,
             user_id=entity.user_id,
             event_id=entity.event_id,
+            status=entity.status,
         )

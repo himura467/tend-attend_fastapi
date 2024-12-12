@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from datetime import date, datetime
-from enum import StrEnum
+from enum import StrEnum, IntEnum
 
 
 class Frequency(StrEnum):
@@ -118,3 +118,20 @@ class Event:
     timezone: str
     recurrence: Recurrence | None
     is_all_day: bool
+
+
+# Attendance Status defined by CEDS
+# https://ceds.ed.gov/element/000076
+class AttendanceStatus(IntEnum):
+    # 未定
+    UNDETERMINED = 0
+    # 出席
+    PRESENT = 1
+    # 連絡済み欠席
+    EXCUSED_ABSENCE = 2
+    # 未連絡欠席
+    UNEXCUSED_ABSENCE = 3
+    # 遅刻
+    TARDY = 4
+    # 早退
+    EARLY_DEPARTURE = 5
