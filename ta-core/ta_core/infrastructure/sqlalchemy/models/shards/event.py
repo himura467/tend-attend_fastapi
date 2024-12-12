@@ -193,19 +193,14 @@ class Event(AbstractShardDynamicBase):
 class EventAttendance(AbstractShardDynamicBase):
     event_id: Mapped[str] = mapped_column(
         VARCHAR(36),
-        ForeignKey("event.id", ondelete="CASCADE"),
         nullable=False,
     )
-    event: Mapped[Event] = relationship(uselist=False)
 
     def to_entity(self) -> EventAttendanceEntity:
-        event = self.event.to_entity()
-
         return EventAttendanceEntity(
             entity_id=self.id,
             user_id=self.user_id,
             event_id=self.event_id,
-            event=event,
         )
 
     @classmethod

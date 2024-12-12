@@ -231,7 +231,6 @@ class EventUseCase:
                 entity_id=generate_uuid(),
                 user_id=user_id,
                 event_id=event.id,
-                event=event,
             )
         )
         if event_attendance is None:

@@ -145,12 +145,10 @@ class EventAttendanceRepository(
         entity_id: str,
         user_id: int,
         event_id: str,
-        event: EventEntity,
     ) -> EventAttendanceEntity | None:
         event_attendance = EventAttendanceEntity(
             entity_id=entity_id,
             user_id=user_id,
             event_id=event_id,
-            event=event,
         )
         return await self.create_async(event_attendance)
