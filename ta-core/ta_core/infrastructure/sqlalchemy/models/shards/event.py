@@ -216,3 +216,6 @@ class EventAttendance(AbstractShardDynamicBase):
             event_id=entity.event_id,
             status=entity.status,
         )
+
+
+UniqueConstraint(EventAttendance.user_id, EventAttendance.event_id)

@@ -7,7 +7,7 @@ from ta_core.domain.entities.event import Event as EventEntity
 from ta_core.domain.entities.event import EventAttendance as EventAttendanceEntity
 from ta_core.domain.entities.event import Recurrence as RecurrenceEntity
 from ta_core.domain.entities.event import RecurrenceRule as RecurrenceRuleEntity
-from ta_core.features.event import Frequency, Weekday, AttendanceStatus
+from ta_core.features.event import AttendanceStatus, Frequency, Weekday
 from ta_core.infrastructure.sqlalchemy.models.shards.event import (
     Event,
     EventAttendance,

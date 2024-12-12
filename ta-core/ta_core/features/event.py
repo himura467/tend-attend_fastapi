@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from datetime import date, datetime
-from enum import StrEnum, IntEnum
+from enum import IntEnum, StrEnum
 
 
 class Frequency(StrEnum):

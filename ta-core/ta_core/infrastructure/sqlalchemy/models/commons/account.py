@@ -85,7 +85,6 @@ class GuestAccount(AbstractCommonDynamicBase):
         VARCHAR(36), ForeignKey("host_account.id", ondelete="CASCADE"), nullable=False
     )
     host: Mapped["HostAccount"] = relationship(back_populates="guests", uselist=False)
-    UniqueConstraint("guest_first_name", "guest_last_name", "guest_nickname", "host_id")
 
     def to_entity(self) -> GuestAccountEntity:
         return GuestAccountEntity(
@@ -111,3 +110,11 @@ class GuestAccount(AbstractCommonDynamicBase):
             user_id=entity.user_id,
             host_id=entity.host_id,
         )
+
+
+UniqueConstraint(
+    GuestAccount.guest_first_name,
+    GuestAccount.guest_last_name,
+    GuestAccount.guest_nickname,
+    GuestAccount.host_id,
+)
