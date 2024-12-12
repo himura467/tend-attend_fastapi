@@ -4,11 +4,13 @@ from sqlalchemy.orm.strategy_options import joinedload
 from sqlalchemy.sql import select
 
 from ta_core.domain.entities.event import Event as EventEntity
+from ta_core.domain.entities.event import EventAttendance as EventAttendanceEntity
 from ta_core.domain.entities.event import Recurrence as RecurrenceEntity
 from ta_core.domain.entities.event import RecurrenceRule as RecurrenceRuleEntity
-from ta_core.features.event import Frequency, Weekday
+from ta_core.features.event import AttendanceStatus, Frequency, Weekday
 from ta_core.infrastructure.sqlalchemy.models.shards.event import (
     Event,
+    EventAttendance,
     Recurrence,
     RecurrenceRule,
 )
@@ -129,3 +131,26 @@ class EventRepository(AbstractRepository[EventEntity, Event]):
         )
         result = await self._uow.execute_async(stmt)
         return tuple(record.to_entity() for record in result.unique().scalars().all())
+
+
+class EventAttendanceRepository(
+    AbstractRepository[EventAttendanceEntity, EventAttendance],
+):
+    @property
+    def _model(self) -> type[EventAttendance]:
+        return EventAttendance
+
+    async def create_or_update_event_attendance_async(
+        self,
+        entity_id: str,
+        user_id: int,
+        event_id: str,
+        status: AttendanceStatus,
+    ) -> EventAttendanceEntity | None:
+        event_attendance = EventAttendanceEntity(
+            entity_id=entity_id,
+            user_id=user_id,
+            event_id=event_id,
+            status=status,
+        )
+        return await self.create_or_update_async(event_attendance)

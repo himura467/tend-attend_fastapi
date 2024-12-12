@@ -1,6 +1,8 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio.session import AsyncSession
 from ta_core.dtos.event import (
+    AttendEventRequest,
+    AttendEventResponse,
     CreateEventRequest,
     CreateEventResponse,
     GetHostEventsResponse,
@@ -33,6 +35,29 @@ async def create_event(
     return await use_case.create_event_async(
         host_id=account.account_id,
         event_dto=event,
+    )
+
+
+@router.put(
+    path="/attend",
+    name="Attend Event",
+    response_model=AttendEventResponse,
+)
+async def attend_event(
+    request: AttendEventRequest,
+    session: AsyncSession = Depends(get_db_async),
+    account: Account = Depends(AccessControl(permit={Role.GUEST})),
+) -> AttendEventResponse:
+    event_id = request.event_id
+    status = request.status
+
+    uow = SqlalchemyUnitOfWork(session=session)
+    use_case = EventUseCase(uow=uow)
+
+    return await use_case.attend_event_async(
+        guest_id=account.account_id,
+        event_id=event_id,
+        status=status,
     )
 
 

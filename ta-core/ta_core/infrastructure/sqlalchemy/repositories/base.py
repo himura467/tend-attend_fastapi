@@ -20,12 +20,13 @@ class AbstractRepository(IRepository[TEntity, TModel]):
 
     async def create_async(self, entity: TEntity) -> TEntity | None:
         model = self._model.from_entity(entity)
+        savepoint = self._uow.begin_nested()
         try:
             self._uow.add(model)
             await self._uow.flush_async()
             return entity
         except IntegrityError:
-            await self._uow.rollback_async()
+            await savepoint.rollback()
             return None
 
     async def read_by_id_async(self, record_id: str) -> TEntity:
@@ -81,6 +82,12 @@ class AbstractRepository(IRepository[TEntity, TModel]):
         stmt = update(self._model).where(self._model.id == model.id).values(update_dict)
         await self._uow.execute_async(stmt)
         return entity
+
+    async def create_or_update_async(self, entity: TEntity) -> TEntity:
+        created = await self.create_async(entity)
+        if created is not None:
+            return created
+        return await self.update_async(entity)
 
     async def delete_by_id_async(self, record_id: str) -> bool:
         stmt = select(self._model).where(self._model.id == record_id)

@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from ta_core.domain.entities.base import IEntity
-from ta_core.features.event import Frequency, Weekday
+from ta_core.features.event import AttendanceStatus, Frequency, Weekday
 
 
 class RecurrenceRule(IEntity):
@@ -84,3 +84,17 @@ class Event(IEntity):
         self.recurrence_id = recurrence_id
         self.timezone = timezone
         self.recurrence = recurrence
+
+
+class EventAttendance(IEntity):
+    def __init__(
+        self,
+        entity_id: str,
+        user_id: int,
+        event_id: str,
+        status: AttendanceStatus,
+    ) -> None:
+        super().__init__(entity_id)
+        self.user_id = user_id
+        self.event_id = event_id
+        self.status = status
