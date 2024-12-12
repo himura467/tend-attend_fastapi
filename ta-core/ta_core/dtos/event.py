@@ -40,3 +40,7 @@ class AttendEventResponse(BaseModelWithErrorCodes):
 
 class GetHostEventsResponse(BaseModelWithErrorCodes):
     events: list[EventWithId] = Field([], title="Host Events")
+
+
+class GetGuestEventsResponse(BaseModelWithErrorCodes):
+    events: list[EventWithId] = Field([], title="Guest Events")

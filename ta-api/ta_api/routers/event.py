@@ -5,6 +5,7 @@ from ta_core.dtos.event import (
     AttendEventResponse,
     CreateEventRequest,
     CreateEventResponse,
+    GetGuestEventsResponse,
     GetHostEventsResponse,
 )
 from ta_core.features.account import Account, Role
@@ -74,3 +75,18 @@ async def get_host_events(
     use_case = EventUseCase(uow=uow)
 
     return await use_case.get_host_events_async(host_id=account.account_id)
+
+
+@router.get(
+    path="/guests",
+    name="Get Guest Events",
+    response_model=GetGuestEventsResponse,
+)
+async def get_guest_events(
+    session: AsyncSession = Depends(get_db_async),
+    account: Account = Depends(AccessControl(permit={Role.GUEST})),
+) -> GetGuestEventsResponse:
+    uow = SqlalchemyUnitOfWork(session=session)
+    use_case = EventUseCase(uow=uow)
+
+    return await use_case.get_guest_events_async(guest_id=account.account_id)

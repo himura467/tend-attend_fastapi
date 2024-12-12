@@ -5,7 +5,7 @@ from ta_core.domain.entities.event import Event as EventEntity
 from ta_core.dtos.event import AttendEventResponse, CreateEventResponse
 from ta_core.dtos.event import Event as EventDto
 from ta_core.dtos.event import EventWithId as EventWithIdDto
-from ta_core.dtos.event import GetHostEventsResponse
+from ta_core.dtos.event import GetGuestEventsResponse, GetHostEventsResponse
 from ta_core.error.error_code import ErrorCode
 from ta_core.features.event import (
     AttendanceStatus,
@@ -261,3 +261,35 @@ class EventUseCase:
         events = await event_repository.read_with_recurrence_by_user_id_async(user_id)
 
         return GetHostEventsResponse(events=serialize_events(events), error_codes=())
+
+    @rollbackable
+    async def get_guest_events_async(self, guest_id: str) -> GetGuestEventsResponse:
+        host_account_repository = HostAccountRepository(self.uow)
+        guest_account_repository = GuestAccountRepository(self.uow)
+        event_repository = EventRepository(self.uow)
+
+        guest_account = await guest_account_repository.read_by_id_or_none_async(
+            guest_id
+        )
+        if guest_account is None:
+            return GetGuestEventsResponse(
+                events=[], error_codes=(ErrorCode.GUEST_ACCOUNT_NOT_FOUND,)
+            )
+
+        host_account = await host_account_repository.read_by_id_or_none_async(
+            guest_account.host_id
+        )
+        if host_account is None:
+            return GetGuestEventsResponse(
+                events=[], error_codes=(ErrorCode.HOST_ACCOUNT_NOT_FOUND,)
+            )
+        if host_account.user_id is None:
+            return GetGuestEventsResponse(
+                events=[], error_codes=(ErrorCode.ACCOUNT_DISABLED,)
+            )
+
+        user_id = host_account.user_id
+
+        events = await event_repository.read_with_recurrence_by_user_id_async(user_id)
+
+        return GetGuestEventsResponse(events=serialize_events(events), error_codes=())
