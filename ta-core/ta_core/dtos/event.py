@@ -4,6 +4,7 @@ from pydantic import BaseModel
 from pydantic.fields import Field
 
 from ta_core.dtos.base import BaseModelWithErrorCodes
+from ta_core.features.event import AttendanceStatus
 
 
 class Event(BaseModel):
@@ -30,6 +31,7 @@ class CreateEventResponse(BaseModelWithErrorCodes):
 
 class AttendEventRequest(BaseModel):
     event_id: str = Field(..., title="Event ID")
+    status: AttendanceStatus = Field(..., title="Attendance Status")
 
 
 class AttendEventResponse(BaseModelWithErrorCodes):

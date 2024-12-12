@@ -38,7 +38,7 @@ async def create_event(
     )
 
 
-@router.post(
+@router.put(
     path="/attend",
     name="Attend Event",
     response_model=AttendEventResponse,
@@ -49,6 +49,7 @@ async def attend_event(
     account: Account = Depends(AccessControl(permit={Role.GUEST})),
 ) -> AttendEventResponse:
     event_id = request.event_id
+    status = request.status
 
     uow = SqlalchemyUnitOfWork(session=session)
     use_case = EventUseCase(uow=uow)
@@ -56,6 +57,7 @@ async def attend_event(
     return await use_case.attend_event_async(
         guest_id=account.account_id,
         event_id=event_id,
+        status=status,
     )
 
 

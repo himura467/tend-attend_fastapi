@@ -123,15 +123,13 @@ class Event:
 # Attendance Status defined by CEDS
 # https://ceds.ed.gov/element/000076
 class AttendanceStatus(IntEnum):
-    # 未定
-    UNDETERMINED = 0
     # 出席
-    PRESENT = 1
+    PRESENT = 0
     # 連絡済み欠席
-    EXCUSED_ABSENCE = 2
+    EXCUSED_ABSENCE = 1
     # 未連絡欠席
-    UNEXCUSED_ABSENCE = 3
+    UNEXCUSED_ABSENCE = 2
     # 遅刻
-    TARDY = 4
+    TARDY = 3
     # 早退
-    EARLY_DEPARTURE = 5
+    EARLY_DEPARTURE = 4

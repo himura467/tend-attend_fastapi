@@ -140,16 +140,17 @@ class EventAttendanceRepository(
     def _model(self) -> type[EventAttendance]:
         return EventAttendance
 
-    async def create_event_attendance_async(
+    async def create_or_update_event_attendance_async(
         self,
         entity_id: str,
         user_id: int,
         event_id: str,
+        status: AttendanceStatus,
     ) -> EventAttendanceEntity | None:
         event_attendance = EventAttendanceEntity(
             entity_id=entity_id,
             user_id=user_id,
             event_id=event_id,
-            status=AttendanceStatus.UNDETERMINED,
+            status=status,
         )
-        return await self.create_async(event_attendance)
+        return await self.create_or_update_async(event_attendance)
