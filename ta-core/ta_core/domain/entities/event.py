@@ -98,3 +98,11 @@ class EventAttendance(IEntity):
         self.user_id = user_id
         self.event_id = event_id
         self.status = status
+
+    def set_status(self, status: AttendanceStatus) -> "EventAttendance":
+        return EventAttendance(
+            entity_id=self.id,
+            user_id=self.user_id,
+            event_id=self.event_id,
+            status=status,
+        )
