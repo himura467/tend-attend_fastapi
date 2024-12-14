@@ -24,11 +24,15 @@ resource "terraform_data" "docker_push" {
 
       echo "Pushing ${local.app_name} image to Amazon ECR..."
       docker push ${aws_ecr_repository.tend_attend_repo.repository_url}:latest
-      sleep 10  # Wait for the image to be available
     EOF
   }
 
   depends_on = [ aws_ecr_repository.tend_attend_repo ]
+}
+
+resource "time_sleep" "wait_for_push" {
+  depends_on = [ terraform_data.docker_push ]
+  create_duration = "180s"
 }
 
 resource "aws_iam_role" "lambda_role" {
@@ -58,7 +62,8 @@ resource "aws_lambda_function" "tend_attend_lambda" {
   role = aws_iam_role.lambda_role.arn
   package_type = "Image"
   image_uri = "${aws_ecr_repository.tend_attend_repo.repository_url}:latest"
-  depends_on = [ terraform_data.docker_push ]
+  architectures = [ "arm64" ]
+  depends_on = [ time_sleep.wait_for_push ]
 }
 
 resource "aws_api_gateway_rest_api" "tend_attend_api" {
@@ -110,11 +115,27 @@ resource "aws_api_gateway_api_key" "tend_attend_api_key" {
   name = "tend-attend-api-key"
 }
 
+resource "aws_api_gateway_stage" "dev" {
+  deployment_id = aws_api_gateway_deployment.lambda_deployment.id
+  rest_api_id = aws_api_gateway_rest_api.tend_attend_api.id
+  stage_name = "dev"
+}
+
+resource "aws_api_gateway_stage" "prod" {
+  deployment_id = aws_api_gateway_deployment.lambda_deployment.id
+  rest_api_id = aws_api_gateway_rest_api.tend_attend_api.id
+  stage_name = "prod"
+}
+
 resource "aws_api_gateway_usage_plan" "tend_attend_usage_plan" {
   name = "tend-attend-usage-plan"
   api_stages {
     api_id = aws_api_gateway_rest_api.tend_attend_api.id
-    stage = aws_api_gateway_deployment.lambda_deployment.stage_name
+    stage = aws_api_gateway_stage.dev.stage_name
+  }
+  api_stages {
+    api_id = aws_api_gateway_rest_api.tend_attend_api.id
+    stage = aws_api_gateway_stage.prod.stage_name
   }
   throttle_settings {
     burst_limit = 5
