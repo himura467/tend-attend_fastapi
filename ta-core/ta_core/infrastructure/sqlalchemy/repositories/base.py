@@ -83,12 +83,6 @@ class AbstractRepository(IRepository[TEntity, TModel]):
         await self._uow.execute_async(stmt)
         return entity
 
-    async def create_or_update_async(self, entity: TEntity) -> TEntity:
-        created = await self.create_async(entity)
-        if created is not None:
-            return created
-        return await self.update_async(entity)
-
     async def delete_by_id_async(self, record_id: str) -> bool:
         stmt = select(self._model).where(self._model.id == record_id)
         result = await self._uow.execute_async(stmt)
