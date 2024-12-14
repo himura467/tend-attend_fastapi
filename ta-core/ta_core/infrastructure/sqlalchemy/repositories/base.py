@@ -20,14 +20,14 @@ class AbstractRepository(IRepository[TEntity, TModel]):
 
     async def create_async(self, entity: TEntity) -> TEntity | None:
         model = self._model.from_entity(entity)
-        savepoint = self._uow.begin_nested()
-        try:
-            self._uow.add(model)
-            await self._uow.flush_async()
-            return entity
-        except IntegrityError:
-            await savepoint.rollback()
-            return None
+        async with self._uow.begin_nested() as savepoint:
+            try:
+                self._uow.add(model)
+                await self._uow.flush_async()
+                return entity
+            except IntegrityError:
+                await savepoint.rollback()
+                return None
 
     async def read_by_id_async(self, record_id: str) -> TEntity:
         stmt = select(self._model).where(self._model.id == record_id)
