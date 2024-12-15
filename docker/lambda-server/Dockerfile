@@ -18,6 +18,12 @@ RUN curl -sSL https://install.python-poetry.org | python -
 
 ENV PATH="$POETRY_HOME/bin:$PATH"
 
-RUN ./dev/poetry-all install
+RUN ./dev/poetry-all export -f requirements.txt -o requirements.txt --without-hashes
+RUN pip install \
+    -r ta-api/requirements.txt \
+    -r ta-cli/requirements.txt \
+    -r ta-core/requirements.txt
 
-CMD ["ta-api.main.lambda_handler"]
+WORKDIR /app/ta-api
+
+CMD [ "main.lambda_handler" ]
