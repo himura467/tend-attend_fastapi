@@ -18,7 +18,7 @@ RUN curl -sSL https://install.python-poetry.org | python -
 
 ENV PATH="$POETRY_HOME/bin:$PATH"
 
-RUN ./dev/poetry-all install
+RUN ./dev/poetry-all.sh install
 
 WORKDIR /app/ta-api
 
