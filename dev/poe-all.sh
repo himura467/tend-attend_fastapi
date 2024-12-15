@@ -1,18 +1,20 @@
 #!/usr/bin/env bash
 
+set -e
+
 SCRIPT_DIR=$(cd $(dirname $0); pwd)
 ROOT_DIR=${SCRIPT_DIR}/..
 
-command=$@
+command=$1
 
 projects=(
   "ta-api"
-  "ta-core"
   "ta-cli"
+  "ta-core"
 )
 
 for project in "${projects[@]}"; do
   echo "Running ${command} for ${project}"
   cd ${ROOT_DIR}/${project}
-  poetry ${command}
+  poetry run poe ${command}
 done

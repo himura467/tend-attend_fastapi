@@ -8,10 +8,18 @@ services:
       - MYSQL_PASSWORD=password
     volumes:
       - mysql_data_persist:/var/lib/mysql
-      - ./docker/my.cnf:/etc/mysql/conf.d/my.cnf
+      - ./docker//mysql/conf.d:/etc/mysql/conf.d
       - ./docker/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
     ports:
       - "13306:3306"
+  server:
+    build:
+      context: .
+      dockerfile: ./docker/server/Dockerfile
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
 volumes:
   mysql_data_persist:
     driver: local

@@ -1,7 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from mangum import Mangum
 
-from ta_api.routers import account, auth, verify, event
+from ta_api.routers import account, auth, event, verify
 
 app = FastAPI()
 
@@ -38,3 +39,5 @@ app.include_router(
     prefix="/events",
     tags=["events"],
 )
+
+lambda_handler = Mangum(app)
