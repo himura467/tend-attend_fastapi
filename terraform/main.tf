@@ -32,7 +32,7 @@ resource "terraform_data" "docker_push" {
 
 resource "time_sleep" "wait_for_push" {
   depends_on = [ terraform_data.docker_push ]
-  create_duration = "180s"
+  create_duration = "30s"
 }
 
 resource "aws_iam_role" "lambda_role" {
