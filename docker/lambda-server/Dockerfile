@@ -1,29 +1,15 @@
 FROM public.ecr.aws/lambda/python:3.12
 
-ENV PYTHONUNBUFFERED=1 \
-    POETRY_VERSION=1.8.4 \
-    POETRY_HOME="/opt/poetry" \
-    POETRY_VIRTUALENVS_IN_PROJECT=true \
-    POETRY_NO_INTERACTION=1
+ENV PYTHONUNBUFFERED=1
 
-WORKDIR /app
+COPY ta-api/main.py ./main.py
+COPY ta-api/ta_api ./ta_api
+COPY ta-cli/main.py ./cli_main.py
+COPY ta-cli/ta_cli ./ta_cli
+COPY ta-core/ta_core ./ta_core
 
-COPY ta-api ./ta-api
-COPY ta-cli ./ta-cli
-COPY ta-core ./ta-core
-
-COPY dev ./dev
-
-RUN curl -sSL https://install.python-poetry.org | python -
-
-ENV PATH="$POETRY_HOME/bin:$PATH"
-
-RUN ./dev/poetry-all export -f requirements.txt -o requirements.txt --without-hashes
-RUN pip install \
-    -r ta-api/requirements.txt \
-    -r ta-cli/requirements.txt \
-    -r ta-core/requirements.txt
-
-WORKDIR /app/ta-api
+COPY requirements.txt ./requirements.txt
+RUN pip install -r requirements.txt
+RUN rm requirements.txt
 
 CMD [ "main.lambda_handler" ]
