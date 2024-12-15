@@ -67,7 +67,7 @@ resource "aws_lambda_function" "tend_attend_lambda" {
 }
 
 resource "aws_api_gateway_rest_api" "tend_attend_api" {
-  name = "tend-attend-api"
+  name = "${local.app_name}-api"
 }
 
 resource "aws_api_gateway_resource" "proxy" {
@@ -112,7 +112,7 @@ resource "aws_cloudwatch_log_group" "api_gw" {
 }
 
 resource "aws_api_gateway_api_key" "tend_attend_api_key" {
-  name = "tend-attend-api-key"
+  name = "${local.app_name}-api-key"
 }
 
 resource "aws_api_gateway_stage" "dev" {
@@ -128,7 +128,7 @@ resource "aws_api_gateway_stage" "prod" {
 }
 
 resource "aws_api_gateway_usage_plan" "tend_attend_usage_plan" {
-  name = "tend-attend-usage-plan"
+  name = "${local.app_name}-usage-plan"
   api_stages {
     api_id = aws_api_gateway_rest_api.tend_attend_api.id
     stage = aws_api_gateway_stage.dev.stage_name
