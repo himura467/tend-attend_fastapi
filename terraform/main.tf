@@ -2,12 +2,24 @@ locals {
   app_name = "tend-attend"
 }
 
+terraform {
+  required_version = "1.10.2"
+
+  required_providers {
+    aws = {
+      source = "hashicorp/aws"
+      version = "5.81.0"
+    }
+  }
+}
+
 provider "aws" {
   region = var.aws_region
 }
 
 resource "aws_vpc" "tend_attend_vpc" {
   cidr_block = "10.0.0.0/16"
+  enable_dns_hostnames = true
   tags = {
     Name = local.app_name
   }
@@ -29,6 +41,34 @@ resource "aws_subnet" "tend_attend_subnet_1c" {
   tags = {
     Name = "${local.app_name}-ap-northeast-1c"
   }
+}
+
+resource "aws_internet_gateway" "tend_attend_igw" {
+  vpc_id = aws_vpc.tend_attend_vpc.id
+  tags = {
+    Name = "${local.app_name}-igw"
+  }
+}
+
+resource "aws_route_table" "tend_attend_route_table" {
+  vpc_id = aws_vpc.tend_attend_vpc.id
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.tend_attend_igw.id
+  }
+  tags = {
+    Name = "${local.app_name}-route-table"
+  }
+}
+
+resource "aws_route_table_association" "tend_attend_subnet_1a_association" {
+  subnet_id = aws_subnet.tend_attend_subnet_1a.id
+  route_table_id = aws_route_table.tend_attend_route_table.id
+}
+
+resource "aws_route_table_association" "tend_attend_subnet_1c_association" {
+  subnet_id = aws_subnet.tend_attend_subnet_1c.id
+  route_table_id = aws_route_table.tend_attend_route_table.id
 }
 
 resource "aws_db_subnet_group" "this" {
@@ -99,6 +139,7 @@ resource "aws_rds_cluster_instance" "this" {
   instance_class = "db.serverless"
   engine = aws_rds_cluster.this.engine
   engine_version = aws_rds_cluster.this.engine_version
+  publicly_accessible = true  # デモ用にパブリックアクセス可能にしている
 }
 
 resource "aws_ecr_repository" "tend_attend_repo" {
