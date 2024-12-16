@@ -19,6 +19,7 @@ def execute(query: str) -> None:
         wrapper_dialect="aurora-mysql",
         autocommit=True,
     ) as awsconn:
+        print("Executing query: ", query)
         awscursor = awsconn.cursor()
         awscursor.execute(query)
-        print(awscursor.fetchone())
+        print("Query result: ", awscursor.fetchall())
