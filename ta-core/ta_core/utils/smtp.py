@@ -1,24 +1,22 @@
-import os
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
 import aiosmtplib
 from pydantic.networks import EmailStr
 
+from ta_core.constants.secrets import GMAIL_APP_PASSWORD, GMAIL_SENDER_EMAIL
 from ta_core.error.error_code import ErrorCode
 
 
 async def send_verification_email_async(
     host_email: EmailStr, verification_link: str
 ) -> tuple[int, ...]:
-    sender_email = os.environ.get("GMAIL_SENDER_EMAIL")
-    app_password = os.environ.get("GMAIL_APP_PASSWORD")
-    if sender_email is None or app_password is None:
+    if GMAIL_SENDER_EMAIL is None or GMAIL_APP_PASSWORD is None:
         return (ErrorCode.ENVIRONMENT_VARIABLE_NOT_SET,)
 
     message = MIMEMultipart("alternative")
     message["Subject"] = "[No-Reply] Email Verification"
-    message["From"] = sender_email
+    message["From"] = GMAIL_SENDER_EMAIL
     message["To"] = host_email
 
     text = f"Click the link below to verify your email address.\n{verification_link}"
@@ -31,8 +29,8 @@ async def send_verification_email_async(
         async with aiosmtplib.SMTP(
             hostname="smtp.gmail.com", port=465, use_tls=True
         ) as smtp:
-            print(sender_email, app_password)
-            await smtp.login(sender_email, app_password)
+            print(GMAIL_SENDER_EMAIL, GMAIL_APP_PASSWORD)
+            await smtp.login(GMAIL_SENDER_EMAIL, GMAIL_APP_PASSWORD)
             await smtp.send_message(message)
         return ()
     except aiosmtplib.SMTPResponseException:
