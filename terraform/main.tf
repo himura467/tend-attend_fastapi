@@ -6,6 +6,101 @@ provider "aws" {
   region = var.aws_region
 }
 
+resource "aws_vpc" "tend_attend_vpc" {
+  cidr_block = "10.0.0.0/16"
+  tags = {
+    Name = local.app_name
+  }
+}
+
+resource "aws_subnet" "tend_attend_subnet_1a" {
+  vpc_id = aws_vpc.tend_attend_vpc.id
+  cidr_block = "10.0.1.0/24"
+  availability_zone = "ap-northeast-1a"
+  tags = {
+    Name = "${local.app_name}-ap-northeast-1a"
+  }
+}
+
+resource "aws_subnet" "tend_attend_subnet_1c" {
+  vpc_id = aws_vpc.tend_attend_vpc.id
+  cidr_block = "10.0.2.0/24"
+  availability_zone = "ap-northeast-1c"
+  tags = {
+    Name = "${local.app_name}-ap-northeast-1c"
+  }
+}
+
+resource "aws_db_subnet_group" "this" {
+  name = "${local.app_name}-db-subnet-group"
+  subnet_ids = [
+    aws_subnet.tend_attend_subnet_1a.id,
+    aws_subnet.tend_attend_subnet_1c.id
+  ]
+}
+
+resource "aws_security_group" "tend_attend_sg" {
+  name = "${local.app_name}-sg"
+  vpc_id = aws_vpc.tend_attend_vpc.id
+
+  ingress {
+    from_port = 3306
+    to_port = 3306
+    protocol = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port = 0
+    to_port = 0
+    protocol = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+resource "aws_rds_cluster_parameter_group" "this" {
+  name = "${local.app_name}-cluster-parameter-group"
+  family = "aurora-mysql8.0"  # Aurora MySQL 8.4 がリリースされたら変更する
+
+  parameter {
+    name = "character_set_server"
+    value = "utf8mb4"
+  }
+
+  parameter {
+    name = "collation_server"
+    value = "utf8mb4_general_ci"
+  }
+}
+
+resource "aws_rds_cluster" "this" {
+  cluster_identifier = "${local.app_name}-cluster"
+  engine = "aurora-mysql"
+  engine_mode = "provisioned"
+  engine_version = "8.0.mysql_aurora.3.05.2"
+  master_username = "user"
+  master_password = "password"
+  db_cluster_parameter_group_name = aws_rds_cluster_parameter_group.this.name
+  db_subnet_group_name = aws_db_subnet_group.this.name
+  vpc_security_group_ids = [ aws_security_group.tend_attend_sg.id ]
+
+  serverlessv2_scaling_configuration {
+    max_capacity = 1.0
+    min_capacity = 0.5
+  }
+
+  deletion_protection = false
+  skip_final_snapshot = true
+}
+
+resource "aws_rds_cluster_instance" "this" {
+  identifier = "${local.app_name}-instance"
+  cluster_identifier = aws_rds_cluster.this.id
+  instance_class = "db.serverless"
+  engine = aws_rds_cluster.this.engine
+  engine_version = aws_rds_cluster.this.engine_version
+}
+
 resource "aws_ecr_repository" "tend_attend_repo" {
   name = local.app_name
   force_delete = true
@@ -67,7 +162,7 @@ resource "aws_lambda_function" "tend_attend_lambda" {
 }
 
 resource "aws_api_gateway_rest_api" "tend_attend_api" {
-  name = "tend-attend-api"
+  name = "${local.app_name}-api"
 }
 
 resource "aws_api_gateway_resource" "proxy" {
@@ -112,7 +207,7 @@ resource "aws_cloudwatch_log_group" "api_gw" {
 }
 
 resource "aws_api_gateway_api_key" "tend_attend_api_key" {
-  name = "tend-attend-api-key"
+  name = "${local.app_name}-api-key"
 }
 
 resource "aws_api_gateway_stage" "dev" {
@@ -128,7 +223,7 @@ resource "aws_api_gateway_stage" "prod" {
 }
 
 resource "aws_api_gateway_usage_plan" "tend_attend_usage_plan" {
-  name = "tend-attend-usage-plan"
+  name = "${local.app_name}-usage-plan"
   api_stages {
     api_id = aws_api_gateway_rest_api.tend_attend_api.id
     stage = aws_api_gateway_stage.dev.stage_name
