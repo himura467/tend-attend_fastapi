@@ -3,10 +3,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from mangum import Mangum
 
 from ta_api.routers import account, auth, event, verify
+from ta_core.constants.constants import FRONTEND_URL
 
 app = FastAPI()
 
-origins = ["http://localhost:3000"]
+origins = [FRONTEND_URL, "http://localhost:3000"]
 
 app.add_middleware(
     CORSMiddleware,
