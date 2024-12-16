@@ -1,3 +1,8 @@
+from typing import Any
+
+from sqlalchemy import create_mock_engine
+from sqlalchemy.sql.ddl import ExecutableDDLElement
+
 from ta_core.infrastructure.sqlalchemy.db import async_engines
 from ta_core.infrastructure.sqlalchemy.models.base import AbstractBase
 from ta_core.infrastructure.sqlalchemy.models.commons.account import (  # noqa: F401
@@ -16,6 +21,22 @@ from ta_core.infrastructure.sqlalchemy.models.shards.event import (  # noqa: F40
     Recurrence,
     RecurrenceRule,
 )
+
+
+def generate_ddl() -> list[str]:
+    ddl_statements: list[str] = []
+
+    def executor(sql: ExecutableDDLElement, *multiparams: Any, **params: Any) -> None:
+        ddl_statements.append(
+            str(sql.compile(dialect=engine.dialect)).replace("\t", "").replace("\n", "")
+        )
+
+    engine = create_mock_engine(
+        url="mysql+aiomysql://",
+        executor=executor,
+    )
+    AbstractBase.metadata.create_all(engine, checkfirst=False)
+    return ddl_statements
 
 
 async def reset_db_async() -> None:
