@@ -200,6 +200,17 @@ resource "aws_lambda_function" "tend_attend_lambda" {
   image_uri = "${aws_ecr_repository.tend_attend_repo.repository_url}:latest"
   architectures = [ "arm64" ]
   depends_on = [ time_sleep.wait_for_push ]
+
+  environment {
+    variables = {
+      FRONTEND_URL = "https://tend-attend.vercel.app/"
+      AWS_RDS_CLUSTER_INSTANCE_URL = "tend-attend-cluster.cluster-cvk4m8sum2lt.ap-northeast-1.rds.amazonaws.com"
+      AWS_RDS_CLUSTER_INSTANCE_PORT = "3306"
+      AWS_RDS_CLUSTER_MASTER_USERNAME = "user"
+      AWS_RDS_CLUSTER_MASTER_PASSWORD = "password"
+      AURORA_DATABASE_NAME = "common"
+    }
+  }
 }
 
 resource "aws_api_gateway_rest_api" "tend_attend_api" {
