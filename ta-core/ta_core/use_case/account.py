@@ -32,11 +32,15 @@ class AccountUseCase:
     ) -> CreateHostAccountResponse:
         host_account_repository = HostAccountRepository(self.uow)
 
+        # TODO: Verification が実装出来たら消す
+        user_id = await SequenceUserId.id_generator(self.uow)
+
         host_account = await host_account_repository.create_host_account_async(
             entity_id=generate_uuid(),
             host_name=host_name,
             hashed_password=self._password_hasher.get_password_hash(password),
             email=email,
+            user_id=user_id,  # TODO: Verification が実装出来たら消す
         )
         if host_account is None:
             return CreateHostAccountResponse(
