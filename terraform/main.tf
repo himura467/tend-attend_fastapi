@@ -11,10 +11,54 @@ terraform {
       version = "5.81.0"
     }
   }
+  
+  # backend "s3" {
+  #   bucket = "tend-attend-terraform-state"
+  #   key = "terraform.tfstate"
+  #   region = var.aws_region
+  #   acl = "private"
+  #   encrypt = true
+  #   use_lockfile = true
+  # }
 }
 
 provider "aws" {
   region = var.aws_region
+}
+
+resource "aws_s3_bucket" "tend_attend_terraform_state" {
+  bucket = "tend-attend-terraform-state"
+  
+  lifecycle {
+    prevent_destroy = true
+  }
+}
+
+resource "aws_s3_bucket_versioning" "tend_attend_terraform_state" {
+  bucket = aws_s3_bucket.tend_attend_terraform_state.id
+  
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "tend_attend_terraform_state" {
+  bucket = aws_s3_bucket.tend_attend_terraform_state.id
+  
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
+    }
+  }
+}
+
+resource "aws_s3_bucket_public_access_block" "tend_attend_terraform_state" {
+  bucket = aws_s3_bucket.tend_attend_terraform_state.id
+  
+  block_public_acls = true
+  block_public_policy = true
+  ignore_public_acls = true
+  restrict_public_buckets = true
 }
 
 resource "aws_vpc" "tend_attend_vpc" {
