@@ -158,7 +158,26 @@ resource "aws_iam_role" "lambda_role" {
   })
 }
 
-resource "aws_iam_role_policy_attachment" "lambda_attachment" {
+resource "aws_iam_role_policy" "lambda_vpc_access_policy" {
+  name = "lambda_vpc_access_policy"
+  role = aws_iam_role.lambda_role.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = [
+          "ec2:CreateNetworkInterface",
+          "ec2:DescribeNetworkInterfaces",
+          "ec2:DeleteNetworkInterface"
+        ]
+        Effect = "Allow"
+        Resource = "*"
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "lambda_cloudwatch_policy" {
   role = aws_iam_role.lambda_role.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
@@ -170,6 +189,14 @@ resource "aws_lambda_function" "tend_attend_lambda" {
   image_uri = "${aws_ecr_repository.tend_attend_repo.repository_url}:latest"
   architectures = [ "arm64" ]
   depends_on = [ time_sleep.wait_for_push ]
+
+  vpc_config {
+    subnet_ids = [
+      aws_subnet.tend_attend_subnet_1a.id,
+      aws_subnet.tend_attend_subnet_1c.id
+    ]
+    security_group_ids = [ aws_security_group.tend_attend_sg.id ]
+  }
 }
 
 resource "aws_api_gateway_rest_api" "tend_attend_api" {
