@@ -161,3 +161,16 @@ cython_debug/
 
 # .DS_Store
 .DS_Store
+
+# requirements.txt
+requirements.txt
+
+# Local .terraform directories
+**/.terraform/*
+
+# .tfstate files
+*.tfstate
+*.tfstate.*
+
+# .lock.hcl files
+*.lock.hcl

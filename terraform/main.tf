@@ -11,10 +11,56 @@ terraform {
       version = "5.81.0"
     }
   }
+  
+  backend "s3" {
+    profile = "himura"
+    bucket = "tend-attend-terraform-state"
+    key = "terraform.tfstate"
+    region = "ap-northeast-1"
+    acl = "private"
+    encrypt = true
+    use_lockfile = true
+  }
 }
 
 provider "aws" {
+  profile = var.aws_profile
   region = var.aws_region
+}
+
+resource "aws_s3_bucket" "tend_attend_terraform_state" {
+  bucket = "tend-attend-terraform-state"
+  
+  lifecycle {
+    prevent_destroy = true
+  }
+}
+
+resource "aws_s3_bucket_versioning" "tend_attend_terraform_state" {
+  bucket = aws_s3_bucket.tend_attend_terraform_state.id
+  
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "tend_attend_terraform_state" {
+  bucket = aws_s3_bucket.tend_attend_terraform_state.id
+  
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
+    }
+  }
+}
+
+resource "aws_s3_bucket_public_access_block" "tend_attend_terraform_state" {
+  bucket = aws_s3_bucket.tend_attend_terraform_state.id
+  
+  block_public_acls = true
+  block_public_policy = true
+  ignore_public_acls = true
+  restrict_public_buckets = true
 }
 
 resource "aws_vpc" "tend_attend_vpc" {
@@ -295,6 +341,27 @@ resource "aws_api_gateway_usage_plan_key" "tend_attend_usage_plan_key" {
   key_id = aws_api_gateway_api_key.tend_attend_api_key.id
   key_type = "API_KEY"
   usage_plan_id = aws_api_gateway_usage_plan.tend_attend_usage_plan.id
+}
+
+output "aws_rds_cluster_instance_url" {
+  description = "URL of the Amazon RDS cluster instance"
+  value = aws_rds_cluster_instance.this.endpoint
+}
+
+output "aws_rds_cluster_instance_port" {
+  description = "Port of the Amazon RDS cluster instance"
+  value = aws_rds_cluster_instance.this.port
+}
+
+output "aws_rds_cluster_master_username" {
+  description = "Master username of the Amazon RDS cluster"
+  value = aws_rds_cluster.this.master_username
+}
+
+output "aws_rds_cluster_master_password" {
+  description = "Master password of the Amazon RDS cluster"
+  value = aws_rds_cluster.this.master_password
+  sensitive = true
 }
 
 output "aws_ecr_repository_url" {
