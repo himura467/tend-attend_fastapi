@@ -15,6 +15,8 @@ def migrate() -> None:
 
 @app.command("migrate-aurora")
 def migrate_aurora() -> None:
-    execute(f"CREATE DATABASE IF NOT EXISTS {AURORA_DATABASE_NAME}")
+    execute(
+        query=f"CREATE DATABASE IF NOT EXISTS {AURORA_DATABASE_NAME}", dbname="mysql"
+    )
     for ddl_statement in generate_ddl():
-        execute(ddl_statement)
+        execute(query=ddl_statement, dbname=AURORA_DATABASE_NAME)
