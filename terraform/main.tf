@@ -341,6 +341,27 @@ resource "aws_api_gateway_usage_plan_key" "tend_attend_usage_plan_key" {
   usage_plan_id = aws_api_gateway_usage_plan.tend_attend_usage_plan.id
 }
 
+output "aws_rds_cluster_instance_url" {
+  description = "URL of the Amazon RDS cluster instance"
+  value = aws_rds_cluster_instance.this.endpoint
+}
+
+output "aws_rds_cluster_instance_port" {
+  description = "Port of the Amazon RDS cluster instance"
+  value = aws_rds_cluster_instance.this.port
+}
+
+output "aws_rds_cluster_master_username" {
+  description = "Master username of the Amazon RDS cluster"
+  value = aws_rds_cluster.this.master_username
+}
+
+output "aws_rds_cluster_master_password" {
+  description = "Master password of the Amazon RDS cluster"
+  value = aws_rds_cluster.this.master_password
+  sensitive = true
+}
+
 output "aws_ecr_repository_url" {
   description = "URL of the Amazon ECR repository"
   value = aws_ecr_repository.tend_attend_repo.repository_url
