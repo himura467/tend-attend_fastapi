@@ -1,7 +1,7 @@
 import asyncio
 
 import typer
-from ta_core.infrastructure.sqlalchemy.migrate_db import reset_db_async, setup_aurora
+from ta_core.infrastructure.sqlalchemy.migrate_db import reset_aurora_db, reset_db_async
 
 app = typer.Typer()
 
@@ -13,4 +13,4 @@ def migrate() -> None:
 
 @app.command("migrate-aurora")
 def migrate_aurora() -> None:
-    setup_aurora()
+    reset_aurora_db()
