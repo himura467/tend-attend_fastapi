@@ -235,6 +235,7 @@ resource "aws_lambda_function" "tend_attend_lambda" {
   image_uri = "${aws_ecr_repository.tend_attend_repo.repository_url}:latest"
   architectures = [ "arm64" ]
   depends_on = [ time_sleep.wait_for_push ]
+  timeout = 60
 
   vpc_config {
     subnet_ids = [

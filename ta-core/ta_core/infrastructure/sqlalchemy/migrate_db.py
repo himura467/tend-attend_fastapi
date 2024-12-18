@@ -51,11 +51,10 @@ async def reset_db_async() -> None:
                     await conn.run_sync(table.create)
 
 
-def setup_aurora() -> None:
+def reset_aurora_db() -> None:
     if AURORA_DATABASE_NAME is None:
         raise ValueError("AURORA_DATABASE_NAME is not set")
-    execute(
-        query=f"CREATE DATABASE IF NOT EXISTS {AURORA_DATABASE_NAME}", dbname="mysql"
-    )
+    execute(query=f"DROP DATABASE IF EXISTS {AURORA_DATABASE_NAME}", dbname="mysql")
+    execute(query=f"CREATE DATABASE {AURORA_DATABASE_NAME}", dbname="mysql")
     for ddl_statement in generate_ddl():
         execute(query=ddl_statement, dbname=AURORA_DATABASE_NAME)

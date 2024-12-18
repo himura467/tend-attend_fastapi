@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 from ta_core.dtos.admin import MigrateAuroraResponse
-from ta_core.infrastructure.sqlalchemy.migrate_db import setup_aurora
+from ta_core.infrastructure.sqlalchemy.migrate_db import reset_aurora_db
 
 router = APIRouter()
 
@@ -12,5 +12,5 @@ router = APIRouter()
     response_model=MigrateAuroraResponse,
 )
 async def migrate_aurora() -> MigrateAuroraResponse:
-    setup_aurora()
-    return MigrateAuroraResponse()
+    reset_aurora_db()
+    return MigrateAuroraResponse(error_codes=())
