@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from mangum import Mangum
 
-from ta_api.routers import account, auth, event, verify
+from ta_api.routers import account, auth, event, verify, admin
 from ta_core.constants.constants import FRONTEND_URL
 
 app = FastAPI()
@@ -15,6 +15,12 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+)
+
+app.include_router(
+    admin.router,
+    prefix="/admin",
+    tags=["admin"],
 )
 
 app.include_router(
