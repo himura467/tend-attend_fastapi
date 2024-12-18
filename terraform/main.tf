@@ -197,6 +197,16 @@ resource "aws_lambda_function" "tend_attend_lambda" {
     ]
     security_group_ids = [ aws_security_group.tend_attend_sg.id ]
   }
+
+  environment {
+    variables = {
+      AWS_RDS_CLUSTER_INSTANCE_URL = aws_rds_cluster_instance.this.endpoint
+      AWS_RDS_CLUSTER_INSTANCE_PORT = aws_rds_cluster_instance.this.port
+      AWS_RDS_CLUSTER_MASTER_USERNAME = aws_rds_cluster.this.master_username
+      AWS_RDS_CLUSTER_MASTER_PASSWORD = aws_rds_cluster.this.master_password
+      AURORA_DATABASE_NAME = "common"
+    }
+  }
 }
 
 resource "aws_api_gateway_rest_api" "tend_attend_api" {
