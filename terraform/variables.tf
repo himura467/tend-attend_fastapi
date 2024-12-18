@@ -1,3 +1,9 @@
+variable "aws_profile" {
+  description = "AWS profile"
+  type = string
+  default = "himura"
+}
+
 variable "aws_region" {
   description = "AWS region"
   type = string

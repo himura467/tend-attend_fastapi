@@ -13,6 +13,7 @@ terraform {
   }
   
   backend "s3" {
+    profile = "himura"
     bucket = "tend-attend-terraform-state"
     key = "terraform.tfstate"
     region = "ap-northeast-1"
@@ -23,6 +24,7 @@ terraform {
 }
 
 provider "aws" {
+  profile = var.aws_profile
   region = var.aws_region
 }
 
