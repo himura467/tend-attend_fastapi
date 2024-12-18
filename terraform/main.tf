@@ -12,14 +12,14 @@ terraform {
     }
   }
   
-  # backend "s3" {
-  #   bucket = "tend-attend-terraform-state"
-  #   key = "terraform.tfstate"
-  #   region = var.aws_region
-  #   acl = "private"
-  #   encrypt = true
-  #   use_lockfile = true
-  # }
+  backend "s3" {
+    bucket = "tend-attend-terraform-state"
+    key = "terraform.tfstate"
+    region = "ap-northeast-1"
+    acl = "private"
+    encrypt = true
+    use_lockfile = true
+  }
 }
 
 provider "aws" {
