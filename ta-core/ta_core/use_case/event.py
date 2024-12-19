@@ -8,6 +8,7 @@ from ta_core.dtos.event import EventWithId as EventWithIdDto
 from ta_core.dtos.event import GetGuestEventsResponse, GetHostEventsResponse
 from ta_core.error.error_code import ErrorCode
 from ta_core.features.event import (
+    AttendanceAction,
     AttendanceStatus,
     Event,
     Recurrence,
@@ -20,6 +21,7 @@ from ta_core.infrastructure.sqlalchemy.repositories.account import (
     HostAccountRepository,
 )
 from ta_core.infrastructure.sqlalchemy.repositories.event import (
+    EventAttendanceActionLogRepository,
     EventAttendanceRepository,
     EventRepository,
     RecurrenceRepository,
@@ -214,11 +216,14 @@ class EventUseCase:
 
     @rollbackable
     async def attend_event_async(
-        self, guest_id: str, event_id: str, start: datetime, status: AttendanceStatus
+        self, guest_id: str, event_id: str, start: datetime, action: AttendanceAction
     ) -> AttendEventResponse:
         guest_account_repository = GuestAccountRepository(self.uow)
         event_repository = EventRepository(self.uow)
         event_attendance_repository = EventAttendanceRepository(self.uow)
+        event_attendance_action_log_repository = EventAttendanceActionLogRepository(
+            self.uow
+        )
 
         guest_account = await guest_account_repository.read_by_id_or_none_async(
             guest_id
@@ -232,13 +237,22 @@ class EventUseCase:
         if event is None:
             return AttendEventResponse(error_codes=(ErrorCode.EVENT_NOT_FOUND,))
 
-        await event_attendance_repository.create_or_update_event_attendance_async(
+        await event_attendance_action_log_repository.create_event_attendance_action_log_async(
             entity_id=generate_uuid(),
             user_id=user_id,
             event_id=event.id,
             start=start,
-            status=status,
+            action=action,
         )
+
+        if action == AttendanceAction.ATTEND:
+            await event_attendance_repository.create_or_update_event_attendance_async(
+                entity_id=generate_uuid(),
+                user_id=user_id,
+                event_id=event.id,
+                start=start,
+                status=AttendanceStatus.PRESENT,
+            )
 
         return AttendEventResponse(error_codes=())
 

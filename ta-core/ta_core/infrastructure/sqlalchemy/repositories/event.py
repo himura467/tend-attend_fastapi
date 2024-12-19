@@ -5,12 +5,21 @@ from sqlalchemy.sql import select
 
 from ta_core.domain.entities.event import Event as EventEntity
 from ta_core.domain.entities.event import EventAttendance as EventAttendanceEntity
+from ta_core.domain.entities.event import (
+    EventAttendanceActionLog as EventAttendanceActionLogEntity,
+)
 from ta_core.domain.entities.event import Recurrence as RecurrenceEntity
 from ta_core.domain.entities.event import RecurrenceRule as RecurrenceRuleEntity
-from ta_core.features.event import AttendanceStatus, Frequency, Weekday
+from ta_core.features.event import (
+    AttendanceAction,
+    AttendanceStatus,
+    Frequency,
+    Weekday,
+)
 from ta_core.infrastructure.sqlalchemy.models.shards.event import (
     Event,
     EventAttendance,
+    EventAttendanceActionLog,
     Recurrence,
     RecurrenceRule,
 )
@@ -175,3 +184,28 @@ class EventAttendanceRepository(
             status=status,
         )
         return await self.create_async(event_attendance)
+
+
+class EventAttendanceActionLogRepository(
+    AbstractRepository[EventAttendanceActionLogEntity, EventAttendanceActionLog],
+):
+    @property
+    def _model(self) -> type[EventAttendanceActionLog]:
+        return EventAttendanceActionLog
+
+    async def create_event_attendance_action_log_async(
+        self,
+        entity_id: str,
+        user_id: int,
+        event_id: str,
+        start: datetime,
+        action: AttendanceAction,
+    ) -> EventAttendanceActionLogEntity | None:
+        event_attendance_action_log = EventAttendanceActionLogEntity(
+            entity_id=entity_id,
+            user_id=user_id,
+            event_id=event_id,
+            start=start,
+            action=action,
+        )
+        return await self.create_async(event_attendance_action_log)

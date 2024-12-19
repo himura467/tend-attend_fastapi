@@ -8,9 +8,17 @@ from sqlalchemy.sql.schema import ForeignKey, UniqueConstraint
 
 from ta_core.domain.entities.event import Event as EventEntity
 from ta_core.domain.entities.event import EventAttendance as EventAttendanceEntity
+from ta_core.domain.entities.event import (
+    EventAttendanceActionLog as EventAttendanceActionLogEntity,
+)
 from ta_core.domain.entities.event import Recurrence as RecurrenceEntity
 from ta_core.domain.entities.event import RecurrenceRule as RecurrenceRuleEntity
-from ta_core.features.event import AttendanceStatus, Frequency, Weekday
+from ta_core.features.event import (
+    AttendanceAction,
+    AttendanceStatus,
+    Frequency,
+    Weekday,
+)
 from ta_core.infrastructure.sqlalchemy.models.shards.base import (
     AbstractShardDynamicBase,
     AbstractShardStaticBase,
@@ -224,3 +232,36 @@ class EventAttendance(AbstractShardDynamicBase):
 UniqueConstraint(
     EventAttendance.user_id, EventAttendance.event_id, EventAttendance.start
 )
+
+
+class EventAttendanceActionLog(AbstractShardDynamicBase):
+    event_id: Mapped[str] = mapped_column(
+        VARCHAR(36),
+        nullable=False,
+        comment="Event ID",
+    )
+    start: Mapped[datetime] = mapped_column(DATETIME, nullable=False, comment="Start")
+    action: Mapped[AttendanceAction] = mapped_column(
+        ENUM(AttendanceAction), nullable=False, comment="Attendance Action"
+    )
+
+    def to_entity(self) -> EventAttendanceActionLogEntity:
+        return EventAttendanceActionLogEntity(
+            entity_id=self.id,
+            user_id=self.user_id,
+            event_id=self.event_id,
+            start=self.start,
+            action=self.action,
+        )
+
+    @classmethod
+    def from_entity(
+        cls, entity: EventAttendanceActionLogEntity
+    ) -> "EventAttendanceActionLog":
+        return cls(
+            id=entity.id,
+            user_id=entity.user_id,
+            event_id=entity.event_id,
+            start=entity.start,
+            action=entity.action,
+        )

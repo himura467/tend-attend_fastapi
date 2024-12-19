@@ -120,6 +120,11 @@ class Event:
     is_all_day: bool
 
 
+class AttendanceAction(StrEnum):
+    ATTEND = "attend"
+    LEAVE = "leave"
+
+
 # Attendance Status defined by CEDS
 # https://ceds.ed.gov/element/000076
 class AttendanceStatus(IntEnum):
@@ -130,6 +135,6 @@ class AttendanceStatus(IntEnum):
     # 未連絡欠席
     UNEXCUSED_ABSENCE = 2
     # 遅刻
-    TARDY = 3
+    # TARDY = 3
     # 早退
-    EARLY_DEPARTURE = 4
+    # EARLY_DEPARTURE = 4
