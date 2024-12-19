@@ -13,7 +13,7 @@ class Event(BaseModel):
     start: datetime = Field(..., title="Start")
     end: datetime = Field(..., title="End")
     is_all_day: bool = Field(True, title="Is All Day")
-    recurrence_list: list[str] = Field([], title="Recurrence List")
+    recurrence_list: list[str] = Field(..., title="Recurrence List")
     timezone: str = Field(..., title="Timezone")
 
 
@@ -39,8 +39,8 @@ class AttendEventResponse(BaseModelWithErrorCodes):
 
 
 class GetHostEventsResponse(BaseModelWithErrorCodes):
-    events: list[EventWithId] = Field([], title="Host Events")
+    events: list[EventWithId] = Field(..., title="Host Events")
 
 
 class GetGuestEventsResponse(BaseModelWithErrorCodes):
-    events: list[EventWithId] = Field([], title="Guest Events")
+    events: list[EventWithId] = Field(..., title="Guest Events")
