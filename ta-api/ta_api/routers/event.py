@@ -50,6 +50,7 @@ async def attend_event(
     account: Account = Depends(AccessControl(permit={Role.GUEST})),
 ) -> AttendEventResponse:
     event_id = request.event_id
+    start = request.start
     status = request.status
 
     uow = SqlalchemyUnitOfWork(session=session)
@@ -58,6 +59,7 @@ async def attend_event(
     return await use_case.attend_event_async(
         guest_id=account.account_id,
         event_id=event_id,
+        start=start,
         status=status,
     )
 

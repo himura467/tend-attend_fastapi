@@ -92,11 +92,13 @@ class EventAttendance(IEntity):
         entity_id: str,
         user_id: int,
         event_id: str,
+        start: datetime,
         status: AttendanceStatus,
     ) -> None:
         super().__init__(entity_id)
         self.user_id = user_id
         self.event_id = event_id
+        self.start = start
         self.status = status
 
     def set_status(self, status: AttendanceStatus) -> "EventAttendance":
@@ -104,5 +106,6 @@ class EventAttendance(IEntity):
             entity_id=self.id,
             user_id=self.user_id,
             event_id=self.event_id,
+            start=self.start,
             status=status,
         )

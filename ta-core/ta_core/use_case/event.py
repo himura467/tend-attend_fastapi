@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, datetime
 
 from ta_core.domain.entities.event import Event as EventEntity
 from ta_core.dtos.event import AttendEventResponse, CreateEventResponse
@@ -214,7 +214,7 @@ class EventUseCase:
 
     @rollbackable
     async def attend_event_async(
-        self, guest_id: str, event_id: str, status: AttendanceStatus
+        self, guest_id: str, event_id: str, start: datetime, status: AttendanceStatus
     ) -> AttendEventResponse:
         guest_account_repository = GuestAccountRepository(self.uow)
         event_repository = EventRepository(self.uow)
@@ -236,6 +236,7 @@ class EventUseCase:
             entity_id=generate_uuid(),
             user_id=user_id,
             event_id=event.id,
+            start=start,
             status=status,
         )
 
