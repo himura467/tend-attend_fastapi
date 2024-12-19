@@ -140,11 +140,15 @@ class EventAttendanceRepository(
     def _model(self) -> type[EventAttendance]:
         return EventAttendance
 
-    async def read_by_user_id_and_event_id_or_none_async(
-        self, user_id: int, event_id: str
+    async def read_by_user_id_and_event_id_and_start_or_none_async(
+        self, user_id: int, event_id: str, start: datetime
     ) -> EventAttendanceEntity | None:
         return await self.read_one_or_none_async(
-            where=(self._model.user_id == user_id, self._model.event_id == event_id)
+            where=(
+                self._model.user_id == user_id,
+                self._model.event_id == event_id,
+                self._model.start == start,
+            )
         )
 
     async def create_or_update_event_attendance_async(
@@ -152,11 +156,12 @@ class EventAttendanceRepository(
         entity_id: str,
         user_id: int,
         event_id: str,
+        start: datetime,
         status: AttendanceStatus,
     ) -> EventAttendanceEntity | None:
         existing_event_attendance = (
-            await self.read_by_user_id_and_event_id_or_none_async(
-                user_id=user_id, event_id=event_id
+            await self.read_by_user_id_and_event_id_and_start_or_none_async(
+                user_id=user_id, event_id=event_id, start=start
             )
         )
         if existing_event_attendance:
@@ -166,6 +171,7 @@ class EventAttendanceRepository(
             entity_id=entity_id,
             user_id=user_id,
             event_id=event_id,
+            start=start,
             status=status,
         )
         return await self.create_async(event_attendance)

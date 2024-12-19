@@ -31,6 +31,7 @@ class CreateEventResponse(BaseModelWithErrorCodes):
 
 class AttendEventRequest(BaseModel):
     event_id: str = Field(..., title="Event ID")
+    start: datetime = Field(..., title="Start")
     status: AttendanceStatus = Field(..., title="Attendance Status")
 
 

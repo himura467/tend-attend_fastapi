@@ -196,6 +196,7 @@ class EventAttendance(AbstractShardDynamicBase):
         nullable=False,
         comment="Event ID",
     )
+    start: Mapped[datetime] = mapped_column(DATETIME, nullable=False, comment="Start")
     status: Mapped[AttendanceStatus] = mapped_column(
         ENUM(AttendanceStatus), nullable=False, comment="Attendance Status"
     )
@@ -205,6 +206,7 @@ class EventAttendance(AbstractShardDynamicBase):
             entity_id=self.id,
             user_id=self.user_id,
             event_id=self.event_id,
+            start=self.start,
             status=self.status,
         )
 
@@ -214,8 +216,11 @@ class EventAttendance(AbstractShardDynamicBase):
             id=entity.id,
             user_id=entity.user_id,
             event_id=entity.event_id,
+            start=entity.start,
             status=entity.status,
         )
 
 
-UniqueConstraint(EventAttendance.user_id, EventAttendance.event_id)
+UniqueConstraint(
+    EventAttendance.user_id, EventAttendance.event_id, EventAttendance.start
+)
