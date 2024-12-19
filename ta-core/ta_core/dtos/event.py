@@ -45,3 +45,7 @@ class GetHostEventsResponse(BaseModelWithErrorCodes):
 
 class GetGuestEventsResponse(BaseModelWithErrorCodes):
     events: list[EventWithId] = Field(..., title="Guest Events")
+
+
+class GetGuestCurrentAttendanceStatusResponse(BaseModelWithErrorCodes):
+    attend: bool = Field(..., title="Attend")

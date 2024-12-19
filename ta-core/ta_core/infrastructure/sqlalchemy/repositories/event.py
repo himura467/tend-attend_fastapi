@@ -209,3 +209,17 @@ class EventAttendanceActionLogRepository(
             action=action,
         )
         return await self.create_async(event_attendance_action_log)
+
+    async def read_latest_by_user_id_and_event_id_and_start_or_none_async(
+        self, user_id: int, event_id: str, start: datetime
+    ) -> EventAttendanceActionLogEntity | None:
+        event_attendance_action_logs = await self.read_order_by_limit_async(
+            where=(
+                self._model.user_id == user_id,
+                self._model.event_id == event_id,
+                self._model.start == start,
+            ),
+            order_by=self._model.created_at.desc(),
+            limit=1,
+        )
+        return event_attendance_action_logs[0] if event_attendance_action_logs else None
