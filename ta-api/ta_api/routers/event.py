@@ -51,7 +51,7 @@ async def attend_event(
 ) -> AttendEventResponse:
     event_id = request.event_id
     start = request.start
-    status = request.status
+    action = request.action
 
     uow = SqlalchemyUnitOfWork(session=session)
     use_case = EventUseCase(uow=uow)
@@ -60,7 +60,7 @@ async def attend_event(
         guest_id=account.account_id,
         event_id=event_id,
         start=start,
-        status=status,
+        action=action,
     )
 
 
