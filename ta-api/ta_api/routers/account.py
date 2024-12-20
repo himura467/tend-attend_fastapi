@@ -46,7 +46,7 @@ async def create_guest_account(
     guest_first_name = req.guest_first_name
     guest_last_name = req.guest_last_name
     guest_nickname = req.guest_nickname
-    age = req.age
+    birth_date = req.birth_date
     gender = req.gender
     password = req.password
     host_name = req.host_name
@@ -58,7 +58,7 @@ async def create_guest_account(
         guest_first_name=guest_first_name,
         guest_last_name=guest_last_name,
         guest_nickname=guest_nickname,
-        age=age,
+        birth_date=birth_date,
         gender=gender,
         password=password,
         host_name=host_name,

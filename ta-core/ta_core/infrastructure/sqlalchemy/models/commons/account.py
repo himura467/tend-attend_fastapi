@@ -1,7 +1,8 @@
+from datetime import datetime
 from typing import List
 
 from pydantic.networks import EmailStr
-from sqlalchemy.dialects.mysql import BIGINT, ENUM, TINYINT, VARCHAR
+from sqlalchemy.dialects.mysql import BIGINT, DATETIME, ENUM, VARCHAR
 from sqlalchemy.exc import StatementError
 from sqlalchemy.orm import mapped_column, relationship
 from sqlalchemy.orm.base import Mapped
@@ -73,8 +74,8 @@ class GuestAccount(AbstractCommonDynamicBase):
     guest_nickname: Mapped[str | None] = mapped_column(
         VARCHAR(64), nullable=True, comment="Guest Nickname"
     )
-    age: Mapped[int] = mapped_column(
-        TINYINT(unsigned=True), nullable=False, comment="Age"
+    birth_date: Mapped[datetime] = mapped_column(
+        DATETIME, nullable=False, comment="Birth Date"
     )
     gender: Mapped[Gender] = mapped_column(
         ENUM(Gender), nullable=False, comment="Gender"
@@ -99,7 +100,7 @@ class GuestAccount(AbstractCommonDynamicBase):
             guest_first_name=self.guest_first_name,
             guest_last_name=self.guest_last_name,
             guest_nickname=self.guest_nickname,
-            age=self.age,
+            birth_date=self.birth_date,
             gender=self.gender,
             hashed_password=self.hashed_password,
             refresh_token=self.refresh_token,
@@ -114,7 +115,7 @@ class GuestAccount(AbstractCommonDynamicBase):
             guest_first_name=entity.guest_first_name,
             guest_last_name=entity.guest_last_name,
             guest_nickname=entity.guest_nickname,
-            age=entity.age,
+            birth_date=entity.birth_date,
             gender=entity.gender,
             hashed_password=entity.hashed_password,
             refresh_token=entity.refresh_token,

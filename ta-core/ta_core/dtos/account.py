@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from pydantic import BaseModel
 from pydantic.fields import Field
 from pydantic.networks import EmailStr
@@ -20,7 +22,7 @@ class CreateGuestAccountRequest(BaseModel):
     guest_first_name: str = Field(..., title="Guest First Name")
     guest_last_name: str = Field(..., title="Guest Last Name")
     guest_nickname: str | None = Field(None, title="Guest Nickname")
-    age: int = Field(..., title="Age")
+    birth_date: datetime = Field(..., title="Birth Date")
     gender: Gender = Field(..., title="Gender")
     password: str = Field(..., title="Password")
     host_name: str = Field(..., title="Associated Host Name")

@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from pydantic.networks import EmailStr
 from sqlalchemy.orm.strategy_options import joinedload
 from sqlalchemy.sql import select
@@ -72,7 +74,7 @@ class GuestAccountRepository(AbstractRepository[GuestAccountEntity, GuestAccount
         guest_first_name: str,
         guest_last_name: str,
         guest_nickname: str | None,
-        age: int,
+        birth_date: datetime,
         gender: Gender,
         hashed_password: str,
         user_id: int,
@@ -84,7 +86,7 @@ class GuestAccountRepository(AbstractRepository[GuestAccountEntity, GuestAccount
             guest_first_name=guest_first_name,
             guest_last_name=guest_last_name,
             guest_nickname=guest_nickname,
-            age=age,
+            birth_date=birth_date,
             gender=gender,
             hashed_password=hashed_password,
             refresh_token=refresh_token,
