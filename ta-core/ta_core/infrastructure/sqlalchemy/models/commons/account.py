@@ -1,7 +1,7 @@
 from typing import List
 
 from pydantic.networks import EmailStr
-from sqlalchemy.dialects.mysql import BIGINT, VARCHAR
+from sqlalchemy.dialects.mysql import BIGINT, ENUM, TINYINT, VARCHAR
 from sqlalchemy.exc import StatementError
 from sqlalchemy.orm import mapped_column, relationship
 from sqlalchemy.orm.base import Mapped
@@ -9,6 +9,7 @@ from sqlalchemy.sql.schema import ForeignKey, UniqueConstraint
 
 from ta_core.domain.entities.account import GuestAccount as GuestAccountEntity
 from ta_core.domain.entities.account import HostAccount as HostAccountEntity
+from ta_core.features.account import Gender
 from ta_core.infrastructure.sqlalchemy.models.commons.base import (
     AbstractCommonDynamicBase,
 )
@@ -72,6 +73,12 @@ class GuestAccount(AbstractCommonDynamicBase):
     guest_nickname: Mapped[str | None] = mapped_column(
         VARCHAR(64), nullable=True, comment="Guest Nickname"
     )
+    age: Mapped[int] = mapped_column(
+        TINYINT(unsigned=True), nullable=False, comment="Age"
+    )
+    gender: Mapped[Gender] = mapped_column(
+        ENUM(Gender), nullable=False, comment="Gender"
+    )
     hashed_password: Mapped[str] = mapped_column(
         VARCHAR(512), nullable=False, comment="Hashed Password"
     )
@@ -92,6 +99,8 @@ class GuestAccount(AbstractCommonDynamicBase):
             guest_first_name=self.guest_first_name,
             guest_last_name=self.guest_last_name,
             guest_nickname=self.guest_nickname,
+            age=self.age,
+            gender=self.gender,
             hashed_password=self.hashed_password,
             refresh_token=self.refresh_token,
             user_id=self.user_id,
@@ -105,6 +114,8 @@ class GuestAccount(AbstractCommonDynamicBase):
             guest_first_name=entity.guest_first_name,
             guest_last_name=entity.guest_last_name,
             guest_nickname=entity.guest_nickname,
+            age=entity.age,
+            gender=entity.gender,
             hashed_password=entity.hashed_password,
             refresh_token=entity.refresh_token,
             user_id=entity.user_id,

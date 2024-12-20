@@ -4,6 +4,7 @@ from sqlalchemy.sql import select
 
 from ta_core.domain.entities.account import GuestAccount as GuestAccountEntity
 from ta_core.domain.entities.account import HostAccount as HostAccountEntity
+from ta_core.features.account import Gender
 from ta_core.infrastructure.sqlalchemy.models.commons.account import (
     GuestAccount,
     HostAccount,
@@ -71,6 +72,8 @@ class GuestAccountRepository(AbstractRepository[GuestAccountEntity, GuestAccount
         guest_first_name: str,
         guest_last_name: str,
         guest_nickname: str | None,
+        age: int,
+        gender: Gender,
         hashed_password: str,
         user_id: int,
         host_id: str,
@@ -81,6 +84,8 @@ class GuestAccountRepository(AbstractRepository[GuestAccountEntity, GuestAccount
             guest_first_name=guest_first_name,
             guest_last_name=guest_last_name,
             guest_nickname=guest_nickname,
+            age=age,
+            gender=gender,
             hashed_password=hashed_password,
             refresh_token=refresh_token,
             user_id=user_id,

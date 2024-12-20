@@ -10,6 +10,7 @@ from ta_core.dtos.account import (
     GuestInfo,
 )
 from ta_core.error.error_code import ErrorCode
+from ta_core.features.account import Gender
 from ta_core.infrastructure.db.transaction import rollbackable
 from ta_core.infrastructure.sqlalchemy.models.sequences.sequence import SequenceUserId
 from ta_core.infrastructure.sqlalchemy.repositories.account import (
@@ -55,6 +56,8 @@ class AccountUseCase:
         guest_first_name: str,
         guest_last_name: str,
         guest_nickname: str | None,
+        age: int,
+        gender: Gender,
         password: str,
         host_name: str,
     ) -> CreateGuestAccountResponse:
@@ -76,6 +79,8 @@ class AccountUseCase:
             guest_first_name=guest_first_name,
             guest_last_name=guest_last_name,
             guest_nickname=guest_nickname,
+            age=age,
+            gender=gender,
             hashed_password=self._password_hasher.get_password_hash(password),
             user_id=user_id,
             host_id=host_account.id,

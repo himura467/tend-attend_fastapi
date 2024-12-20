@@ -1,6 +1,7 @@
 from pydantic.networks import EmailStr
 
 from ta_core.domain.entities.base import IEntity
+from ta_core.features.account import Gender
 
 
 class HostAccount(IEntity):
@@ -41,6 +42,8 @@ class GuestAccount(IEntity):
         guest_first_name: str,
         guest_last_name: str,
         guest_nickname: str | None,
+        age: int,
+        gender: Gender,
         hashed_password: str,
         refresh_token: str | None,
         user_id: int,
@@ -50,6 +53,8 @@ class GuestAccount(IEntity):
         self.guest_first_name = guest_first_name
         self.guest_last_name = guest_last_name
         self.guest_nickname = guest_nickname
+        self.age = age
+        self.gender = gender
         self.hashed_password = hashed_password
         self.refresh_token = refresh_token
         self.user_id = user_id
@@ -61,6 +66,8 @@ class GuestAccount(IEntity):
             guest_first_name=self.guest_first_name,
             guest_last_name=self.guest_last_name,
             guest_nickname=self.guest_nickname,
+            age=self.age,
+            gender=self.gender,
             hashed_password=self.hashed_password,
             refresh_token=refresh_token,
             user_id=self.user_id,
