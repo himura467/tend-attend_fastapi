@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from datetime import datetime
 
 from pydantic.networks import EmailStr
 
@@ -56,7 +57,7 @@ class AccountUseCase:
         guest_first_name: str,
         guest_last_name: str,
         guest_nickname: str | None,
-        age: int,
+        birth_date: datetime,
         gender: Gender,
         password: str,
         host_name: str,
@@ -79,7 +80,7 @@ class AccountUseCase:
             guest_first_name=guest_first_name,
             guest_last_name=guest_last_name,
             guest_nickname=guest_nickname,
-            age=age,
+            birth_date=birth_date,
             gender=gender,
             hashed_password=self._password_hasher.get_password_hash(password),
             user_id=user_id,

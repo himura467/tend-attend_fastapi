@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from pydantic.networks import EmailStr
 
 from ta_core.domain.entities.base import IEntity
@@ -42,7 +44,7 @@ class GuestAccount(IEntity):
         guest_first_name: str,
         guest_last_name: str,
         guest_nickname: str | None,
-        age: int,
+        birth_date: datetime,
         gender: Gender,
         hashed_password: str,
         refresh_token: str | None,
@@ -53,7 +55,7 @@ class GuestAccount(IEntity):
         self.guest_first_name = guest_first_name
         self.guest_last_name = guest_last_name
         self.guest_nickname = guest_nickname
-        self.age = age
+        self.birth_date = birth_date
         self.gender = gender
         self.hashed_password = hashed_password
         self.refresh_token = refresh_token
@@ -66,7 +68,7 @@ class GuestAccount(IEntity):
             guest_first_name=self.guest_first_name,
             guest_last_name=self.guest_last_name,
             guest_nickname=self.guest_nickname,
-            age=self.age,
+            birth_date=self.birth_date,
             gender=self.gender,
             hashed_password=self.hashed_password,
             refresh_token=refresh_token,
