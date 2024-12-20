@@ -3,6 +3,7 @@ from pydantic.fields import Field
 from pydantic.networks import EmailStr
 
 from ta_core.dtos.base import BaseModelWithErrorCodes
+from ta_core.features.account import Gender
 
 
 class CreateHostAccountRequest(BaseModel):
@@ -19,6 +20,8 @@ class CreateGuestAccountRequest(BaseModel):
     guest_first_name: str = Field(..., title="Guest First Name")
     guest_last_name: str = Field(..., title="Guest Last Name")
     guest_nickname: str | None = Field(None, title="Guest Nickname")
+    age: int = Field(..., title="Age")
+    gender: Gender = Field(..., title="Gender")
     password: str = Field(..., title="Password")
     host_name: str = Field(..., title="Associated Host Name")
 

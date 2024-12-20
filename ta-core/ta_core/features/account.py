@@ -18,6 +18,11 @@ groupRoleMap: dict[Group, list[Role]] = {
 }
 
 
+class Gender(StrEnum):
+    MALE = "male"
+    FEMALE = "female"
+
+
 @dataclass(frozen=True)
 class Account:
     account_id: str

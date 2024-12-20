@@ -2,6 +2,7 @@ import pytest
 from pydantic.networks import EmailStr
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from ta_core.features.account import Gender
 from ta_core.infrastructure.sqlalchemy.repositories.account import (
     GuestAccountRepository,
     HostAccountRepository,
@@ -96,7 +97,7 @@ async def test_read_by_email_or_none_async(
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    "host_name, host_hashed_password, email, guest_first_name, guest_last_name, guest_nickname, guest_hashed_password, user_id",
+    "host_name, host_hashed_password, email, guest_first_name, guest_last_name, guest_nickname, age, gender, guest_hashed_password, user_id",
     [
         (
             "host_name",
@@ -105,6 +106,8 @@ async def test_read_by_email_or_none_async(
             "guest_first_name",
             "guest_last_name",
             "guest_nickname",
+            0,
+            "male",
             "guest_hashed_password",
             0,
         ),
@@ -118,6 +121,8 @@ async def test_create_guest_account_async(
     guest_first_name: str,
     guest_last_name: str,
     guest_nickname: str,
+    age: int,
+    gender: Gender,
     guest_hashed_password: str,
     user_id: int,
 ) -> None:
@@ -137,6 +142,8 @@ async def test_create_guest_account_async(
         guest_first_name=guest_first_name,
         guest_last_name=guest_last_name,
         guest_nickname=guest_nickname,
+        age=age,
+        gender=gender,
         hashed_password=guest_hashed_password,
         user_id=user_id,
         host_id=host_account.id,
@@ -146,6 +153,8 @@ async def test_create_guest_account_async(
     assert guest_account.guest_first_name == guest_first_name
     assert guest_account.guest_last_name == guest_last_name
     assert guest_account.guest_nickname == guest_nickname
+    assert guest_account.age == age
+    assert guest_account.gender == gender
     assert guest_account.hashed_password == guest_hashed_password
     assert guest_account.user_id == user_id
     assert guest_account.host_id == host_account.id
@@ -153,7 +162,7 @@ async def test_create_guest_account_async(
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    "host_name, host_hashed_password, email, guest_first_name, guest_last_name, guest_nickname, guest_hashed_password, user_id",
+    "host_name, host_hashed_password, email, guest_first_name, guest_last_name, guest_nickname, age, gender, guest_hashed_password, user_id",
     [
         (
             "host_name",
@@ -162,6 +171,8 @@ async def test_create_guest_account_async(
             "guest_first_name",
             "guest_last_name",
             "guest_nickname",
+            0,
+            "male",
             "guest_hashed_password",
             0,
         ),
@@ -175,6 +186,8 @@ async def test_read_by_guest_name_and_host_id_or_none_async(
     guest_first_name: str,
     guest_last_name: str,
     guest_nickname: str,
+    age: int,
+    gender: Gender,
     guest_hashed_password: str,
     user_id: int,
 ) -> None:
@@ -194,6 +207,8 @@ async def test_read_by_guest_name_and_host_id_or_none_async(
         guest_first_name=guest_first_name,
         guest_last_name=guest_last_name,
         guest_nickname=guest_nickname,
+        age=age,
+        gender=gender,
         hashed_password=guest_hashed_password,
         user_id=user_id,
         host_id=host_account.id,
@@ -211,6 +226,8 @@ async def test_read_by_guest_name_and_host_id_or_none_async(
     assert guest_account.guest_first_name == guest_first_name
     assert guest_account.guest_last_name == guest_last_name
     assert guest_account.guest_nickname == guest_nickname
+    assert guest_account.age == age
+    assert guest_account.gender == gender
     assert guest_account.hashed_password == guest_hashed_password
     assert guest_account.user_id == user_id
     assert guest_account.host_id == host_account.id
