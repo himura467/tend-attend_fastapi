@@ -100,7 +100,7 @@ async def get_guest_events(
 
 
 @router.get(
-    path="/guests/attendance/current/{event_id}/{start}",
+    path="/attend/current/{event_id}/{start}",
     name="Get Guest Current Attendance Status",
     response_model=GetGuestCurrentAttendanceStatusResponse,
 )
@@ -108,7 +108,7 @@ async def get_guest_current_attendance_status(
     event_id: str,
     start: datetime,
     session: AsyncSession = Depends(get_db_async),
-    account: Account = Depends(AccessControl(permit={Role.GUEST})),
+    account: Account = Depends(AccessControl(permit={Role.HOST, Role.GUEST})),
 ) -> GetGuestCurrentAttendanceStatusResponse:
     uow = SqlalchemyUnitOfWork(session=session)
     use_case = EventUseCase(uow=uow)
