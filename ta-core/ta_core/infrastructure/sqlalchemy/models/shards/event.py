@@ -13,12 +13,7 @@ from ta_core.domain.entities.event import (
 )
 from ta_core.domain.entities.event import Recurrence as RecurrenceEntity
 from ta_core.domain.entities.event import RecurrenceRule as RecurrenceRuleEntity
-from ta_core.features.event import (
-    AttendanceAction,
-    AttendanceStatus,
-    Frequency,
-    Weekday,
-)
+from ta_core.features.event import AttendanceAction, AttendanceState, Frequency, Weekday
 from ta_core.infrastructure.sqlalchemy.models.shards.base import (
     AbstractShardDynamicBase,
     AbstractShardStaticBase,
@@ -205,8 +200,8 @@ class EventAttendance(AbstractShardDynamicBase):
         comment="Event ID",
     )
     start: Mapped[datetime] = mapped_column(DATETIME, nullable=False, comment="Start")
-    status: Mapped[AttendanceStatus] = mapped_column(
-        ENUM(AttendanceStatus), nullable=False, comment="Attendance Status"
+    state: Mapped[AttendanceState] = mapped_column(
+        ENUM(AttendanceState), nullable=False, comment="Attendance State"
     )
 
     def to_entity(self) -> EventAttendanceEntity:
@@ -215,7 +210,7 @@ class EventAttendance(AbstractShardDynamicBase):
             user_id=self.user_id,
             event_id=self.event_id,
             start=self.start,
-            status=self.status,
+            state=self.state,
         )
 
     @classmethod
@@ -225,7 +220,7 @@ class EventAttendance(AbstractShardDynamicBase):
             user_id=entity.user_id,
             event_id=entity.event_id,
             start=entity.start,
-            status=entity.status,
+            state=entity.state,
         )
 
 

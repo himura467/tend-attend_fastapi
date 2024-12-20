@@ -13,7 +13,7 @@ from ta_core.dtos.event import (
 from ta_core.error.error_code import ErrorCode
 from ta_core.features.event import (
     AttendanceAction,
-    AttendanceStatus,
+    AttendanceState,
     Event,
     Recurrence,
     RecurrenceRule,
@@ -255,7 +255,7 @@ class EventUseCase:
                 user_id=user_id,
                 event_id=event.id,
                 start=start,
-                status=AttendanceStatus.PRESENT,
+                state=AttendanceState.PRESENT,
             )
 
         return AttendEventResponse(error_codes=())

@@ -127,7 +127,7 @@ class AttendanceAction(StrEnum):
 
 # Attendance Status defined by CEDS
 # https://ceds.ed.gov/element/000076
-class AttendanceStatus(IntEnum):
+class AttendanceState(IntEnum):
     # 出席
     PRESENT = 0
     # 連絡済み欠席
