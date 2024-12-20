@@ -43,17 +43,19 @@ async def create_event(
 
 
 @router.put(
-    path="/attend",
+    path="/attend/{event_id}/{start}",
     name="Attend Event",
     response_model=AttendEventResponse,
 )
 async def attend_event(
+    event_id: str,
+    start: datetime,
     request: AttendEventRequest,
     session: AsyncSession = Depends(get_db_async),
     account: Account = Depends(AccessControl(permit={Role.GUEST})),
 ) -> AttendEventResponse:
-    event_id = request.event_id
-    start = request.start
+    event_id = event_id
+    start = start
     action = request.action
 
     uow = SqlalchemyUnitOfWork(session=session)
