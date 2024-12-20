@@ -10,12 +10,7 @@ from ta_core.domain.entities.event import (
 )
 from ta_core.domain.entities.event import Recurrence as RecurrenceEntity
 from ta_core.domain.entities.event import RecurrenceRule as RecurrenceRuleEntity
-from ta_core.features.event import (
-    AttendanceAction,
-    AttendanceStatus,
-    Frequency,
-    Weekday,
-)
+from ta_core.features.event import AttendanceAction, AttendanceState, Frequency, Weekday
 from ta_core.infrastructure.sqlalchemy.models.shards.event import (
     Event,
     EventAttendance,
@@ -166,7 +161,7 @@ class EventAttendanceRepository(
         user_id: int,
         event_id: str,
         start: datetime,
-        status: AttendanceStatus,
+        state: AttendanceState,
     ) -> EventAttendanceEntity | None:
         existing_event_attendance = (
             await self.read_by_user_id_and_event_id_and_start_or_none_async(
@@ -174,14 +169,14 @@ class EventAttendanceRepository(
             )
         )
         if existing_event_attendance:
-            updated_event_attendance = existing_event_attendance.set_status(status)
+            updated_event_attendance = existing_event_attendance.set_state(state)
             return await self.update_async(updated_event_attendance)
         event_attendance = EventAttendanceEntity(
             entity_id=entity_id,
             user_id=user_id,
             event_id=event_id,
             start=start,
-            status=status,
+            state=state,
         )
         return await self.create_async(event_attendance)
 
