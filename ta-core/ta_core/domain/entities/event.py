@@ -125,3 +125,12 @@ class EventAttendanceActionLog(IEntity):
         self.event_id = event_id
         self.start = start
         self.action = action
+
+    def set_action(self, action: AttendanceAction) -> "EventAttendanceActionLog":
+        return EventAttendanceActionLog(
+            entity_id=self.id,
+            user_id=self.user_id,
+            event_id=self.event_id,
+            start=self.start,
+            action=action,
+        )
