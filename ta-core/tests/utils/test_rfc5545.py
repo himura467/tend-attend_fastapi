@@ -98,13 +98,13 @@ def test_parse_rrule(
             "FREQ=MONTHLY;UNTIL=20000101T120000Z",
             True,
             ValueError,
-            "Invalid time: 20000101T120000Z",
+            "Invalid time: 2000-01-01 12:00:00+00:00",
         ),
         (
             "FREQ=MONTHLY;UNTIL=20000101T001000Z",
             False,
             ValueError,
-            "Invalid time: 20000101T001000Z",
+            "Invalid time: 2000-01-01 00:10:00+00:00",
         ),
     ],
 )
@@ -243,7 +243,7 @@ def test_parse_recurrence_error(
 
 
 @pytest.mark.parametrize(
-    "recurrence, expected_recurrence_list",
+    "recurrence, is_all_day, expected_recurrence_list",
     [
         (
             None,
@@ -273,7 +273,7 @@ def test_parse_recurrence_error(
             ),
             True,
             [
-                "RRULE:FREQ=DAILY;UNTIL=2000-01-01;INTERVAL=1;BYSECOND=0;BYMINUTE=0;BYHOUR=0;BYDAY=0MO,0TU,0WE;BYMONTHDAY=1,2,3;BYYEARDAY=1,2,3;BYWEEKNO=1,2,3;BYMONTH=1,2,3;BYSETPOS=1,2,3;WKST=MO",
+                "RRULE:FREQ=DAILY;UNTIL=2000-01-01;INTERVAL=1;BYSECOND=0;BYMINUTE=0;BYHOUR=0;BYDAY=MO,TU,WE;BYMONTHDAY=1,2,3;BYYEARDAY=1,2,3;BYWEEKNO=1,2,3;BYMONTH=1,2,3;BYSETPOS=1,2,3;WKST=MO",
                 "RDATE;VALUE=DATE:20000102,20000103",
                 "EXDATE;VALUE=DATE:19991231",
             ],
