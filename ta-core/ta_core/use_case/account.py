@@ -10,6 +10,7 @@ from ta_core.dtos.account import (
     GuestInfo,
 )
 from ta_core.error.error_code import ErrorCode
+from ta_core.features.account import Gender
 from ta_core.infrastructure.db.transaction import rollbackable
 from ta_core.infrastructure.sqlalchemy.models.sequences.sequence import SequenceUserId
 from ta_core.infrastructure.sqlalchemy.repositories.account import (
@@ -18,7 +19,6 @@ from ta_core.infrastructure.sqlalchemy.repositories.account import (
 )
 from ta_core.use_case.unit_of_work_base import IUnitOfWork
 from ta_core.utils.uuid import generate_uuid
-from ta_core.features.account import Gender
 
 
 @dataclass(frozen=True)

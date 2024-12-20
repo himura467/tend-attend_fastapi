@@ -4,12 +4,12 @@ from sqlalchemy.sql import select
 
 from ta_core.domain.entities.account import GuestAccount as GuestAccountEntity
 from ta_core.domain.entities.account import HostAccount as HostAccountEntity
+from ta_core.features.account import Gender
 from ta_core.infrastructure.sqlalchemy.models.commons.account import (
     GuestAccount,
     HostAccount,
 )
 from ta_core.infrastructure.sqlalchemy.repositories.base import AbstractRepository
-from ta_core.features.account import Gender
 
 
 class HostAccountRepository(AbstractRepository[HostAccountEntity, HostAccount]):
