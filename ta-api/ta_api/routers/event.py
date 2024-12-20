@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio.session import AsyncSession
 from ta_core.dtos.event import (
@@ -5,6 +7,7 @@ from ta_core.dtos.event import (
     AttendEventResponse,
     CreateEventRequest,
     CreateEventResponse,
+    GetGuestCurrentAttendanceStatusResponse,
     GetGuestEventsResponse,
     GetHostEventsResponse,
 )
@@ -40,17 +43,19 @@ async def create_event(
 
 
 @router.put(
-    path="/attend",
+    path="/attend/{event_id}/{start}",
     name="Attend Event",
     response_model=AttendEventResponse,
 )
 async def attend_event(
+    event_id: str,
+    start: datetime,
     request: AttendEventRequest,
     session: AsyncSession = Depends(get_db_async),
     account: Account = Depends(AccessControl(permit={Role.GUEST})),
 ) -> AttendEventResponse:
-    event_id = request.event_id
-    start = request.start
+    event_id = event_id
+    start = start
     action = request.action
 
     uow = SqlalchemyUnitOfWork(session=session)
@@ -92,3 +97,24 @@ async def get_guest_events(
     use_case = EventUseCase(uow=uow)
 
     return await use_case.get_guest_events_async(guest_id=account.account_id)
+
+
+@router.get(
+    path="/guests/attendance/current/{event_id}/{start}",
+    name="Get Guest Current Attendance Status",
+    response_model=GetGuestCurrentAttendanceStatusResponse,
+)
+async def get_guest_current_attendance_status(
+    event_id: str,
+    start: datetime,
+    session: AsyncSession = Depends(get_db_async),
+    account: Account = Depends(AccessControl(permit={Role.GUEST})),
+) -> GetGuestCurrentAttendanceStatusResponse:
+    uow = SqlalchemyUnitOfWork(session=session)
+    use_case = EventUseCase(uow=uow)
+
+    return await use_case.get_guest_current_attendance_status_async(
+        guest_id=account.account_id,
+        event_id=event_id,
+        start=start,
+    )

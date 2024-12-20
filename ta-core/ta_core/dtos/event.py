@@ -30,8 +30,6 @@ class CreateEventResponse(BaseModelWithErrorCodes):
 
 
 class AttendEventRequest(BaseModel):
-    event_id: str = Field(..., title="Event ID")
-    start: datetime = Field(..., title="Start")
     action: AttendanceAction = Field(..., title="Attendance Action")
 
 
@@ -45,3 +43,7 @@ class GetHostEventsResponse(BaseModelWithErrorCodes):
 
 class GetGuestEventsResponse(BaseModelWithErrorCodes):
     events: list[EventWithId] = Field(..., title="Guest Events")
+
+
+class GetGuestCurrentAttendanceStatusResponse(BaseModelWithErrorCodes):
+    attend: bool = Field(..., title="Attend")

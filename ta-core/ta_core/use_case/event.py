@@ -5,7 +5,11 @@ from ta_core.domain.entities.event import Event as EventEntity
 from ta_core.dtos.event import AttendEventResponse, CreateEventResponse
 from ta_core.dtos.event import Event as EventDto
 from ta_core.dtos.event import EventWithId as EventWithIdDto
-from ta_core.dtos.event import GetGuestEventsResponse, GetHostEventsResponse
+from ta_core.dtos.event import (
+    GetGuestCurrentAttendanceStatusResponse,
+    GetGuestEventsResponse,
+    GetHostEventsResponse,
+)
 from ta_core.error.error_code import ErrorCode
 from ta_core.features.event import (
     AttendanceAction,
@@ -308,3 +312,40 @@ class EventUseCase:
         events = await event_repository.read_with_recurrence_by_user_id_async(user_id)
 
         return GetGuestEventsResponse(events=serialize_events(events), error_codes=())
+
+    @rollbackable
+    async def get_guest_current_attendance_status_async(
+        self, guest_id: str, event_id: str, start: datetime
+    ) -> GetGuestCurrentAttendanceStatusResponse:
+        guest_account_repository = GuestAccountRepository(self.uow)
+        event_repository = EventRepository(self.uow)
+        event_attendance_action_log_repository = EventAttendanceActionLogRepository(
+            self.uow
+        )
+
+        guest_account = await guest_account_repository.read_by_id_or_none_async(
+            guest_id
+        )
+        if guest_account is None:
+            return GetGuestCurrentAttendanceStatusResponse(
+                attend=False, error_codes=(ErrorCode.GUEST_ACCOUNT_NOT_FOUND,)
+            )
+
+        user_id = guest_account.user_id
+
+        event = await event_repository.read_by_id_or_none_async(event_id)
+        if event is None:
+            return GetGuestCurrentAttendanceStatusResponse(
+                attend=False, error_codes=(ErrorCode.EVENT_NOT_FOUND,)
+            )
+
+        event_attendance_action_log = await event_attendance_action_log_repository.read_latest_by_user_id_and_event_id_and_start_or_none_async(
+            user_id=user_id, event_id=event_id, start=start
+        )
+        if event_attendance_action_log is None:
+            return GetGuestCurrentAttendanceStatusResponse(attend=False, error_codes=())
+
+        return GetGuestCurrentAttendanceStatusResponse(
+            attend=event_attendance_action_log.action == AttendanceAction.ATTEND,
+            error_codes=(),
+        )
