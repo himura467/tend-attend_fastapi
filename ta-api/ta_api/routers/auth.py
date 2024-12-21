@@ -40,7 +40,7 @@ async def create_auth_token(
         value=res.auth_token.access_token,
         httponly=True,
         secure=True,
-        samesite="lax",
+        samesite="none",
         max_age=res.access_token_max_age,
     )
     response.set_cookie(
@@ -48,7 +48,7 @@ async def create_auth_token(
         value=res.auth_token.refresh_token,
         httponly=True,
         secure=True,
-        samesite="lax",
+        samesite="none",
         max_age=res.refresh_token_max_age,
     )
 
