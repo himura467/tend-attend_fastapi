@@ -1,13 +1,18 @@
-from fastapi import FastAPI
+import os
+
+from dotenv import load_dotenv
+from fastapi import FastAPI, Response, status
 from fastapi.middleware.cors import CORSMiddleware
 from mangum import Mangum
 
-from ta_api.routers import account, auth, event, verify, admin
-from ta_core.constants.constants import FRONTEND_URL
+from ta_api.routers import account, admin, auth, event, verify
+
+load_dotenv()
+FRONTEND_URL = os.getenv("FRONTEND_URL")
 
 app = FastAPI()
 
-origins = [FRONTEND_URL, "http://localhost:3000"]
+origins = [FRONTEND_URL]
 
 app.add_middleware(
     CORSMiddleware,
@@ -16,6 +21,12 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.options("/{rest_of_path}")
+async def preflight_handler(rest_of_path: str) -> Response:
+    return Response(status_code=status.HTTP_200_OK)
+
 
 app.include_router(
     admin.router,
