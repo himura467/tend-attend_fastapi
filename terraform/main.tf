@@ -7,25 +7,25 @@ terraform {
 
   required_providers {
     aws = {
-      source = "hashicorp/aws"
+      source  = "hashicorp/aws"
       version = "5.81.0"
     }
   }
   
   backend "s3" {
-    profile = "himura"
-    bucket = "tend-attend-terraform-state"
-    key = "terraform.tfstate"
-    region = "ap-northeast-1"
-    acl = "private"
-    encrypt = true
+    profile      = "himura"
+    bucket       = "tend-attend-terraform-state"
+    key          = "terraform.tfstate"
+    region       = "ap-northeast-1"
+    acl          = "private"
+    encrypt      = true
     use_lockfile = true
   }
 }
 
 provider "aws" {
   profile = var.aws_profile
-  region = var.aws_region
+  region  = var.aws_region
 }
 
 resource "aws_s3_bucket" "tend_attend_terraform_state" {
@@ -55,41 +55,31 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "tend_attend_terra
 }
 
 resource "aws_s3_bucket_public_access_block" "tend_attend_terraform_state" {
-  bucket = aws_s3_bucket.tend_attend_terraform_state.id
-  
-  block_public_acls = true
-  block_public_policy = true
-  ignore_public_acls = true
+  bucket                  = aws_s3_bucket.tend_attend_terraform_state.id
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
   restrict_public_buckets = true
 }
 
 resource "aws_vpc" "tend_attend_vpc" {
   cidr_block = "10.0.0.0/16"
-  tags = {
-    Name = local.app_name
-  }
 }
 
 resource "aws_subnet" "tend_attend_subnet_1a" {
-  vpc_id = aws_vpc.tend_attend_vpc.id
-  cidr_block = "10.0.1.0/24"
+  vpc_id            = aws_vpc.tend_attend_vpc.id
+  cidr_block        = "10.0.1.0/24"
   availability_zone = "ap-northeast-1a"
-  tags = {
-    Name = "${local.app_name}-ap-northeast-1a"
-  }
 }
 
 resource "aws_subnet" "tend_attend_subnet_1c" {
-  vpc_id = aws_vpc.tend_attend_vpc.id
-  cidr_block = "10.0.2.0/24"
+  vpc_id            = aws_vpc.tend_attend_vpc.id
+  cidr_block        = "10.0.2.0/24"
   availability_zone = "ap-northeast-1c"
-  tags = {
-    Name = "${local.app_name}-ap-northeast-1c"
-  }
 }
 
 resource "aws_db_subnet_group" "this" {
-  name = "${local.app_name}-db-subnet-group"
+  name       = "${local.app_name}-db-subnet-group"
   subnet_ids = [
     aws_subnet.tend_attend_subnet_1a.id,
     aws_subnet.tend_attend_subnet_1c.id
@@ -97,49 +87,88 @@ resource "aws_db_subnet_group" "this" {
 }
 
 resource "aws_security_group" "tend_attend_sg" {
-  name = "${local.app_name}-sg"
+  name   = "${local.app_name}-sg"
   vpc_id = aws_vpc.tend_attend_vpc.id
 
   ingress {
-    from_port = 3306
-    to_port = 3306
-    protocol = "tcp"
+    from_port   = 3306
+    to_port     = 3306
+    protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
 
   egress {
-    from_port = 0
-    to_port = 0
-    protocol = "-1"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
 }
 
+resource "aws_secretsmanager_secret" "aurora_credentials" {
+  name = "${local.app_name}-aurora-credentials"
+}
+
+data "aws_secretsmanager_secret" "data_aurora_credentials" {
+  arn = aws_secretsmanager_secret.aurora_credentials.arn
+}
+
+resource "random_password" "aurora_master_password" {
+  length           = 16
+  special          = true
+  override_special = "!%&*()-_=+[]{}<>:?"
+  min_lower        = 1
+  min_numeric      = 1
+  min_special      = 1
+  min_upper        = 1
+}
+
+resource "aws_secretsmanager_secret_version" "aurora_credentials_version" {
+  secret_id     = aws_secretsmanager_secret.aurora_credentials.id
+  secret_string = jsonencode({
+    port                 = 3306
+    username             = "user",
+    password             = random_password.aurora_master_password.result
+    db_name              = "common"
+  })
+}
+
+data "aws_secretsmanager_secret_version" "data_aurora_credentials_version" {
+  secret_id = data.aws_secretsmanager_secret.data_aurora_credentials.id
+}
+
+locals {
+  aurora_credentials = jsondecode(data.aws_secretsmanager_secret_version.data_aurora_credentials_version.secret_string)
+}
+
 resource "aws_rds_cluster_parameter_group" "this" {
-  name = "${local.app_name}-cluster-parameter-group"
+  name   = "${local.app_name}-cluster-parameter-group"
   family = "aurora-mysql8.0"  # Aurora MySQL 8.4 がリリースされたら変更する
 
   parameter {
-    name = "character_set_server"
+    name  = "character_set_server"
     value = "utf8mb4"
   }
 
   parameter {
-    name = "collation_server"
+    name  = "collation_server"
     value = "utf8mb4_general_ci"
   }
 }
 
 resource "aws_rds_cluster" "this" {
-  cluster_identifier = "${local.app_name}-cluster"
-  engine = "aurora-mysql"
-  engine_mode = "provisioned"
-  engine_version = "8.0.mysql_aurora.3.05.2"
-  master_username = "user"
-  master_password = "password"
+  cluster_identifier              = "${local.app_name}-cluster"
+  engine                          = "aurora-mysql"
+  engine_mode                     = "provisioned"
+  engine_version                  = "8.0.mysql_aurora.3.08.0"
+  port                            = local.aurora_credentials.port
+  master_username                 = local.aurora_credentials.username
+  master_password                 = local.aurora_credentials.password
+  database_name                   = local.aurora_credentials.db_name
   db_cluster_parameter_group_name = aws_rds_cluster_parameter_group.this.name
-  db_subnet_group_name = aws_db_subnet_group.this.name
-  vpc_security_group_ids = [ aws_security_group.tend_attend_sg.id ]
+  db_subnet_group_name            = aws_db_subnet_group.this.name
+  vpc_security_group_ids          = [ aws_security_group.tend_attend_sg.id ]
+  enable_http_endpoint            = true
 
   serverlessv2_scaling_configuration {
     max_capacity = 1.0
@@ -148,18 +177,20 @@ resource "aws_rds_cluster" "this" {
 
   deletion_protection = false
   skip_final_snapshot = true
+
+  depends_on = [ aws_secretsmanager_secret_version.aurora_credentials_version ]
 }
 
 resource "aws_rds_cluster_instance" "this" {
-  identifier = "${local.app_name}-instance"
+  identifier         = "${local.app_name}-instance"
   cluster_identifier = aws_rds_cluster.this.id
-  instance_class = "db.serverless"
-  engine = aws_rds_cluster.this.engine
-  engine_version = aws_rds_cluster.this.engine_version
+  instance_class     = "db.serverless"
+  engine             = aws_rds_cluster.this.engine
+  engine_version     = aws_rds_cluster.this.engine_version
 }
 
 resource "aws_ecr_repository" "tend_attend_repo" {
-  name = local.app_name
+  name         = local.app_name
   force_delete = true
 }
 
@@ -183,40 +214,40 @@ resource "terraform_data" "docker_push" {
 }
 
 resource "time_sleep" "wait_for_push" {
-  depends_on = [ terraform_data.docker_push ]
+  depends_on      = [ terraform_data.docker_push ]
   create_duration = "30s"
 }
 
 resource "aws_iam_role" "lambda_role" {
-  name = "lambda_role"
+  name               = "lambda_role"
   assume_role_policy = jsonencode({
-    Version = "2012-10-17"
+    Version   = "2012-10-17"
     Statement = [
       {
-        Action = "sts:AssumeRole"
+        Action    = "sts:AssumeRole"
         Principal = {
           Service = "lambda.amazonaws.com"
         }
-        Effect = "Allow"
-        Sid = ""
+        Effect    = "Allow"
+        Sid       = ""
       }
     ]
   })
 }
 
 resource "aws_iam_role_policy" "lambda_vpc_access_policy" {
-  name = "lambda_vpc_access_policy"
-  role = aws_iam_role.lambda_role.id
+  name   = "lambda_vpc_access_policy"
+  role   = aws_iam_role.lambda_role.id
   policy = jsonencode({
-    Version = "2012-10-17"
+    Version   = "2012-10-17"
     Statement = [
       {
-        Action = [
+        Action   = [
           "ec2:CreateNetworkInterface",
           "ec2:DescribeNetworkInterfaces",
           "ec2:DeleteNetworkInterface"
         ]
-        Effect = "Allow"
+        Effect   = "Allow"
         Resource = "*"
       }
     ]
@@ -224,21 +255,21 @@ resource "aws_iam_role_policy" "lambda_vpc_access_policy" {
 }
 
 resource "aws_iam_role_policy_attachment" "lambda_cloudwatch_policy" {
-  role = aws_iam_role.lambda_role.name
+  role       = aws_iam_role.lambda_role.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
 
 resource "aws_lambda_function" "tend_attend_lambda" {
   function_name = var.lambda_function_name
-  role = aws_iam_role.lambda_role.arn
-  package_type = "Image"
-  image_uri = "${aws_ecr_repository.tend_attend_repo.repository_url}:latest"
+  role          = aws_iam_role.lambda_role.arn
+  package_type  = "Image"
+  image_uri     = "${aws_ecr_repository.tend_attend_repo.repository_url}:latest"
   architectures = [ "arm64" ]
-  depends_on = [ time_sleep.wait_for_push ]
-  timeout = 60
+  depends_on    = [ time_sleep.wait_for_push ]
+  timeout       = 60
 
   vpc_config {
-    subnet_ids = [
+    subnet_ids         = [
       aws_subnet.tend_attend_subnet_1a.id,
       aws_subnet.tend_attend_subnet_1c.id
     ]
@@ -247,11 +278,13 @@ resource "aws_lambda_function" "tend_attend_lambda" {
 
   environment {
     variables = {
-      AWS_RDS_CLUSTER_INSTANCE_URL = aws_rds_cluster_instance.this.endpoint
-      AWS_RDS_CLUSTER_INSTANCE_PORT = aws_rds_cluster_instance.this.port
-      AWS_RDS_CLUSTER_MASTER_USERNAME = aws_rds_cluster.this.master_username
-      AWS_RDS_CLUSTER_MASTER_PASSWORD = aws_rds_cluster.this.master_password
-      AURORA_DATABASE_NAME = "common"
+      FRONTEND_URL                    = var.frontend_url
+      DB_SHARD_COUNT                  = var.db_shard_count
+      AWS_RDS_CLUSTER_INSTANCE_URL    = aws_rds_cluster_instance.this.endpoint
+      AWS_RDS_CLUSTER_INSTANCE_PORT   = local.aurora_credentials.port
+      AWS_RDS_CLUSTER_MASTER_USERNAME = local.aurora_credentials.username
+      AWS_RDS_CLUSTER_MASTER_PASSWORD = local.aurora_credentials.password
+      AURORA_DATABASE_NAME            = local.aurora_credentials.db_name
     }
   }
 }
@@ -262,42 +295,85 @@ resource "aws_api_gateway_rest_api" "tend_attend_api" {
 
 resource "aws_api_gateway_resource" "proxy" {
   rest_api_id = aws_api_gateway_rest_api.tend_attend_api.id
-  parent_id = aws_api_gateway_rest_api.tend_attend_api.root_resource_id
-  path_part = "{proxy+}"
-}
-
-resource "aws_api_gateway_method" "proxy_method" {
-  rest_api_id = aws_api_gateway_rest_api.tend_attend_api.id
-  resource_id = aws_api_gateway_resource.proxy.id
-  http_method = "ANY"
-  authorization = "NONE"
-  api_key_required = true
+  parent_id   = aws_api_gateway_rest_api.tend_attend_api.root_resource_id
+  path_part   = "{proxy+}"
 }
 
 resource "aws_lambda_permission" "api_gw" {
-  statement_id = "AllowAPIGatewayInvoke"
-  action = "lambda:InvokeFunction"
+  statement_id  = "AllowAPIGatewayInvoke"
+  action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.tend_attend_lambda.function_name
-  principal = "apigateway.amazonaws.com"
-  source_arn = "${aws_api_gateway_rest_api.tend_attend_api.execution_arn}/*/*"
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_api_gateway_rest_api.tend_attend_api.execution_arn}/*/*"
+}
+
+resource "aws_api_gateway_method" "proxy_method" {
+  rest_api_id      = aws_api_gateway_rest_api.tend_attend_api.id
+  resource_id      = aws_api_gateway_resource.proxy.id
+  http_method      = "ANY"
+  authorization    = "NONE"
+  api_key_required = true
 }
 
 resource "aws_api_gateway_integration" "lambda_integration" {
-  rest_api_id = aws_api_gateway_rest_api.tend_attend_api.id
-  resource_id = aws_api_gateway_resource.proxy.id
-  http_method = aws_api_gateway_method.proxy_method.http_method
+  rest_api_id             = aws_api_gateway_rest_api.tend_attend_api.id
+  resource_id             = aws_api_gateway_resource.proxy.id
+  http_method             = aws_api_gateway_method.proxy_method.http_method
   integration_http_method = "POST"
-  type = "AWS_PROXY"
-  uri = aws_lambda_function.tend_attend_lambda.invoke_arn
+  type                    = "AWS_PROXY"
+  uri                     = aws_lambda_function.tend_attend_lambda.invoke_arn
 }
 
 resource "aws_api_gateway_deployment" "lambda_deployment" {
-  depends_on = [ aws_api_gateway_integration.lambda_integration ]
+  depends_on  = [ aws_api_gateway_integration.lambda_integration ]
   rest_api_id = aws_api_gateway_rest_api.tend_attend_api.id
 }
 
+resource "aws_api_gateway_method" "proxy_options" {
+  rest_api_id   = aws_api_gateway_rest_api.tend_attend_api.id
+  resource_id   = aws_api_gateway_resource.proxy.id
+  http_method   = "OPTIONS"
+  authorization = "NONE"
+}
+
+resource "aws_api_gateway_integration" "proxy_options" {
+  rest_api_id       = aws_api_gateway_rest_api.tend_attend_api.id
+  resource_id       = aws_api_gateway_resource.proxy.id
+  http_method       = aws_api_gateway_method.proxy_options.http_method
+  type              = "MOCK"
+  request_templates = {
+    "application/json" = "{\"statusCode\": 200}"
+  }
+}
+
+resource "aws_api_gateway_method_response" "proxy_options" {
+  rest_api_id         = aws_api_gateway_rest_api.tend_attend_api.id
+  resource_id         = aws_api_gateway_resource.proxy.id
+  http_method         = aws_api_gateway_method.proxy_options.http_method
+  status_code         = 200
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Headers"     = true
+    "method.response.header.Access-Control-Allow-Methods"     = true
+    "method.response.header.Access-Control-Allow-Origin"      = true
+    "method.response.header.Access-Control-Allow-Credentials" = true
+  }
+}
+
+resource "aws_api_gateway_integration_response" "proxy_options" {
+  rest_api_id         = aws_api_gateway_rest_api.tend_attend_api.id
+  resource_id         = aws_api_gateway_resource.proxy.id
+  http_method         = aws_api_gateway_method.proxy_options.http_method
+  status_code         = aws_api_gateway_method_response.proxy_options.status_code
+  response_parameters = {
+    "method.response.header.Access-Control-Allow-Headers"     = "'Content-Type,X-Api-Key,Authorization'"
+    "method.response.header.Access-Control-Allow-Methods"     = "'GET,POST,PUT,DELETE,OPTIONS'"
+    "method.response.header.Access-Control-Allow-Origin"      = "'${var.frontend_url}'"
+    "method.response.header.Access-Control-Allow-Credentials" = "'true'"
+  }
+}
+
 resource "aws_cloudwatch_log_group" "api_gw" {
-  name = "/aws/api-gw/${aws_api_gateway_rest_api.tend_attend_api.name}"
+  name              = "/aws/api-gw/${aws_api_gateway_rest_api.tend_attend_api.name}"
   retention_in_days = 30
 }
 
@@ -307,81 +383,91 @@ resource "aws_api_gateway_api_key" "tend_attend_api_key" {
 
 resource "aws_api_gateway_stage" "dev" {
   deployment_id = aws_api_gateway_deployment.lambda_deployment.id
-  rest_api_id = aws_api_gateway_rest_api.tend_attend_api.id
-  stage_name = "dev"
+  rest_api_id   = aws_api_gateway_rest_api.tend_attend_api.id
+  stage_name    = "dev"
 }
 
 resource "aws_api_gateway_stage" "prod" {
   deployment_id = aws_api_gateway_deployment.lambda_deployment.id
-  rest_api_id = aws_api_gateway_rest_api.tend_attend_api.id
-  stage_name = "prod"
+  rest_api_id   = aws_api_gateway_rest_api.tend_attend_api.id
+  stage_name    = "prod"
 }
 
 resource "aws_api_gateway_usage_plan" "tend_attend_usage_plan" {
   name = "${local.app_name}-usage-plan"
+
   api_stages {
     api_id = aws_api_gateway_rest_api.tend_attend_api.id
-    stage = aws_api_gateway_stage.dev.stage_name
+    stage  = aws_api_gateway_stage.dev.stage_name
   }
   api_stages {
     api_id = aws_api_gateway_rest_api.tend_attend_api.id
-    stage = aws_api_gateway_stage.prod.stage_name
+    stage  = aws_api_gateway_stage.prod.stage_name
   }
+
   throttle_settings {
     burst_limit = 5
-    rate_limit = 10
+    rate_limit  = 10
   }
   quota_settings {
-    limit = 1000
+    limit  = 1000
     offset = 0
     period = "MONTH"
   }
 }
 
 resource "aws_api_gateway_usage_plan_key" "tend_attend_usage_plan_key" {
-  key_id = aws_api_gateway_api_key.tend_attend_api_key.id
-  key_type = "API_KEY"
+  key_id        = aws_api_gateway_api_key.tend_attend_api_key.id
+  key_type      = "API_KEY"
   usage_plan_id = aws_api_gateway_usage_plan.tend_attend_usage_plan.id
 }
 
 output "aws_rds_cluster_instance_url" {
   description = "URL of the Amazon RDS cluster instance"
-  value = aws_rds_cluster_instance.this.endpoint
+  value       = aws_rds_cluster_instance.this.endpoint
 }
 
 output "aws_rds_cluster_instance_port" {
   description = "Port of the Amazon RDS cluster instance"
-  value = aws_rds_cluster_instance.this.port
+  value       = local.aurora_credentials.port
+  sensitive   = true
 }
 
 output "aws_rds_cluster_master_username" {
   description = "Master username of the Amazon RDS cluster"
-  value = aws_rds_cluster.this.master_username
+  value       = local.aurora_credentials.username
+  sensitive   = true
 }
 
 output "aws_rds_cluster_master_password" {
   description = "Master password of the Amazon RDS cluster"
-  value = aws_rds_cluster.this.master_password
-  sensitive = true
+  value       = local.aurora_credentials.password
+  sensitive   = true
+}
+
+output "aurora_database_name" {
+  description = "Name of the Aurora database"
+  value       = local.aurora_credentials.db_name
+  sensitive   = true
 }
 
 output "aws_ecr_repository_url" {
   description = "URL of the Amazon ECR repository"
-  value = aws_ecr_repository.tend_attend_repo.repository_url
+  value       = aws_ecr_repository.tend_attend_repo.repository_url
 }
 
 output "lambda_function_name" {
   description = "Name of the Lambda function"
-  value = aws_lambda_function.tend_attend_lambda.function_name
+  value       = aws_lambda_function.tend_attend_lambda.function_name
 }
 
 output "api_gateway_invoke_url" {
   description = "Invoke URL of the API Gateway"
-  value = aws_api_gateway_deployment.lambda_deployment.invoke_url
+  value       = aws_api_gateway_deployment.lambda_deployment.invoke_url
 }
 
 output "api_gateway_api_key" {
   description = "API key of the API Gateway"
-  value = aws_api_gateway_api_key.tend_attend_api_key.value
-  sensitive = true
+  value       = aws_api_gateway_api_key.tend_attend_api_key.value
+  sensitive   = true
 }
