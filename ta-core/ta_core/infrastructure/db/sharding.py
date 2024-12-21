@@ -6,12 +6,12 @@ from sqlalchemy.orm.session import ORMExecuteState
 from sqlalchemy.orm.state import InstanceState
 from sqlalchemy.sql.elements import ClauseElement
 
+from ta_core.constants.constants import DB_SHARD_COUNT
 from ta_core.infrastructure.db.settings import (
     CONNECTIONS,
     DB_COMMON_CONNECTION_KEY,
     DB_SEQUENCE_CONNECTION_KEY,
     DB_SHARD_CONNECTION_KEYS,
-    DB_SHARD_COUNT,
 )
 from ta_core.infrastructure.sqlalchemy.models.commons.base import AbstractCommonBase
 from ta_core.infrastructure.sqlalchemy.models.sequences.base import AbstractSequenceBase

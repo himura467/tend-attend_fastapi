@@ -6,6 +6,7 @@ from ta_core.constants.constants import (
     AWS_RDS_CLUSTER_INSTANCE_PORT,
     AWS_RDS_CLUSTER_INSTANCE_URL,
     AWS_RDS_CLUSTER_MASTER_USERNAME,
+    DB_SHARD_COUNT,
 )
 from ta_core.constants.secrets import AWS_RDS_CLUSTER_MASTER_PASSWORD
 
@@ -21,8 +22,6 @@ class DBConfig(TypedDict):
     unix_socket_path: str | None
 
 
-DB_SHARD_COUNT = 2
-
 _DEFAULT_DB_CONFIG: DBConfig = {
     "host": "127.0.0.1",
     "port": 13306,
@@ -36,7 +35,7 @@ _DEFAULT_DB_CONFIG: DBConfig = {
 
 DB_CONFIG: DBConfig = {
     "host": AWS_RDS_CLUSTER_INSTANCE_URL or _DEFAULT_DB_CONFIG["host"],
-    "port": int(AWS_RDS_CLUSTER_INSTANCE_PORT or _DEFAULT_DB_CONFIG["port"]),
+    "port": AWS_RDS_CLUSTER_INSTANCE_PORT or _DEFAULT_DB_CONFIG["port"],
     "user": AWS_RDS_CLUSTER_MASTER_USERNAME or _DEFAULT_DB_CONFIG["user"],
     "password": AWS_RDS_CLUSTER_MASTER_PASSWORD or _DEFAULT_DB_CONFIG["password"],
     "common_dbname": AURORA_DATABASE_NAME or _DEFAULT_DB_CONFIG["common_dbname"],
