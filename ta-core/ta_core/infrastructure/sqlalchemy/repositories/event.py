@@ -188,18 +188,7 @@ class EventAttendanceActionLogRepository(
     def _model(self) -> type[EventAttendanceActionLog]:
         return EventAttendanceActionLog
 
-    async def read_by_user_id_and_event_id_and_start_or_none_async(
-        self, user_id: int, event_id: str, start: datetime
-    ) -> EventAttendanceActionLogEntity | None:
-        return await self.read_one_or_none_async(
-            where=(
-                self._model.user_id == user_id,
-                self._model.event_id == event_id,
-                self._model.start == start,
-            )
-        )
-
-    async def create_or_update_event_attendance_action_log_async(
+    async def create_event_attendance_action_log_async(
         self,
         entity_id: str,
         user_id: int,
@@ -207,16 +196,6 @@ class EventAttendanceActionLogRepository(
         start: datetime,
         action: AttendanceAction,
     ) -> EventAttendanceActionLogEntity | None:
-        existing_event_attendance_action_log = (
-            await self.read_by_user_id_and_event_id_and_start_or_none_async(
-                user_id=user_id, event_id=event_id, start=start
-            )
-        )
-        if existing_event_attendance_action_log:
-            updated_event_attendance_action_log = (
-                existing_event_attendance_action_log.set_action(action)
-            )
-            return await self.update_async(updated_event_attendance_action_log)
         event_attendance_action_log = EventAttendanceActionLogEntity(
             entity_id=entity_id,
             user_id=user_id,
