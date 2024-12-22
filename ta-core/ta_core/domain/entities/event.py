@@ -85,6 +85,22 @@ class Event(IEntity):
         self.timezone = timezone
         self.recurrence = recurrence
 
+    def is_attendable(self, current_time: datetime) -> bool:
+        if self.is_all_day:
+            return self.start <= current_time <= self.end
+
+        duration = self.end - self.start
+        open_at = max(self.start - duration, self.start.replace(hour=0, minute=0))
+        return open_at <= current_time <= self.end
+
+    def is_leaveable(self, current_time: datetime) -> bool:
+        if self.is_all_day:
+            return self.start <= current_time <= self.end
+
+        duration = self.end - self.start
+        close_at = min(self.end + duration, self.end.replace(hour=23, minute=59))
+        return self.start <= current_time <= close_at
+
 
 class EventAttendance(IEntity):
     def __init__(
