@@ -260,10 +260,3 @@ class EventAttendanceActionLog(AbstractShardDynamicBase):
             start=entity.start,
             action=entity.action,
         )
-
-
-UniqueConstraint(
-    EventAttendanceActionLog.user_id,
-    EventAttendanceActionLog.event_id,
-    EventAttendanceActionLog.start,
-)
