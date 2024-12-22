@@ -279,6 +279,8 @@ resource "aws_lambda_function" "tend_attend_lambda" {
   environment {
     variables = {
       FRONTEND_URL                    = var.frontend_url
+      AWS_SECRETSMANAGER_SECRET_ID    = aws_secretsmanager_secret.aurora_credentials.id
+      AWS_SECRETSMANAGER_REGION       = var.aws_region
       DB_SHARD_COUNT                  = var.db_shard_count
       AWS_RDS_CLUSTER_INSTANCE_URL    = aws_rds_cluster_instance.this.endpoint
       AWS_RDS_CLUSTER_INSTANCE_PORT   = local.aurora_credentials.port
