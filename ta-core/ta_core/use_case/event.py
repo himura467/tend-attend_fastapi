@@ -243,7 +243,9 @@ class EventUseCase:
 
         if action == AttendanceAction.ATTEND:
             if not event.is_attendable(datetime.now(timezone.utc)):
-                return AttendEventResponse(error_codes=(ErrorCode.EVENT_NOT_ATTENDABLE,))
+                return AttendEventResponse(
+                    error_codes=(ErrorCode.EVENT_NOT_ATTENDABLE,)
+                )
 
             await event_attendance_repository.create_or_update_event_attendance_async(
                 entity_id=generate_uuid(),

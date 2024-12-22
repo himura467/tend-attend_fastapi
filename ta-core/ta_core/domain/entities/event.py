@@ -95,7 +95,11 @@ class Event(IEntity):
             apply_timezone(self.start, self.timezone) - duration,
             apply_timezone(self.start, self.timezone).replace(hour=0, minute=0),
         )
-        return zoned_open <= apply_timezone(current_time, self.timezone) <= apply_timezone(self.end, self.timezone)
+        return (
+            zoned_open
+            <= apply_timezone(current_time, self.timezone)
+            <= apply_timezone(self.end, self.timezone)
+        )
 
     def is_leaveable(self, current_time: datetime) -> bool:
         if self.is_all_day:
@@ -106,7 +110,11 @@ class Event(IEntity):
             apply_timezone(self.end, self.timezone) + duration,
             apply_timezone(self.end, self.timezone).replace(hour=23, minute=59),
         )
-        return apply_timezone(self.start, self.timezone) <= apply_timezone(current_time, self.timezone) <= zoned_close
+        return (
+            apply_timezone(self.start, self.timezone)
+            <= apply_timezone(current_time, self.timezone)
+            <= zoned_close
+        )
 
 
 class EventAttendance(IEntity):
