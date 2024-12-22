@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 
 from ta_core.domain.entities.event import Event as EventEntity
 from ta_core.dtos.event import AttendEventResponse, CreateEventResponse
@@ -241,15 +241,12 @@ class EventUseCase:
         if event is None:
             return AttendEventResponse(error_codes=(ErrorCode.EVENT_NOT_FOUND,))
 
-        await event_attendance_action_log_repository.create_event_attendance_action_log_async(
-            entity_id=generate_uuid(),
-            user_id=user_id,
-            event_id=event.id,
-            start=start,
-            action=action,
-        )
-
         if action == AttendanceAction.ATTEND:
+            if not event.is_attendable(datetime.now(timezone.utc)):
+                return AttendEventResponse(
+                    error_codes=(ErrorCode.EVENT_NOT_ATTENDABLE,)
+                )
+
             await event_attendance_repository.create_or_update_event_attendance_async(
                 entity_id=generate_uuid(),
                 user_id=user_id,
@@ -257,6 +254,17 @@ class EventUseCase:
                 start=start,
                 state=AttendanceState.PRESENT,
             )
+        elif action == AttendanceAction.LEAVE:
+            if not event.is_leaveable(datetime.now(timezone.utc)):
+                return AttendEventResponse(error_codes=(ErrorCode.EVENT_NOT_LEAVEABLE,))
+
+        await event_attendance_action_log_repository.create_event_attendance_action_log_async(
+            entity_id=generate_uuid(),
+            user_id=user_id,
+            event_id=event.id,
+            start=start,
+            action=action,
+        )
 
         return AttendEventResponse(error_codes=())
 

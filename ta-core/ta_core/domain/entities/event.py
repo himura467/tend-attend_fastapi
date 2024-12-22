@@ -2,6 +2,7 @@ from datetime import datetime
 
 from ta_core.domain.entities.base import IEntity
 from ta_core.features.event import AttendanceAction, AttendanceState, Frequency, Weekday
+from ta_core.utils.datetime import apply_timezone
 
 
 class RecurrenceRule(IEntity):
@@ -84,6 +85,36 @@ class Event(IEntity):
         self.recurrence_id = recurrence_id
         self.timezone = timezone
         self.recurrence = recurrence
+
+    def is_attendable(self, current_time: datetime) -> bool:
+        if self.is_all_day:
+            return self.start <= current_time <= self.end
+
+        duration = self.end - self.start
+        zoned_open = max(
+            apply_timezone(self.start, self.timezone) - duration,
+            apply_timezone(self.start, self.timezone).replace(hour=0, minute=0),
+        )
+        return (
+            zoned_open
+            <= apply_timezone(current_time, self.timezone)
+            <= apply_timezone(self.end, self.timezone)
+        )
+
+    def is_leaveable(self, current_time: datetime) -> bool:
+        if self.is_all_day:
+            return self.start <= current_time <= self.end
+
+        duration = self.end - self.start
+        zoned_close = min(
+            apply_timezone(self.end, self.timezone) + duration,
+            apply_timezone(self.end, self.timezone).replace(hour=23, minute=59),
+        )
+        return (
+            apply_timezone(self.start, self.timezone)
+            <= apply_timezone(current_time, self.timezone)
+            <= zoned_close
+        )
 
 
 class EventAttendance(IEntity):
