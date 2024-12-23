@@ -87,34 +87,34 @@ class Event(IEntity):
         self.recurrence = recurrence
 
     def is_attendable(self, current_time: datetime) -> bool:
-        if self.is_all_day:
-            return self.start <= current_time <= self.end
+        zoned_current = apply_timezone(current_time, self.timezone)
+        zoned_start = apply_timezone(self.start, self.timezone)
+        zoned_end = apply_timezone(self.end, self.timezone)
 
-        duration = self.end - self.start
+        if self.is_all_day:
+            return zoned_start <= zoned_current <= zoned_end
+
+        duration = zoned_end - zoned_start
         zoned_open = max(
-            apply_timezone(self.start, self.timezone) - duration,
-            apply_timezone(self.start, self.timezone).replace(hour=0, minute=0),
+            zoned_start - duration,
+            zoned_start.replace(hour=0, minute=0),
         )
-        return (
-            zoned_open
-            <= apply_timezone(current_time, self.timezone)
-            <= apply_timezone(self.end, self.timezone)
-        )
+        return zoned_open <= zoned_current <= zoned_end
 
     def is_leaveable(self, current_time: datetime) -> bool:
-        if self.is_all_day:
-            return self.start <= current_time <= self.end
+        zoned_current = apply_timezone(current_time, self.timezone)
+        zoned_start = apply_timezone(self.start, self.timezone)
+        zoned_end = apply_timezone(self.end, self.timezone)
 
-        duration = self.end - self.start
+        if self.is_all_day:
+            return zoned_start <= zoned_current <= zoned_end
+
+        duration = zoned_end - zoned_start
         zoned_close = min(
-            apply_timezone(self.end, self.timezone) + duration,
-            apply_timezone(self.end, self.timezone).replace(hour=23, minute=59),
+            zoned_end + duration,
+            zoned_end.replace(hour=23, minute=59),
         )
-        return (
-            apply_timezone(self.start, self.timezone)
-            <= apply_timezone(current_time, self.timezone)
-            <= zoned_close
-        )
+        return zoned_start <= zoned_current <= zoned_close
 
 
 class EventAttendance(IEntity):
