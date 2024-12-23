@@ -16,10 +16,10 @@ variable "lambda_function_name" {
   default = "tend-attend-lambda-function"
 }
 
-variable "frontend_url" {
-  description = "URL of the frontend"
+variable "frontend_urls" {
+  description = "URLs of the frontend"
   type = string
-  default = "https://tend-attend.vercel.app"
+  default = "https://tend-attend.vercel.app,https://tend-attend-git-release-himura467.vercel.app,https://tend-attend-git-develop-himura467.vercel.app"
 }
 
 variable "db_shard_count" {
