@@ -1,0 +1,37 @@
+[tool.poetry]
+name = "ta-ml"
+version = "0.1.0"
+description = ""
+authors = ["Your Name <you@example.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "3.10.15"
+timesfm = { git = "https://github.com/google-research/timesfm.git" }
+matplotlib = "^3.10.0"
+torch = "^2.5.1"
+jax = "^0.4.38"
+
+
+[tool.poetry.group.dev.dependencies]
+mypy = "^1.9.0"
+flake8 = "^7.0.0"
+black = "^24.3.0"
+isort = "^5.13.2"
+poethepoet = "^0.25.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.isort]
+profile = "black"
+line_length = 88
+
+[tool.poe.tasks]
+mypy = "mypy --config-file ../mypy.ini ta_ml tests"
+flake8 = "flake8 --config ../.flake8 ta_ml tests"
+black = "black ta_ml tests"
+isort = "isort ta_ml tests"
+lint = ["mypy", "flake8"]
+format = ["black", "isort"]
