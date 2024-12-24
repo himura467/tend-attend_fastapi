@@ -75,7 +75,7 @@ class GuestAccount(AbstractCommonDynamicBase):
         VARCHAR(64), nullable=True, comment="Guest Nickname"
     )
     birth_date: Mapped[datetime] = mapped_column(
-        DATETIME, nullable=False, comment="Birth Date"
+        DATETIME(timezone=True), nullable=False, comment="Birth Date"
     )
     gender: Mapped[Gender] = mapped_column(
         ENUM(Gender), nullable=False, comment="Gender"

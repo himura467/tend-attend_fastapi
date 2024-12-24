@@ -25,7 +25,7 @@ class RecurrenceRule(AbstractShardStaticBase):
         ENUM(Frequency), nullable=False, comment="FREQ"
     )
     until: Mapped[datetime | None] = mapped_column(
-        DATETIME, nullable=True, comment="UNTIL"
+        DATETIME(timezone=False), nullable=True, comment="UNTIL"
     )
     count: Mapped[int | None] = mapped_column(
         SMALLINT(unsigned=True), nullable=True, comment="COUNT"
@@ -144,8 +144,12 @@ class Event(AbstractShardDynamicBase):
     location: Mapped[str | None] = mapped_column(
         VARCHAR(64), nullable=True, comment="Location"
     )
-    start: Mapped[datetime] = mapped_column(DATETIME, nullable=False, comment="Start")
-    end: Mapped[datetime] = mapped_column(DATETIME, nullable=False, comment="End")
+    start: Mapped[datetime] = mapped_column(
+        DATETIME(timezone=True), nullable=False, comment="Start"
+    )
+    end: Mapped[datetime] = mapped_column(
+        DATETIME(timezone=True), nullable=False, comment="End"
+    )
     is_all_day: Mapped[bool] = mapped_column(
         BOOLEAN, nullable=False, comment="Is All Day"
     )
@@ -199,7 +203,9 @@ class EventAttendance(AbstractShardDynamicBase):
         nullable=False,
         comment="Event ID",
     )
-    start: Mapped[datetime] = mapped_column(DATETIME, nullable=False, comment="Start")
+    start: Mapped[datetime] = mapped_column(
+        DATETIME(timezone=True), nullable=False, comment="Start"
+    )
     state: Mapped[AttendanceState] = mapped_column(
         ENUM(AttendanceState), nullable=False, comment="Attendance State"
     )
@@ -235,7 +241,9 @@ class EventAttendanceActionLog(AbstractShardDynamicBase):
         nullable=False,
         comment="Event ID",
     )
-    start: Mapped[datetime] = mapped_column(DATETIME, nullable=False, comment="Start")
+    start: Mapped[datetime] = mapped_column(
+        DATETIME(timezone=True), nullable=False, comment="Start"
+    )
     action: Mapped[AttendanceAction] = mapped_column(
         ENUM(AttendanceAction), nullable=False, comment="Attendance Action"
     )

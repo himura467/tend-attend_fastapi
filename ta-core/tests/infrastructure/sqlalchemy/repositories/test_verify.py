@@ -1,4 +1,5 @@
 from datetime import datetime
+from zoneinfo import ZoneInfo
 
 import pytest
 from pydantic.networks import EmailStr
@@ -21,7 +22,7 @@ from ta_core.utils.uuid import generate_uuid
             "hashed_password",
             "test@example.com",
             "verification_token",
-            datetime(2000, 1, 2, 3, 4, 5),
+            datetime(2000, 1, 2, 3, 4, 5, tzinfo=ZoneInfo("UTC")),
         ),
     ],
 )
@@ -67,7 +68,7 @@ async def test_create_host_verification_async(
             "hashed_password",
             "test@example.com",
             "verification_token",
-            datetime(2000, 1, 2, 3, 4, 5),
+            datetime(2000, 1, 2, 3, 4, 5, tzinfo=ZoneInfo("UTC")),
         ),
     ],
 )
