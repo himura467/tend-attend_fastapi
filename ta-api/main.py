@@ -29,8 +29,10 @@ class CORSMiddleware(BaseHTTPMiddleware):
         if origin in ALLOWED_ORIGINS:
             response.headers["Access-Control-Allow-Origin"] = origin
             response.headers["Access-Control-Allow-Credentials"] = "true"
-            response.headers["Access-Control-Allow-Methods"] = "*"
-            response.headers["Access-Control-Allow-Headers"] = "*, x-api-key"
+            response.headers["Access-Control-Allow-Methods"] = (
+                "DELETE, GET, HEAD, OPTIONS, PATCH, POST, PUT"
+            )
+            response.headers["Access-Control-Allow-Headers"] = "Content-Type, x-api-key"
 
         return response
 
