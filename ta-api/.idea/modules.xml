@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/.idea/ta-api.iml" filepath="$PROJECT_DIR$/.idea/ta-api.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../ta-cli/.idea/ta-cli.iml" filepath="$PROJECT_DIR$/../ta-cli/.idea/ta-cli.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../ta-core/.idea/ta-core.iml" filepath="$PROJECT_DIR$/../ta-core/.idea/ta-core.iml" />
+    </modules>
+  </component>
+</project>
