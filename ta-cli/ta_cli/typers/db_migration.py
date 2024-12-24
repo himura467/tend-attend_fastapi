@@ -1,9 +1,19 @@
 import asyncio
 
 import typer
-from ta_core.infrastructure.sqlalchemy.migrate_db import reset_aurora_db, reset_db_async
+from ta_core.infrastructure.sqlalchemy.migrate_db import (
+    generate_ddl,
+    reset_aurora_db,
+    reset_db_async,
+)
 
 app = typer.Typer()
+
+
+@app.command("print-ddl")
+def print_ddl() -> None:
+    for ddl_statement in generate_ddl():
+        print(ddl_statement)
 
 
 @app.command("migrate")

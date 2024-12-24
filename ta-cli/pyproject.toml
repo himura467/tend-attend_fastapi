@@ -27,6 +27,7 @@ profile = "black"
 line_length = 88
 
 [tool.poe.tasks]
+db-migration-print-ddl = "python main.py db-migration print-ddl"
 db-migration-migrate = "python main.py db-migration migrate"
 db-migration-migrate-aurora = "python main.py db-migration migrate-aurora"
 mypy = "mypy --config-file ../mypy.ini ta_cli tests"
