@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 
 from pydantic.networks import EmailStr
 
@@ -42,7 +43,7 @@ class VerifyUseCase:
             )
 
         verification_token = generate_uuid()
-        token_expires_at = datetime.now() + self._TOKEN_EXPIRES
+        token_expires_at = datetime.now(ZoneInfo("UTC")) + self._TOKEN_EXPIRES
         host_verification = (
             await host_verification_repository.create_host_verification_async(
                 entity_id=generate_uuid(),
@@ -91,7 +92,7 @@ class VerifyUseCase:
             return VerifyEmailResponse(
                 error_codes=(ErrorCode.VERIFICATION_TOKEN_INVALID,)
             )
-        if host_verification.token_expires_at < datetime.now():
+        if host_verification.token_expires_at < datetime.now(ZoneInfo("UTC")):
             return VerifyEmailResponse(
                 error_codes=(ErrorCode.VERIFICATION_TOKEN_EXPIRED,)
             )

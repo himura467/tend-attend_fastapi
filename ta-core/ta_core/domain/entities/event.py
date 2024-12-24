@@ -86,30 +86,30 @@ class Event(IEntity):
         self.timezone = timezone
         self.recurrence = recurrence
 
-    def is_attendable(self, current_time: datetime) -> bool:
+    def is_attendable(self, start: datetime, current_time: datetime) -> bool:
         zoned_current = apply_timezone(current_time, self.timezone)
-        zoned_start = apply_timezone(self.start, self.timezone)
-        zoned_end = apply_timezone(self.end, self.timezone)
+        zoned_start = apply_timezone(start, self.timezone)
+        duration = self.end - self.start
+        zoned_end = zoned_start + duration
 
         if self.is_all_day:
             return zoned_start <= zoned_current <= zoned_end
 
-        duration = zoned_end - zoned_start
         zoned_open = max(
             zoned_start - duration,
             zoned_start.replace(hour=0, minute=0),
         )
         return zoned_open <= zoned_current <= zoned_end
 
-    def is_leaveable(self, current_time: datetime) -> bool:
+    def is_leaveable(self, start: datetime, current_time: datetime) -> bool:
         zoned_current = apply_timezone(current_time, self.timezone)
-        zoned_start = apply_timezone(self.start, self.timezone)
-        zoned_end = apply_timezone(self.end, self.timezone)
+        zoned_start = apply_timezone(start, self.timezone)
+        duration = self.end - self.start
+        zoned_end = zoned_start + duration
 
         if self.is_all_day:
             return zoned_start <= zoned_current <= zoned_end
 
-        duration = zoned_end - zoned_start
         zoned_close = min(
             zoned_end + duration,
             zoned_end.replace(hour=23, minute=59),

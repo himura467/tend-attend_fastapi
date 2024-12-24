@@ -1,5 +1,6 @@
 from dataclasses import dataclass
-from datetime import date, datetime, timezone
+from datetime import date, datetime
+from zoneinfo import ZoneInfo
 
 from ta_core.domain.entities.event import Event as EventEntity
 from ta_core.dtos.event import AttendEventResponse, CreateEventResponse
@@ -242,7 +243,7 @@ class EventUseCase:
             return AttendEventResponse(error_codes=(ErrorCode.EVENT_NOT_FOUND,))
 
         if action == AttendanceAction.ATTEND:
-            if not event.is_attendable(datetime.now(timezone.utc)):
+            if not event.is_attendable(start, datetime.now(ZoneInfo("UTC"))):
                 return AttendEventResponse(
                     error_codes=(ErrorCode.EVENT_NOT_ATTENDABLE,)
                 )
@@ -255,7 +256,7 @@ class EventUseCase:
                 state=AttendanceState.PRESENT,
             )
         elif action == AttendanceAction.LEAVE:
-            if not event.is_leaveable(datetime.now(timezone.utc)):
+            if not event.is_leaveable(start, datetime.now(ZoneInfo("UTC"))):
                 return AttendEventResponse(error_codes=(ErrorCode.EVENT_NOT_LEAVEABLE,))
 
         await event_attendance_action_log_repository.create_event_attendance_action_log_async(
