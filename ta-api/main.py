@@ -1,32 +1,41 @@
 import os
+from typing import Awaitable, Callable
 
 from dotenv import load_dotenv
-from fastapi import FastAPI, Response, status
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi import FastAPI, Request, Response, status
 from mangum import Mangum
+from starlette.middleware.base import BaseHTTPMiddleware
 
 from ta_api.routers import account, admin, auth, event, verify
 
 load_dotenv()
-FRONTEND_URL = os.getenv("FRONTEND_URL")
+FRONTEND_URLS = os.getenv("FRONTEND_URLS")
+ALLOWED_ORIGINS = FRONTEND_URLS.split(",")
 
 app = FastAPI()
 
-origins = [FRONTEND_URL]
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+class CORSMiddleware(BaseHTTPMiddleware):
+    async def dispatch(
+        self, request: Request, call_next: Callable[[Request], Awaitable[Response]]
+    ) -> Response:
+        response: Response
+        if request.method == "OPTIONS":
+            response = Response(status_code=status.HTTP_200_OK)
+        else:
+            response = await call_next(request)
+
+        origin = request.headers.get("origin")
+        if origin in ALLOWED_ORIGINS:
+            response.headers["Access-Control-Allow-Origin"] = origin
+            response.headers["Access-Control-Allow-Credentials"] = "true"
+            response.headers["Access-Control-Allow-Methods"] = "*"
+            response.headers["Access-Control-Allow-Headers"] = "*, x-api-key"
+
+        return response
 
 
-@app.options("/{rest_of_path}")
-async def preflight_handler(rest_of_path: str) -> Response:
-    return Response(status_code=status.HTTP_200_OK)
-
+app.add_middleware(CORSMiddleware)
 
 app.include_router(
     admin.router,
