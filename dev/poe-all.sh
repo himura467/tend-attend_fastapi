@@ -11,6 +11,7 @@ projects=(
   "ta-api"
   "ta-cli"
   "ta-core"
+  "ta-ml"
 )
 
 for project in "${projects[@]}"; do

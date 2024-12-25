@@ -1,4 +1,5 @@
-from datetime import UTC, date, datetime
+from datetime import date, datetime
+from zoneinfo import ZoneInfo
 
 import pytest
 
@@ -40,7 +41,7 @@ from ta_core.utils.rfc5545 import parse_recurrence, parse_rrule, serialize_recur
             False,
             RecurrenceRule(
                 freq=Frequency.WEEKLY,
-                until=datetime(2000, 1, 1, 12, 0, 0, tzinfo=UTC),
+                until=datetime(2000, 1, 1, 12, 0, 0, tzinfo=ZoneInfo("UTC")),
                 count=None,
                 interval=1,
                 bysecond=(0, 1, 2),
@@ -170,7 +171,7 @@ def test_parse_rrule_error(
             Recurrence(
                 rrule=RecurrenceRule(
                     freq=Frequency.HOURLY,
-                    until=datetime(2000, 1, 1, 12, 30, 0, tzinfo=UTC),
+                    until=datetime(2000, 1, 1, 12, 30, 0, tzinfo=ZoneInfo("UTC")),
                     count=None,
                     interval=1,
                     bysecond=(0, 1, 2),

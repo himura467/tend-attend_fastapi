@@ -1,8 +1,8 @@
 from dataclasses import dataclass
-from enum import IntEnum, StrEnum
+from enum import Enum, IntEnum
 
 
-class Group(StrEnum):
+class Group(str, Enum):
     HOST = "host"
     GUEST = "guest"
 
@@ -18,7 +18,7 @@ groupRoleMap: dict[Group, list[Role]] = {
 }
 
 
-class Gender(StrEnum):
+class Gender(str, Enum):
     MALE = "male"
     FEMALE = "female"
 

@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "ta-api"
+name = "ta-ml"
 version = "0.1.0"
 description = ""
 authors = ["Your Name <you@example.com>"]
@@ -7,12 +7,10 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "3.10.15"
-fastapi = "^0.110.1"
-uvicorn = {extras = ["standard"], version = "^0.29.0"}
-gunicorn = "^21.2.0"
-python-multipart = "^0.0.9"
-ta-core = {path = "../ta-core", develop = true}
-mangum = "^0.19.0"
+timesfm = { git = "https://github.com/google-research/timesfm.git" }
+matplotlib = "^3.10.0"
+torch = "^2.5.1"
+jax = "^0.4.38"
 
 
 [tool.poetry.group.dev.dependencies]
@@ -31,9 +29,9 @@ profile = "black"
 line_length = 88
 
 [tool.poe.tasks]
-mypy = "mypy --config-file ../mypy.ini ta_api tests main.py"
-flake8 = "flake8 --config ../.flake8 ta_api tests main.py"
-black = "black ta_api tests main.py"
-isort = "isort ta_api tests main.py"
+mypy = "mypy --config-file ../mypy.ini ta_ml tests main.py"
+flake8 = "flake8 --config ../.flake8 ta_ml tests main.py"
+black = "black ta_ml tests main.py"
+isort = "isort ta_ml tests main.py"
 lint = ["mypy", "flake8"]
 format = ["black", "isort"]
