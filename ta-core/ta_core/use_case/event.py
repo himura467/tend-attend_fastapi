@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from datetime import date, datetime
+from typing import TypeVar
 from zoneinfo import ZoneInfo
 
 from ta_core.domain.entities.event import Event as EventEntity
@@ -37,12 +38,14 @@ from ta_core.utils.datetime import validate_date
 from ta_core.utils.rfc5545 import parse_recurrence, serialize_recurrence
 from ta_core.utils.uuid import generate_uuid
 
+T = TypeVar("T")
 
-def convert_tuple_to_list[T](tpl: tuple[T, ...] | None) -> list[T] | None:
+
+def convert_tuple_to_list(tpl: tuple[T, ...] | None) -> list[T] | None:
     return list(tpl) if tpl is not None else None
 
 
-def convert_list_to_tuple[T](lst: list[T] | None) -> tuple[T, ...] | None:
+def convert_list_to_tuple(lst: list[T] | None) -> tuple[T, ...] | None:
     return tuple(lst) if lst is not None else None
 
 

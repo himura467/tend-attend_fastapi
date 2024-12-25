@@ -1,6 +1,6 @@
-from enum import StrEnum
+from enum import Enum
 
 
-class TokenType(StrEnum):
+class TokenType(str, Enum):
     ACCESS = "access"
     REFRESH = "refresh"

@@ -141,10 +141,12 @@ def serialize_recurrence(recurrence: Recurrence | None, is_all_day: bool) -> lis
 
     recurrence_list = [rrule_str]
     if recurrence.rdate:
-        rdate_str = f"RDATE;VALUE=DATE:{','.join(rdate.strftime("%Y%m%d") for rdate in recurrence.rdate)}"
+        rdates = ",".join(rdate.strftime("%Y%m%d") for rdate in recurrence.rdate)
+        rdate_str = f"RDATE;VALUE=DATE:{rdates}"
         recurrence_list.append(rdate_str)
     if recurrence.exdate:
-        exdate_str = f"EXDATE;VALUE=DATE:{','.join(exdate.strftime("%Y%m%d") for exdate in recurrence.exdate)}"
+        exdates = ",".join(exdate.strftime("%Y%m%d") for exdate in recurrence.exdate)
+        exdate_str = f"EXDATE;VALUE=DATE:{exdates}"
         recurrence_list.append(exdate_str)
 
     return recurrence_list
