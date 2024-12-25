@@ -10,6 +10,7 @@ from ta_api.routers import account, admin, auth, event, verify
 
 load_dotenv()
 FRONTEND_URLS = os.getenv("FRONTEND_URLS")
+assert FRONTEND_URLS, "FRONTEND_URLS environment variable must be set"
 ALLOWED_ORIGINS = FRONTEND_URLS.split(",")
 
 app = FastAPI()

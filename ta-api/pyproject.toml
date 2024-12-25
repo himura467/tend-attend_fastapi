@@ -31,9 +31,9 @@ profile = "black"
 line_length = 88
 
 [tool.poe.tasks]
-mypy = "mypy --config-file ../mypy.ini ta_api tests"
-flake8 = "flake8 --config ../.flake8 ta_api tests"
-black = "black ta_api tests"
-isort = "isort ta_api tests"
+mypy = "mypy --config-file ../mypy.ini ta_api tests main.py"
+flake8 = "flake8 --config ../.flake8 ta_api tests main.py"
+black = "black ta_api tests main.py"
+isort = "isort ta_api tests main.py"
 lint = ["mypy", "flake8"]
 format = ["black", "isort"]
