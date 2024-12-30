@@ -22,7 +22,7 @@ class CORSMiddleware(BaseHTTPMiddleware):
     ) -> Response:
         response: Response
         if request.method == "OPTIONS":
-            response = Response(status_code=status.HTTP_200_OK)
+            response = Response(status_code=status.HTTP_204_NO_CONTENT)
         else:
             response = await call_next(request)
 
