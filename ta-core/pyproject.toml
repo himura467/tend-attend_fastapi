@@ -16,6 +16,7 @@ aiosmtplib = "^3.0.2"
 python-dotenv = "^1.0.1"
 aws-advanced-python-wrapper = "^1.2.0"
 mysql-connector-python = "^9.1.0"
+alembic = "^1.14.0"
 
 
 [tool.poetry.group.dev.dependencies]
