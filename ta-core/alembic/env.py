@@ -1,9 +1,11 @@
+import inspect
 import logging
-from logging.config import fileConfig
 import re
+from importlib import import_module
+from logging.config import fileConfig
 
-from sqlalchemy import engine_from_config
-from sqlalchemy import pool
+from sqlalchemy import MetaData, engine_from_config, pool
+from sqlalchemy.orm.decl_api import DeclarativeAttributeIntercept
 
 from alembic import context
 
@@ -24,6 +26,22 @@ logger = logging.getLogger("alembic.env")
 # in the sample .ini file.
 db_names = config.get_main_option("databases", "")
 
+
+def create_metadata_for_db(db_name: str) -> MetaData:
+    metadata = MetaData()
+
+    models = import_module(context.config.get_section_option("models_path", db_name))
+    declarative_members = (
+        member
+        for _, member in inspect.getmembers(models)
+        if isinstance(member, DeclarativeAttributeIntercept)
+    )
+    for member in declarative_members:
+        member.id.table.tometadata(metadata)
+
+    return metadata
+
+
 # add your model's MetaData objects here
 # for 'autogenerate' support.  These must be set
 # up to hold just those tables targeting a
@@ -35,7 +53,9 @@ db_names = config.get_main_option("databases", "")
 #       'engine1':mymodel.metadata1,
 #       'engine2':mymodel.metadata2
 # }
-target_metadata = {}
+target_metadata = {
+    db_name: create_metadata_for_db(db_name) for db_name in re.split(r",\s*", db_names)
+}
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
