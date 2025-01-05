@@ -30,14 +30,15 @@ db_names = config.get_main_option("databases", "")
 def create_metadata_for_db(db_name: str) -> MetaData:
     metadata = MetaData()
 
-    models = import_module(context.config.get_section_option("models_path", db_name))
+    models_path = context.config.get_section_option("models_path", db_name) or ""
+    models = import_module(models_path)
     declarative_members = (
         member
         for _, member in inspect.getmembers(models)
         if isinstance(member, DeclarativeAttributeIntercept)
     )
     for member in declarative_members:
-        member.id.table.tometadata(metadata)
+        member.id.table.tometadata(metadata)  # type: ignore[attr-defined]
 
     return metadata
 
@@ -78,7 +79,7 @@ def run_migrations_offline() -> None:
     # for the --sql use case, run migrations for each URL into
     # individual files.
 
-    engines = {}
+    engines = {}  # type: ignore[var-annotated]
     for name in re.split(r",\s*", db_names):
         engines[name] = rec = {}
         rec["url"] = context.config.get_section_option(name, "sqlalchemy.url")
@@ -110,7 +111,7 @@ def run_migrations_online() -> None:
     # for the direct-to-DB use case, start a transaction on all
     # engines, then run all migrations, then commit all transactions.
 
-    engines = {}
+    engines = {}  # type: ignore[var-annotated]
     for name in re.split(r",\s*", db_names):
         engines[name] = rec = {}
         rec["engine"] = engine_from_config(
@@ -121,18 +122,18 @@ def run_migrations_online() -> None:
 
     for name, rec in engines.items():
         engine = rec["engine"]
-        rec["connection"] = conn = engine.connect()
+        rec["connection"] = conn = engine.connect()  # type: ignore[assignment]
 
         if USE_TWOPHASE:
-            rec["transaction"] = conn.begin_twophase()
+            rec["transaction"] = conn.begin_twophase()  # type: ignore[assignment]
         else:
-            rec["transaction"] = conn.begin()
+            rec["transaction"] = conn.begin()  # type: ignore[assignment]
 
     try:
         for name, rec in engines.items():
             logger.info("Migrating database %s" % name)
             context.configure(
-                connection=rec["connection"],
+                connection=rec["connection"],  # type: ignore[arg-type]
                 upgrade_token="%s_upgrades" % name,
                 downgrade_token="%s_downgrades" % name,
                 target_metadata=target_metadata.get(name),
@@ -141,17 +142,17 @@ def run_migrations_online() -> None:
 
         if USE_TWOPHASE:
             for rec in engines.values():
-                rec["transaction"].prepare()
+                rec["transaction"].prepare()  # type: ignore[attr-defined]
 
         for rec in engines.values():
-            rec["transaction"].commit()
-    except:
+            rec["transaction"].commit()  # type: ignore[attr-defined]
+    except:  # noqa: E722
         for rec in engines.values():
-            rec["transaction"].rollback()
+            rec["transaction"].rollback()  # type: ignore[attr-defined]
         raise
     finally:
         for rec in engines.values():
-            rec["connection"].close()
+            rec["connection"].close()  # type: ignore[attr-defined]
 
 
 if context.is_offline_mode():
