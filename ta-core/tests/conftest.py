@@ -10,22 +10,14 @@ from sqlalchemy.pool import NullPool
 from sqlalchemy.sql import text
 
 from ta_core.infrastructure.sqlalchemy.models.base import AbstractBase
-from ta_core.infrastructure.sqlalchemy.models.commons.account import (  # noqa: F401
-    GuestAccount,
-    HostAccount,
+from ta_core.infrastructure.sqlalchemy.models.commons.base import (  # noqa: F401
+    AbstractCommonBase,
 )
-from ta_core.infrastructure.sqlalchemy.models.commons.verify import (  # noqa: F401
-    HostVerification,
+from ta_core.infrastructure.sqlalchemy.models.sequences.base import (  # noqa: F401
+    AbstractSequenceBase,
 )
-from ta_core.infrastructure.sqlalchemy.models.sequences.sequence import (  # noqa: F401
-    SequenceUserId,
-)
-from ta_core.infrastructure.sqlalchemy.models.shards.event import (  # noqa: F401
-    Event,
-    EventAttendance,
-    EventAttendanceActionLog,
-    Recurrence,
-    RecurrenceRule,
+from ta_core.infrastructure.sqlalchemy.models.shards.base import (  # noqa: F401
+    AbstractShardBase,
 )
 from tests.db_settings import CONNECTIONS
 from tests.db_sharding import execute_chooser, identity_chooser, shard_chooser

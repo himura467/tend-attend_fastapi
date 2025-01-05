@@ -7,22 +7,14 @@ from ta_core.aws.aurora import execute
 from ta_core.constants.constants import AURORA_DATABASE_NAME
 from ta_core.infrastructure.sqlalchemy.db import async_engines
 from ta_core.infrastructure.sqlalchemy.models.base import AbstractBase
-from ta_core.infrastructure.sqlalchemy.models.commons.account import (  # noqa: F401
-    GuestAccount,
-    HostAccount,
+from ta_core.infrastructure.sqlalchemy.models.commons.base import (  # noqa: F401
+    AbstractCommonBase,
 )
-from ta_core.infrastructure.sqlalchemy.models.commons.verify import (  # noqa: F401
-    HostVerification,
+from ta_core.infrastructure.sqlalchemy.models.sequences.base import (  # noqa: F401
+    AbstractSequenceBase,
 )
-from ta_core.infrastructure.sqlalchemy.models.sequences.sequence import (  # noqa: F401
-    SequenceUserId,
-)
-from ta_core.infrastructure.sqlalchemy.models.shards.event import (  # noqa: F401
-    Event,
-    EventAttendance,
-    EventAttendanceActionLog,
-    Recurrence,
-    RecurrenceRule,
+from ta_core.infrastructure.sqlalchemy.models.shards.base import (  # noqa: F401
+    AbstractShardBase,
 )
 
 
