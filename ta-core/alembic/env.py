@@ -3,11 +3,14 @@ import logging
 import re
 from importlib import import_module
 from logging.config import fileConfig
+from typing import Any
 
-from sqlalchemy import MetaData, engine_from_config, pool
+from sqlalchemy import MetaData, pool
+from sqlalchemy.engine import Engine, create_engine
 from sqlalchemy.orm.decl_api import DeclarativeAttributeIntercept
 
 from alembic import context
+from ta_core.infrastructure.db.settings import CONNECTIONS, DB_CONFIG
 
 USE_TWOPHASE = False
 
@@ -24,7 +27,23 @@ logger = logging.getLogger("alembic.env")
 # gather section names referring to different
 # databases.  These are named "engine1", "engine2"
 # in the sample .ini file.
-db_names = config.get_main_option("databases", "")
+databases = config.get_main_option("databases", "")
+db_names = CONNECTIONS.keys()
+config.set_section_option("alembic", "db_names", ", ".join(db_names))
+
+
+def engines_from_config(
+    configuration: dict[str, Any], prefix: str = "sqlalchemy.", **kwargs: Any
+) -> tuple[Engine, ...]:
+    options = {
+        key[len(prefix) :]: configuration[key]
+        for key in configuration
+        if key.startswith(prefix)
+    }
+    options["_coerce_config"] = True
+    options.update(kwargs)
+    urls = options.pop("url").split(", ")
+    return tuple(create_engine(url, **options) for url in urls)
 
 
 def create_metadata_for_db(db_name: str) -> MetaData:
@@ -55,7 +74,8 @@ def create_metadata_for_db(db_name: str) -> MetaData:
 #       'engine2':mymodel.metadata2
 # }
 target_metadata = {
-    db_name: create_metadata_for_db(db_name) for db_name in re.split(r",\s*", db_names)
+    db_name: create_metadata_for_db(re.sub(r"\d+$", "", db_name))
+    for db_name in db_names
 }
 
 # other values from the config, defined by the needs of env.py,
@@ -80,7 +100,7 @@ def run_migrations_offline() -> None:
     # individual files.
 
     engines = {}  # type: ignore[var-annotated]
-    for name in re.split(r",\s*", db_names):
+    for name in db_names:
         engines[name] = rec = {}
         rec["url"] = context.config.get_section_option(name, "sqlalchemy.url")
 
@@ -88,16 +108,18 @@ def run_migrations_offline() -> None:
         logger.info("Migrating database %s" % name)
         file_ = "%s.sql" % name
         logger.info("Writing output to %s" % file_)
+        urls = rec["url"].split(", ")  # type: ignore[union-attr]
         with open(file_, "w") as buffer:
-            context.configure(
-                url=rec["url"],
-                output_buffer=buffer,
-                target_metadata=target_metadata.get(name),
-                literal_binds=True,
-                dialect_opts={"paramstyle": "named"},
-            )
-            with context.begin_transaction():
-                context.run_migrations(engine_name=name)
+            for url in urls:
+                context.configure(
+                    url=url,
+                    output_buffer=buffer,
+                    target_metadata=target_metadata.get(name),
+                    literal_binds=True,
+                    dialect_opts={"paramstyle": "named"},
+                )
+                with context.begin_transaction():
+                    context.run_migrations(engine_name=name)
 
 
 def run_migrations_online() -> None:
@@ -108,17 +130,30 @@ def run_migrations_online() -> None:
 
     """
 
+    common_db_url = f"mysql+pymysql://{DB_CONFIG['user']}:{DB_CONFIG['password']}@{DB_CONFIG['host']}:{DB_CONFIG['port']}/{DB_CONFIG['common_dbname']}"
+    sequence_db_url = f"mysql+pymysql://{DB_CONFIG['user']}:{DB_CONFIG['password']}@{DB_CONFIG['host']}:{DB_CONFIG['port']}/{DB_CONFIG['sequence_dbname']}"
+    shard_db_url = ", ".join(
+        f"mysql+pymysql://{DB_CONFIG['user']}:{DB_CONFIG['password']}@{DB_CONFIG['host']}:{DB_CONFIG['port']}/{shard_dbname}"
+        for shard_dbname in DB_CONFIG["shard_dbnames"]
+    )
+
+    config.set_section_option("common", "common_db_url", common_db_url)
+    config.set_section_option("sequence", "sequence_db_url", sequence_db_url)
+    config.set_section_option("shard", "shard_db_url", shard_db_url)
+
     # for the direct-to-DB use case, start a transaction on all
     # engines, then run all migrations, then commit all transactions.
 
     engines = {}  # type: ignore[var-annotated]
-    for name in re.split(r",\s*", db_names):
-        engines[name] = rec = {}
-        rec["engine"] = engine_from_config(
-            context.config.get_section(name, {}),
+    for db_name in re.split(r",\s*", databases):
+        es = engines_from_config(
+            context.config.get_section(db_name, {}),
             prefix="sqlalchemy.",
             poolclass=pool.NullPool,
         )
+        for i, e in enumerate(es):
+            engines[f"{db_name}{i if db_name == 'shard' else ''}"] = rec = {}
+            rec["engine"] = e
 
     for name, rec in engines.items():
         engine = rec["engine"]

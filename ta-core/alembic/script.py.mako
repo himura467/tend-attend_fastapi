@@ -29,7 +29,7 @@ def downgrade(engine_name: str) -> None:
     globals()["downgrade_%s" % engine_name]()
 
 <%
-    db_names = config.get_main_option("databases")
+    db_names = config.get_main_option("db_names")
 %>
 
 ## generate an "upgrade_<xyz>() / downgrade_<xyz>()" function
