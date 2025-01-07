@@ -5,6 +5,8 @@ RUN yum update -y && yum install -y git
 
 COPY ta-api/main.py ./main.py
 COPY ta-api/ta_api ./ta_api
+COPY ta-core/alembic.ini ./alembic.ini
+COPY ta-core/alembic ./alembic
 COPY ta-core/ta_core ./ta_core
 COPY ta-ml/main.py ./ml_main.py
 COPY ta-ml/ta_ml ./ta_ml
