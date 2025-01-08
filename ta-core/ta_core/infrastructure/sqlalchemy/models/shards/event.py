@@ -247,6 +247,9 @@ class EventAttendanceActionLog(AbstractShardDynamicBase):
     action: Mapped[AttendanceAction] = mapped_column(
         ENUM(AttendanceAction), nullable=False, comment="Attendance Action"
     )
+    acted_at: Mapped[datetime] = mapped_column(
+        DATETIME(timezone=True), nullable=False, comment="Acted At"
+    )
 
     def to_entity(self) -> EventAttendanceActionLogEntity:
         return EventAttendanceActionLogEntity(
@@ -255,6 +258,7 @@ class EventAttendanceActionLog(AbstractShardDynamicBase):
             event_id=self.event_id,
             start=self.start,
             action=self.action,
+            acted_at=self.acted_at,
         )
 
     @classmethod
@@ -267,4 +271,5 @@ class EventAttendanceActionLog(AbstractShardDynamicBase):
             event_id=entity.event_id,
             start=entity.start,
             action=entity.action,
+            acted_at=entity.acted_at,
         )

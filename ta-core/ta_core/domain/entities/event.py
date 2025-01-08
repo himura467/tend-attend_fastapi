@@ -150,9 +150,11 @@ class EventAttendanceActionLog(IEntity):
         event_id: str,
         start: datetime,
         action: AttendanceAction,
+        acted_at: datetime,
     ) -> None:
         super().__init__(entity_id)
         self.user_id = user_id
         self.event_id = event_id
         self.start = start
         self.action = action
+        self.acted_at = acted_at

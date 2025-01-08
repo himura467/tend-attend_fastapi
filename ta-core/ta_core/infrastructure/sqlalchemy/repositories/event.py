@@ -195,6 +195,7 @@ class EventAttendanceActionLogRepository(
         event_id: str,
         start: datetime,
         action: AttendanceAction,
+        acted_at: datetime,
     ) -> EventAttendanceActionLogEntity | None:
         event_attendance_action_log = EventAttendanceActionLogEntity(
             entity_id=entity_id,
@@ -202,6 +203,7 @@ class EventAttendanceActionLogRepository(
             event_id=event_id,
             start=start,
             action=action,
+            acted_at=acted_at,
         )
         return await self.create_async(event_attendance_action_log)
 
@@ -214,7 +216,7 @@ class EventAttendanceActionLogRepository(
                 self._model.event_id == event_id,
                 self._model.start == start,
             ),
-            order_by=self._model.created_at.desc(),
+            order_by=self._model.acted_at.desc(),
             limit=1,
         )
         return event_attendance_action_logs[0] if event_attendance_action_logs else None
