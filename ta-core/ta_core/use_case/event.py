@@ -268,6 +268,7 @@ class EventUseCase:
             event_id=event.id,
             start=start,
             action=action,
+            acted_at=datetime.now(ZoneInfo("UTC")),
         )
 
         return AttendEventResponse(error_codes=())
