@@ -2,7 +2,6 @@ import re
 from datetime import date, datetime
 
 from ta_core.features.event import Frequency, Recurrence, RecurrenceRule, Weekday
-from ta_core.utils.datetime import validate_date
 
 
 def parse_rrule(rrule_str: str, is_all_day: bool) -> RecurrenceRule:
@@ -15,8 +14,11 @@ def parse_rrule(rrule_str: str, is_all_day: bool) -> RecurrenceRule:
         if count is not None:
             raise ValueError("RRULE cannot have both COUNT and UNTIL")
         until_str = rrules["UNTIL"]
-        validate_date(is_all_day=is_all_day, date_value=until_str)
-        until = datetime.fromisoformat(until_str)
+        until = (
+            datetime.strptime(until_str, "%Y%m%d")
+            if is_all_day
+            else datetime.strptime(until_str, "%Y%m%dT%H%M%S")
+        )
     interval = int(rrules["INTERVAL"]) if "INTERVAL" in rrules else 1
     bysecond = (
         tuple(map(int, rrules["BYSECOND"].split(","))) if "BYSECOND" in rrules else None
@@ -115,7 +117,7 @@ def serialize_recurrence(recurrence: Recurrence | None, is_all_day: bool) -> lis
 
     rrule_str = f"RRULE:FREQ={recurrence.rrule.freq.value}"
     if recurrence.rrule.until:
-        rrule_str += f";UNTIL={recurrence.rrule.until.date().isoformat() if is_all_day else recurrence.rrule.until.isoformat()}"
+        rrule_str += f";UNTIL={recurrence.rrule.until.strftime('%Y%m%d') if is_all_day else recurrence.rrule.until.strftime('%Y%m%dT%H%M%S')}"
     if recurrence.rrule.count:
         rrule_str += f";COUNT={recurrence.rrule.count}"
     rrule_str += f";INTERVAL={recurrence.rrule.interval}"

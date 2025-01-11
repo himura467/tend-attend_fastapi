@@ -1,4 +1,5 @@
 from datetime import datetime
+from zoneinfo import ZoneInfo
 
 import pytest
 from pydantic.networks import EmailStr
@@ -108,7 +109,7 @@ async def test_read_by_email_or_none_async(
             "guest_first_name",
             "guest_last_name",
             "guest_nickname",
-            datetime(2000, 1, 1, 0, 0, 0),
+            datetime(2000, 1, 1, 0, 0, 0, tzinfo=ZoneInfo("UTC")),
             "male",
             "guest_hashed_password",
             0,
@@ -164,7 +165,7 @@ async def test_create_guest_account_async(
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    "host_name, host_hashed_password, email, guest_first_name, guest_last_name, guest_nickname, birth_date, gender, guest_hashed_password, user_id",
+    "host_name, host_hashed_password, email, guest_first_name, guest_last_name, guest_nickname, birth_date, expected_birth_date, gender, guest_hashed_password, user_id",
     [
         (
             "host_name",
@@ -173,6 +174,7 @@ async def test_create_guest_account_async(
             "guest_first_name",
             "guest_last_name",
             "guest_nickname",
+            datetime(2000, 1, 1, 0, 0, 0, tzinfo=ZoneInfo("UTC")),
             datetime(2000, 1, 1, 0, 0, 0),
             "male",
             "guest_hashed_password",
@@ -189,6 +191,7 @@ async def test_read_by_guest_name_and_host_id_or_none_async(
     guest_last_name: str,
     guest_nickname: str,
     birth_date: datetime,
+    expected_birth_date: datetime,
     gender: Gender,
     guest_hashed_password: str,
     user_id: int,
@@ -228,7 +231,7 @@ async def test_read_by_guest_name_and_host_id_or_none_async(
     assert guest_account.guest_first_name == guest_first_name
     assert guest_account.guest_last_name == guest_last_name
     assert guest_account.guest_nickname == guest_nickname
-    assert guest_account.birth_date == birth_date
+    assert guest_account.birth_date == expected_birth_date
     assert guest_account.gender == gender
     assert guest_account.hashed_password == guest_hashed_password
     assert guest_account.user_id == user_id
