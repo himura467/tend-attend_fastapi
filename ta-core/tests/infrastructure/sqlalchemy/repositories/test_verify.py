@@ -61,7 +61,7 @@ async def test_create_host_verification_async(
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    "host_name, hashed_password, host_email, verification_token, token_expires_at",
+    "host_name, hashed_password, host_email, verification_token, token_expires_at, expected_token_expires_at",
     [
         (
             "host_name",
@@ -69,6 +69,7 @@ async def test_create_host_verification_async(
             "test@example.com",
             "verification_token",
             datetime(2000, 1, 2, 3, 4, 5, tzinfo=ZoneInfo("UTC")),
+            datetime(2000, 1, 2, 3, 4, 5),
         ),
     ],
 )
@@ -79,6 +80,7 @@ async def test_read_latest_by_host_email_or_none_async(
     host_email: EmailStr,
     verification_token: str,
     token_expires_at: datetime,
+    expected_token_expires_at: datetime,
 ) -> None:
     uow = SqlalchemyUnitOfWork(session=test_session)
     host_account_repository = HostAccountRepository(uow)
@@ -105,4 +107,4 @@ async def test_read_latest_by_host_email_or_none_async(
     assert host_verification is not None
     assert host_verification.host_email == host_email
     assert host_verification.verification_token == verification_token
-    assert host_verification.token_expires_at == token_expires_at
+    assert host_verification.token_expires_at == expected_token_expires_at
