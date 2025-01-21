@@ -18,6 +18,7 @@ aiosmtplib = "^3.0.2"
 python-dotenv = "^1.0.1"
 mysql-connector-python = "^9.1.0"
 aws-advanced-python-wrapper = "^1.2.0"
+ta-ml = {path = "../ta-ml", develop = true}
 
 [tool.poetry.group.dev.dependencies]
 mypy = "^1.9.0"
