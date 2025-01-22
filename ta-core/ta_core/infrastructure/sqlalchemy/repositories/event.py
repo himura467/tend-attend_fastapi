@@ -2,6 +2,7 @@ from datetime import datetime
 
 from sqlalchemy.orm.strategy_options import joinedload
 from sqlalchemy.sql import select
+from sqlalchemy.sql.functions import func
 
 from ta_core.domain.entities.event import Event as EventEntity
 from ta_core.domain.entities.event import EventAttendance as EventAttendanceEntity
@@ -220,3 +221,40 @@ class EventAttendanceActionLogRepository(
             limit=1,
         )
         return event_attendance_action_logs[0] if event_attendance_action_logs else None
+
+    async def read_all_earliest_attend_async(
+        self,
+    ) -> tuple[EventAttendanceActionLogEntity, ...]:
+        sub_query = (
+            select(
+                self._model.user_id,
+                self._model.event_id,
+                self._model.start,
+                self._model.acted_at,
+                func.row_number()
+                .over(
+                    partition_by=[
+                        self._model.user_id,
+                        self._model.event_id,
+                        self._model.start,
+                    ],
+                    order_by=self._model.acted_at.asc(),
+                )
+                .label("rn"),
+            )
+            .where(self._model.action == "attend")
+            .subquery()
+        )
+        stmt = (
+            select(self._model)
+            .join(
+                sub_query,
+                (self._model.user_id == sub_query.c.user_id)
+                & (self._model.event_id == sub_query.c.event_id)
+                & (self._model.start == sub_query.c.start)
+                & (self._model.acted_at == sub_query.c.acted_at),
+            )
+            .where(sub_query.c.rn == 1)
+        )
+        result = await self._uow.execute_async(stmt)
+        return tuple(record.to_entity() for record in result.scalars().all())
