@@ -37,15 +37,16 @@ def analyze_outliers(
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     point_outliers = []
 
-    for (time), group in point_outliers_df.groupby(["time"]):
-        outlier_count = len(group)
+    if "time" in point_outliers_df.columns:
+        for (time), group in point_outliers_df.groupby(["time"]):
+            outlier_count = len(group)
 
-        point_outliers.append(
-            {
-                "time": time,
-                "outlier_count": outlier_count,
-            }
-        )
+            point_outliers.append(
+                {
+                    "time": time,
+                    "outlier_count": outlier_count,
+                }
+            )
 
     mean_residuals_sequence = residuals_sequence.rolling(
         window=time_window_size, center=True, min_periods=1
