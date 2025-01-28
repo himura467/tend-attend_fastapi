@@ -110,22 +110,26 @@ def evaluate_metrics(
         for i in range(len(inputs)):
             inputs[i][outlier_time] += residual_inputs[i][outlier_time] * coefficient
 
-    potential_event = [
-        np.array(
-            [
-                (
-                    False
-                    if subsequence_outliers_df.loc[
-                        (subsequence_outliers_df["time_start"] <= t)
-                        & (subsequence_outliers_df["time_end"] >= t)
-                    ].empty
-                    else True
-                )
-                for t in range(CONTEXT_LEN + HORIZON_LEN)
-            ]
-        )
-        for _ in inputs
-    ]
+    potential_event = (
+        [
+            np.array(
+                [
+                    (
+                        False
+                        if subsequence_outliers_df.loc[
+                            (subsequence_outliers_df["time_start"] <= t)
+                            & (subsequence_outliers_df["time_end"] >= t)
+                        ].empty
+                        else True
+                    )
+                    for t in range(CONTEXT_LEN + HORIZON_LEN)
+                ]
+            )
+            for _ in inputs
+        ]
+        if not subsequence_outliers_df.empty
+        else [np.array([False] * (CONTEXT_LEN + HORIZON_LEN)) for _ in inputs]
+    )
 
     cov_forecast, ols_forecast = tfm.forecast_with_covariates(
         inputs=inputs,
