@@ -2,7 +2,9 @@ import os
 from typing import TypedDict
 
 from ta_core.constants.constants import (
-    AURORA_DATABASE_NAME,
+    AURORA_COMMON_DBNAME,
+    AURORA_SEQUENCE_DBNAME,
+    AURORA_SHARD_DBNAME_PREFIX,
     AWS_RDS_CLUSTER_INSTANCE_PORT,
     AWS_RDS_CLUSTER_INSTANCE_URL,
     AWS_RDS_CLUSTER_MASTER_USERNAME,
@@ -18,7 +20,7 @@ class DBConfig(TypedDict):
     password: str
     common_dbname: str
     sequence_dbname: str
-    shard_dbnames: tuple[str, ...]
+    shard_dbname_prefix: str
     unix_socket_path: str | None
 
 
@@ -29,7 +31,7 @@ _DEFAULT_DB_CONFIG: DBConfig = {
     "password": "password",
     "common_dbname": "tend_attend_common",
     "sequence_dbname": "tend_attend_sequence",
-    "shard_dbnames": tuple(f"tend_attend_shard{i}" for i in range(0, DB_SHARD_COUNT)),
+    "shard_dbname_prefix": "tend_attend_shard",
     "unix_socket_path": None,
 }
 
@@ -38,43 +40,39 @@ DB_CONFIG: DBConfig = {
     "port": AWS_RDS_CLUSTER_INSTANCE_PORT or _DEFAULT_DB_CONFIG["port"],
     "user": AWS_RDS_CLUSTER_MASTER_USERNAME or _DEFAULT_DB_CONFIG["user"],
     "password": AWS_RDS_CLUSTER_MASTER_PASSWORD or _DEFAULT_DB_CONFIG["password"],
-    "common_dbname": AURORA_DATABASE_NAME or _DEFAULT_DB_CONFIG["common_dbname"],
-    "sequence_dbname": AURORA_DATABASE_NAME or _DEFAULT_DB_CONFIG["sequence_dbname"],
-    "shard_dbnames": tuple(
-        AURORA_DATABASE_NAME or _DEFAULT_DB_CONFIG["shard_dbnames"][i]
-        for i in range(0, DB_SHARD_COUNT)
-    ),
+    "common_dbname": AURORA_COMMON_DBNAME or _DEFAULT_DB_CONFIG["common_dbname"],
+    "sequence_dbname": AURORA_SEQUENCE_DBNAME or _DEFAULT_DB_CONFIG["sequence_dbname"],
+    "shard_dbname_prefix": AURORA_SHARD_DBNAME_PREFIX
+    or _DEFAULT_DB_CONFIG["shard_dbname_prefix"],
     "unix_socket_path": os.environ.get(
         "DB_INSTANCE_UNIX_SOCKET", _DEFAULT_DB_CONFIG["unix_socket_path"]
     ),
 }
 
-DB_SHARD_CONNECTION_STRS: tuple[str, ...] = ()
+_SHARD_DB_URLS: tuple[str, ...] = ()
 if DB_CONFIG["unix_socket_path"] is not None:
-    _DB_COMMON_CONNECTION_STR = f"mysql+aiomysql://{DB_CONFIG['user']}:{DB_CONFIG['password']}@/{DB_CONFIG['common_dbname']}?unix_socket={DB_CONFIG['unix_socket_path']}"
-    _DB_SEQUENCE_CONNECTION_STR = f"mysql+aiomysql://{DB_CONFIG['user']}:{DB_CONFIG['password']}@/{DB_CONFIG['sequence_dbname']}?unix_socket={DB_CONFIG['unix_socket_path']}"
-    for i in range(0, DB_SHARD_COUNT):
-        DB_SHARD_CONNECTION_STRS += (
-            f"mysql+aiomysql://{DB_CONFIG['user']}:{DB_CONFIG['password']}@/{DB_CONFIG['shard_dbnames'][i]}?unix_socket={DB_CONFIG['unix_socket_path']}",
-        )
+    _COMMON_DB_URL = f"mysql+aiomysql://{DB_CONFIG['user']}:{DB_CONFIG['password']}@/{DB_CONFIG['common_dbname']}?unix_socket={DB_CONFIG['unix_socket_path']}"
+    _SEQUENCE_DB_URL = f"mysql+aiomysql://{DB_CONFIG['user']}:{DB_CONFIG['password']}@/{DB_CONFIG['sequence_dbname']}?unix_socket={DB_CONFIG['unix_socket_path']}"
+    _SHARD_DB_URLS = tuple(
+        f"mysql+aiomysql://{DB_CONFIG['user']}:{DB_CONFIG['password']}@/{DB_CONFIG['shard_dbname_prefix']}{i}?unix_socket={DB_CONFIG['unix_socket_path']}"
+        for i in range(DB_SHARD_COUNT)
+    )
 else:
-    _DB_COMMON_CONNECTION_STR = f"mysql+aiomysql://{DB_CONFIG['user']}:{DB_CONFIG['password']}@{DB_CONFIG['host']}:{DB_CONFIG['port']}/{DB_CONFIG['common_dbname']}"
-    _DB_SEQUENCE_CONNECTION_STR = f"mysql+aiomysql://{DB_CONFIG['user']}:{DB_CONFIG['password']}@{DB_CONFIG['host']}:{DB_CONFIG['port']}/{DB_CONFIG['sequence_dbname']}"
-    for i in range(0, DB_SHARD_COUNT):
-        DB_SHARD_CONNECTION_STRS += (
-            f"mysql+aiomysql://{DB_CONFIG['user']}:{DB_CONFIG['password']}@{DB_CONFIG['host']}:{DB_CONFIG['port']}/{DB_CONFIG['shard_dbnames'][i]}",
-        )
+    _COMMON_DB_URL = f"mysql+aiomysql://{DB_CONFIG['user']}:{DB_CONFIG['password']}@{DB_CONFIG['host']}:{DB_CONFIG['port']}/{DB_CONFIG['common_dbname']}"
+    _SEQUENCE_DB_URL = f"mysql+aiomysql://{DB_CONFIG['user']}:{DB_CONFIG['password']}@{DB_CONFIG['host']}:{DB_CONFIG['port']}/{DB_CONFIG['sequence_dbname']}"
+    _SHARD_DB_URLS = tuple(
+        f"mysql+aiomysql://{DB_CONFIG['user']}:{DB_CONFIG['password']}@{DB_CONFIG['host']}:{DB_CONFIG['port']}/{DB_CONFIG['shard_dbname_prefix']}{i}"
+        for i in range(DB_SHARD_COUNT)
+    )
 
-DB_COMMON_CONNECTION_KEY = "common"
-DB_SEQUENCE_CONNECTION_KEY = "sequence"
-DB_SHARD_CONNECTION_KEYS = tuple(f"shard{i}" for i in range(0, DB_SHARD_COUNT))
+COMMON_DB_CONNECTION_KEY = "common"
+SEQUENCE_DB_CONNECTION_KEY = "sequence"
+SHARD_DB_CONNECTION_KEYS = tuple(f"shard{i}" for i in range(DB_SHARD_COUNT))
 CONNECTIONS = {
-    DB_COMMON_CONNECTION_KEY: _DB_COMMON_CONNECTION_STR,
-    DB_SEQUENCE_CONNECTION_KEY: _DB_SEQUENCE_CONNECTION_STR,
+    COMMON_DB_CONNECTION_KEY: _COMMON_DB_URL,
+    SEQUENCE_DB_CONNECTION_KEY: _SEQUENCE_DB_URL,
     **{
-        connection_key: connection_str
-        for connection_key, connection_str in zip(
-            DB_SHARD_CONNECTION_KEYS, DB_SHARD_CONNECTION_STRS
-        )
+        connection_key: url
+        for connection_key, url in zip(SHARD_DB_CONNECTION_KEYS, _SHARD_DB_URLS)
     },
 }

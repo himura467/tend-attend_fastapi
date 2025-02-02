@@ -10,6 +10,7 @@ from sqlalchemy.engine import Engine, create_engine
 from sqlalchemy.orm.decl_api import DeclarativeAttributeIntercept
 
 from alembic import context
+from ta_core.constants.constants import DB_SHARD_COUNT
 from ta_core.infrastructure.db.settings import CONNECTIONS, DB_CONFIG
 
 USE_TWOPHASE = False
@@ -133,8 +134,8 @@ def run_migrations_online() -> None:
     common_db_url = f"mysql+pymysql://{DB_CONFIG['user']}:{DB_CONFIG['password']}@{DB_CONFIG['host']}:{DB_CONFIG['port']}/{DB_CONFIG['common_dbname']}"
     sequence_db_url = f"mysql+pymysql://{DB_CONFIG['user']}:{DB_CONFIG['password']}@{DB_CONFIG['host']}:{DB_CONFIG['port']}/{DB_CONFIG['sequence_dbname']}"
     shard_db_url = ", ".join(
-        f"mysql+pymysql://{DB_CONFIG['user']}:{DB_CONFIG['password']}@{DB_CONFIG['host']}:{DB_CONFIG['port']}/{shard_dbname}"
-        for shard_dbname in DB_CONFIG["shard_dbnames"]
+        f"mysql+pymysql://{DB_CONFIG['user']}:{DB_CONFIG['password']}@{DB_CONFIG['host']}:{DB_CONFIG['port']}/{DB_CONFIG['shard_dbname_prefix']}{i}"
+        for i in range(DB_SHARD_COUNT)
     )
 
     config.set_section_option("common", "common_db_url", common_db_url)
