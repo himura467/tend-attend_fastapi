@@ -1,3 +1,5 @@
+from datetime import datetime, timedelta, timezone
+
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio.session import AsyncSession
@@ -9,6 +11,8 @@ from ta_core.dtos.auth import (
 from ta_core.infrastructure.sqlalchemy.db import get_db_async
 from ta_core.infrastructure.sqlalchemy.unit_of_work import SqlalchemyUnitOfWork
 from ta_core.use_case.auth import AuthUseCase
+
+from ta_api.constants import ACCESS_TOKEN_NAME, ALLOWED_ORIGINS, REFRESH_TOKEN_NAME
 
 router = APIRouter()
 
@@ -36,20 +40,28 @@ async def create_auth_token(
         )
 
     response.set_cookie(
-        key="access_token",
+        key=ACCESS_TOKEN_NAME,
         value=res.auth_token.access_token,
-        httponly=True,
-        secure=True,
-        samesite="none",
         max_age=res.access_token_max_age,
+        expires=datetime.now(timezone.utc)
+        + timedelta(seconds=res.access_token_max_age),
+        path="/",
+        domain=ALLOWED_ORIGINS[0],
+        secure=True,
+        httponly=True,
+        samesite="strict",
     )
     response.set_cookie(
-        key="refresh_token",
+        key=REFRESH_TOKEN_NAME,
         value=res.auth_token.refresh_token,
-        httponly=True,
-        secure=True,
-        samesite="none",
         max_age=res.refresh_token_max_age,
+        expires=datetime.now(timezone.utc)
+        + timedelta(seconds=res.refresh_token_max_age),
+        path="/",
+        domain=ALLOWED_ORIGINS[0],
+        secure=True,
+        httponly=True,
+        samesite="strict",
     )
 
     return res.auth_token
@@ -79,20 +91,28 @@ async def refresh_auth_token(
         )
 
     response.set_cookie(
-        key="access_token",
+        key=ACCESS_TOKEN_NAME,
         value=res.auth_token.access_token,
-        httponly=True,
-        secure=True,
-        samesite="lax",
         max_age=res.access_token_max_age,
+        expires=datetime.now(timezone.utc)
+        + timedelta(seconds=res.access_token_max_age),
+        path="/",
+        domain=ALLOWED_ORIGINS[0],
+        secure=True,
+        httponly=True,
+        samesite="strict",
     )
     response.set_cookie(
-        key="refresh_token",
+        key=REFRESH_TOKEN_NAME,
         value=res.auth_token.refresh_token,
-        httponly=True,
-        secure=True,
-        samesite="lax",
         max_age=res.refresh_token_max_age,
+        expires=datetime.now(timezone.utc)
+        + timedelta(seconds=res.refresh_token_max_age),
+        path="/",
+        domain=ALLOWED_ORIGINS[0],
+        secure=True,
+        httponly=True,
+        samesite="strict",
     )
 
     return RefreshAuthTokenResponse(error_codes=res.error_codes)
