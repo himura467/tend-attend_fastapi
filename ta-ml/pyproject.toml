@@ -7,7 +7,7 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "3.10.15"
-torch = "^2.5.1"
+torch = ">=2.0.0,<2.6.0"
 jax = "^0.4.38"
 matplotlib = "^3.10.0"
 timesfm = { git = "https://github.com/google-research/timesfm.git" }

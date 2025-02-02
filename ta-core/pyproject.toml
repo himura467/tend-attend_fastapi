@@ -16,7 +16,7 @@ passlib = {extras = ["bcrypt"], version = "^1.7.4"}
 python-jose = {extras = ["cryptography"], version = "^3.3.0"}
 aiosmtplib = "^3.0.2"
 python-dotenv = "^1.0.1"
-mysql-connector-python = "^9.1.0"
+mysql-connector-python = "^8.4.0"
 aws-advanced-python-wrapper = "^1.2.0"
 
 [tool.poetry.group.dev.dependencies]
