@@ -2,6 +2,7 @@ FROM public.ecr.aws/lambda/python:3.10
 
 ENV PYTHONUNBUFFERED=1
 RUN yum update -y && yum install -y git
+RUN pip install --upgrade pip
 
 COPY ta-api/main.py ./main.py
 COPY ta-api/ta_api ./ta_api
