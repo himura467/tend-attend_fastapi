@@ -28,6 +28,35 @@ provider "aws" {
   region  = var.aws_region
 }
 
+resource "aws_route53_zone" "aws_tend_attend_com" {
+  name = var.domain_name
+}
+
+resource "aws_acm_certificate" "this" {
+  domain_name       = var.domain_name
+  validation_method = "DNS"
+}
+
+resource "aws_route53_record" "this" {
+  zone_id  = aws_route53_zone.aws_tend_attend_com.zone_id
+  for_each = {
+    for dvo in aws_acm_certificate.this.domain_validation_options : dvo.domain_name => {
+      name   = dvo.resource_record_name
+      type   = dvo.resource_record_type
+      record = dvo.resource_record_value
+    }
+  }
+  name     = each.value.name
+  type     = each.value.type
+  records  = [each.value.record]
+  ttl      = 60
+}
+
+resource "aws_acm_certificate_validation" "this" {
+  certificate_arn         = aws_acm_certificate.this.arn
+  validation_record_fqdns = [for record in aws_route53_record.this : record.fqdn]
+}
+
 resource "aws_vpc" "tend_attend_vpc" {
   cidr_block = "10.0.0.0/16"
 }
@@ -92,10 +121,9 @@ resource "random_password" "aurora_master_password" {
 resource "aws_secretsmanager_secret_version" "aurora_credentials_version" {
   secret_id     = aws_secretsmanager_secret.aurora_credentials.id
   secret_string = jsonencode({
-    port                 = 3306
-    username             = "user",
-    password             = random_password.aurora_master_password.result
-    db_name              = "common"
+    port     = 3306
+    username = "user",
+    password = random_password.aurora_master_password.result
   })
 }
 
@@ -252,7 +280,9 @@ resource "aws_lambda_function" "tend_attend_lambda" {
       AWS_RDS_CLUSTER_INSTANCE_PORT   = local.aurora_credentials.port
       AWS_RDS_CLUSTER_MASTER_USERNAME = local.aurora_credentials.username
       AWS_RDS_CLUSTER_MASTER_PASSWORD = local.aurora_credentials.password
-      AURORA_DATABASE_NAME            = local.aurora_credentials.db_name
+      AURORA_COMMON_DBNAME            = var.common_dbname
+      AURORA_SEQUENCE_DBNAME          = var.sequence_dbname
+      AURORA_SHARD_DBNAME_PREFIX      = var.shard_dbname_prefix
     }
   }
 }
@@ -334,6 +364,21 @@ resource "aws_api_gateway_stage" "prod" {
   stage_name    = "prod"
 }
 
+resource "aws_api_gateway_domain_name" "tend_attend_domain_name" {
+  domain_name              = var.domain_name
+  regional_certificate_arn = aws_acm_certificate.this.arn
+
+  endpoint_configuration {
+    types = ["REGIONAL"]
+  }
+}
+
+resource "aws_api_gateway_base_path_mapping" "prod_mapping" {
+  domain_name = aws_api_gateway_domain_name.tend_attend_domain_name.domain_name
+  api_id      = aws_api_gateway_rest_api.tend_attend_api.id
+  stage_name  = aws_api_gateway_stage.prod.stage_name
+}
+
 resource "aws_api_gateway_usage_plan" "tend_attend_usage_plan" {
   name = "${local.app_name}-usage-plan"
 
@@ -361,6 +406,17 @@ resource "aws_api_gateway_usage_plan_key" "tend_attend_usage_plan_key" {
   key_id        = aws_api_gateway_api_key.tend_attend_api_key.id
   key_type      = "API_KEY"
   usage_plan_id = aws_api_gateway_usage_plan.tend_attend_usage_plan.id
+}
+
+resource "aws_route53_record" "api_gw" {
+  name    = aws_api_gateway_domain_name.tend_attend_domain_name.domain_name
+  zone_id = aws_route53_zone.aws_tend_attend_com.zone_id
+  type    = "A"
+  alias {
+    name                   = aws_api_gateway_domain_name.tend_attend_domain_name.regional_domain_name
+    zone_id                = aws_api_gateway_domain_name.tend_attend_domain_name.regional_zone_id
+    evaluate_target_health = true
+  }  
 }
 
 output "aws_rds_cluster_instance_url" {
