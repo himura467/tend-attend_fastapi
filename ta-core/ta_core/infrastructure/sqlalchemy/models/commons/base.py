@@ -8,7 +8,7 @@ from sqlalchemy.orm.decl_api import declared_attr
 from sqlalchemy.sql import text
 from sqlalchemy.sql.functions import func
 
-from ta_core.infrastructure.db.settings import DB_COMMON_CONNECTION_KEY
+from ta_core.infrastructure.db.settings import COMMON_DB_CONNECTION_KEY
 from ta_core.infrastructure.sqlalchemy.models.base import AbstractBase
 
 
@@ -19,7 +19,7 @@ class AbstractCommonBase(AbstractBase):
     def __table_args__(self) -> Any:
         return {
             **super().__table_args__,
-            "info": {"shard_ids": (DB_COMMON_CONNECTION_KEY,)},
+            "info": {"shard_ids": (COMMON_DB_CONNECTION_KEY,)},
         }
 
 

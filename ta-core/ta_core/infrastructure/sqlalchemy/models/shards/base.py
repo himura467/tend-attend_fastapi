@@ -8,7 +8,7 @@ from sqlalchemy.orm.decl_api import declared_attr
 from sqlalchemy.sql import text
 from sqlalchemy.sql.functions import func
 
-from ta_core.infrastructure.db.settings import DB_SHARD_CONNECTION_KEYS
+from ta_core.infrastructure.db.settings import SHARD_DB_CONNECTION_KEYS
 from ta_core.infrastructure.sqlalchemy.models.base import AbstractBase
 
 
@@ -21,7 +21,7 @@ class AbstractShardBase(AbstractBase):
     def __table_args__(self) -> Any:
         return {
             **super().__table_args__,
-            "info": {"shard_ids": DB_SHARD_CONNECTION_KEYS},
+            "info": {"shard_ids": SHARD_DB_CONNECTION_KEYS},
         }
 
 
