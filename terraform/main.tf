@@ -158,7 +158,6 @@ resource "aws_rds_cluster" "this" {
   port                            = local.aurora_credentials.port
   master_username                 = local.aurora_credentials.username
   master_password                 = local.aurora_credentials.password
-  database_name                   = local.aurora_credentials.db_name
   db_cluster_parameter_group_name = aws_rds_cluster_parameter_group.this.name
   db_subnet_group_name            = aws_db_subnet_group.this.name
   vpc_security_group_ids          = [ aws_security_group.tend_attend_sg.id ]
@@ -440,12 +439,6 @@ output "aws_rds_cluster_master_username" {
 output "aws_rds_cluster_master_password" {
   description = "Master password of the Amazon RDS cluster"
   value       = local.aurora_credentials.password
-  sensitive   = true
-}
-
-output "aurora_database_name" {
-  description = "Name of the Aurora database"
-  value       = local.aurora_credentials.db_name
   sensitive   = true
 }
 
