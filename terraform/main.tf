@@ -164,8 +164,9 @@ resource "aws_rds_cluster" "this" {
   enable_http_endpoint            = true
 
   serverlessv2_scaling_configuration {
-    max_capacity = 1.0
-    min_capacity = 0.5
+    max_capacity             = 1.0
+    min_capacity             = 0.0
+    seconds_until_auto_pause = 300
   }
 
   deletion_protection = false
