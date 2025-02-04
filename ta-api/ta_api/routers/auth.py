@@ -12,7 +12,7 @@ from ta_core.infrastructure.sqlalchemy.db import get_db_async
 from ta_core.infrastructure.sqlalchemy.unit_of_work import SqlalchemyUnitOfWork
 from ta_core.use_case.auth import AuthUseCase
 
-from ta_api.constants import ACCESS_TOKEN_NAME, ALLOWED_ORIGINS, REFRESH_TOKEN_NAME
+from ta_api.constants import ACCESS_TOKEN_NAME, COOKIE_DOMAIN, REFRESH_TOKEN_NAME
 
 router = APIRouter()
 
@@ -46,7 +46,7 @@ async def create_auth_token(
         expires=datetime.now(timezone.utc)
         + timedelta(seconds=res.access_token_max_age),
         path="/",
-        domain=ALLOWED_ORIGINS[0],
+        domain=COOKIE_DOMAIN,
         secure=True,
         httponly=True,
         samesite="strict",
@@ -58,7 +58,7 @@ async def create_auth_token(
         expires=datetime.now(timezone.utc)
         + timedelta(seconds=res.refresh_token_max_age),
         path="/",
-        domain=ALLOWED_ORIGINS[0],
+        domain=COOKIE_DOMAIN,
         secure=True,
         httponly=True,
         samesite="strict",
@@ -97,7 +97,7 @@ async def refresh_auth_token(
         expires=datetime.now(timezone.utc)
         + timedelta(seconds=res.access_token_max_age),
         path="/",
-        domain=ALLOWED_ORIGINS[0],
+        domain=COOKIE_DOMAIN,
         secure=True,
         httponly=True,
         samesite="strict",
@@ -109,7 +109,7 @@ async def refresh_auth_token(
         expires=datetime.now(timezone.utc)
         + timedelta(seconds=res.refresh_token_max_age),
         path="/",
-        domain=ALLOWED_ORIGINS[0],
+        domain=COOKIE_DOMAIN,
         secure=True,
         httponly=True,
         samesite="strict",
