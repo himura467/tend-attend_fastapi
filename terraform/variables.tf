@@ -49,5 +49,11 @@ variable "lambda_function_name" {
 variable "frontend_urls" {
   description = "URLs of the frontend"
   type        = string
-  default     = "https://tend-attend.com,https://tend-attend.vercel.app,https://tend-attend-git-release-himura467.vercel.app,https://tend-attend-git-develop-himura467.vercel.app"
+  default     = "https://tend-attend.com,https://release.tend-attend.com,https://develop.tend-attend.com"
+}
+
+variable "cookie_domain" {
+  description = "Cookie domain"
+  type        = string
+  default     = "tend-attend.com"
 }
