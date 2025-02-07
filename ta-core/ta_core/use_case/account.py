@@ -19,7 +19,7 @@ from ta_core.infrastructure.sqlalchemy.repositories.account import (
     HostAccountRepository,
 )
 from ta_core.use_case.unit_of_work_base import IUnitOfWork
-from ta_core.utils.uuid import generate_uuid
+from ta_core.utils.uuid import UUID, generate_uuid, uuid_to_str
 
 
 @dataclass(frozen=True)
@@ -94,7 +94,7 @@ class AccountUseCase:
         return CreateGuestAccountResponse(error_codes=())
 
     @rollbackable
-    async def get_guests_info_async(self, host_id: str) -> GetGuestsInfoResponse:
+    async def get_guests_info_async(self, host_id: UUID) -> GetGuestsInfoResponse:
         host_account_repository = HostAccountRepository(self.uow)
 
         host_account = (
@@ -108,7 +108,7 @@ class AccountUseCase:
             guests=(
                 tuple(
                     GuestInfo(
-                        account_id=guest.id,
+                        account_id=uuid_to_str(guest.id),
                         first_name=guest.guest_first_name,
                         last_name=guest.guest_last_name,
                         nickname=guest.guest_nickname,

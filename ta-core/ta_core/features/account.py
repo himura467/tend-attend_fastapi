@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from enum import Enum, IntEnum
 
+from ta_core.utils.uuid import UUID
+
 
 class Group(str, Enum):
     HOST = "host"
@@ -25,6 +27,6 @@ class Gender(str, Enum):
 
 @dataclass(frozen=True)
 class Account:
-    account_id: str
+    account_id: UUID
     group: Group
     disabled: bool

@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import List
 
 from pydantic.networks import EmailStr
-from sqlalchemy.dialects.mysql import BIGINT, DATETIME, ENUM, VARCHAR
+from sqlalchemy.dialects.mysql import BIGINT, BINARY, DATETIME, ENUM, VARCHAR
 from sqlalchemy.exc import StatementError
 from sqlalchemy.orm import mapped_column, relationship
 from sqlalchemy.orm.base import Mapped
@@ -14,6 +14,7 @@ from ta_core.features.account import Gender
 from ta_core.infrastructure.sqlalchemy.models.commons.base import (
     AbstractCommonDynamicBase,
 )
+from ta_core.utils.uuid import bin_to_uuid, uuid_to_bin
 
 
 class HostAccount(AbstractCommonDynamicBase):
@@ -43,7 +44,7 @@ class HostAccount(AbstractCommonDynamicBase):
             guests = None
 
         return HostAccountEntity(
-            entity_id=self.id,
+            entity_id=bin_to_uuid(self.id),
             host_name=self.host_name,
             hashed_password=self.hashed_password,
             refresh_token=self.refresh_token,
@@ -55,7 +56,7 @@ class HostAccount(AbstractCommonDynamicBase):
     @classmethod
     def from_entity(cls, entity: HostAccountEntity) -> "HostAccount":
         return cls(
-            id=entity.id,
+            id=uuid_to_bin(entity.id),
             host_name=entity.host_name,
             hashed_password=entity.hashed_password,
             refresh_token=entity.refresh_token,
@@ -89,14 +90,14 @@ class GuestAccount(AbstractCommonDynamicBase):
     user_id: Mapped[int] = mapped_column(
         BIGINT(unsigned=True), unique=True, nullable=False, comment="User ID"
     )
-    host_id: Mapped[str] = mapped_column(
-        VARCHAR(36), ForeignKey("host_account.id", ondelete="CASCADE"), nullable=False
+    host_id: Mapped[bytes] = mapped_column(
+        BINARY(16), ForeignKey("host_account.id", ondelete="CASCADE"), nullable=False
     )
     host: Mapped["HostAccount"] = relationship(back_populates="guests", uselist=False)
 
     def to_entity(self) -> GuestAccountEntity:
         return GuestAccountEntity(
-            entity_id=self.id,
+            entity_id=bin_to_uuid(self.id),
             guest_first_name=self.guest_first_name,
             guest_last_name=self.guest_last_name,
             guest_nickname=self.guest_nickname,
@@ -105,13 +106,13 @@ class GuestAccount(AbstractCommonDynamicBase):
             hashed_password=self.hashed_password,
             refresh_token=self.refresh_token,
             user_id=self.user_id,
-            host_id=self.host_id,
+            host_id=bin_to_uuid(self.host_id),
         )
 
     @classmethod
     def from_entity(cls, entity: GuestAccountEntity) -> "GuestAccount":
         return cls(
-            id=entity.id,
+            id=uuid_to_bin(entity.id),
             guest_first_name=entity.guest_first_name,
             guest_last_name=entity.guest_last_name,
             guest_nickname=entity.guest_nickname,
@@ -120,7 +121,7 @@ class GuestAccount(AbstractCommonDynamicBase):
             hashed_password=entity.hashed_password,
             refresh_token=entity.refresh_token,
             user_id=entity.user_id,
-            host_id=entity.host_id,
+            host_id=uuid_to_bin(entity.host_id),
         )
 
 

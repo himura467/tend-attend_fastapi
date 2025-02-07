@@ -36,7 +36,7 @@ from ta_core.infrastructure.sqlalchemy.repositories.event import (
 from ta_core.use_case.unit_of_work_base import IUnitOfWork
 from ta_core.utils.datetime import validate_date
 from ta_core.utils.rfc5545 import parse_recurrence, serialize_recurrence
-from ta_core.utils.uuid import generate_uuid
+from ta_core.utils.uuid import UUID, generate_uuid, str_to_uuid, uuid_to_str
 
 T = TypeVar("T")
 
@@ -108,7 +108,7 @@ def serialize_events(events: tuple[EventEntity, ...]) -> list[EventWithIdDto]:
             )
         event_dto_list.append(
             EventWithIdDto(
-                id=event.id,
+                id=uuid_to_str(event.id),
                 summary=event.summary,
                 location=event.location,
                 start=event.start,
@@ -128,7 +128,7 @@ class EventUseCase:
     @rollbackable
     async def create_event_async(
         self,
-        host_id: str,
+        host_id: UUID,
         event_dto: EventDto,
     ) -> CreateEventResponse:
         host_account_repository = HostAccountRepository(self.uow)
@@ -167,7 +167,7 @@ class EventUseCase:
 
         user_id = host_account.user_id
 
-        recurrence_id: str | None
+        recurrence_id: UUID | None
         if event.recurrence is None:
             recurrence_id = None
         else:
@@ -224,8 +224,14 @@ class EventUseCase:
 
     @rollbackable
     async def attend_event_async(
-        self, guest_id: str, event_id: str, start: datetime, action: AttendanceAction
+        self,
+        guest_id: UUID,
+        event_id_str: str,
+        start: datetime,
+        action: AttendanceAction,
     ) -> AttendEventResponse:
+        event_id = str_to_uuid(event_id_str)
+
         guest_account_repository = GuestAccountRepository(self.uow)
         event_repository = EventRepository(self.uow)
         event_attendance_repository = EventAttendanceRepository(self.uow)
@@ -274,7 +280,7 @@ class EventUseCase:
         return AttendEventResponse(error_codes=())
 
     @rollbackable
-    async def get_host_events_async(self, host_id: str) -> GetHostEventsResponse:
+    async def get_host_events_async(self, host_id: UUID) -> GetHostEventsResponse:
         host_account_repository = HostAccountRepository(self.uow)
         event_repository = EventRepository(self.uow)
 
@@ -295,7 +301,7 @@ class EventUseCase:
         return GetHostEventsResponse(events=serialize_events(events), error_codes=())
 
     @rollbackable
-    async def get_guest_events_async(self, guest_id: str) -> GetGuestEventsResponse:
+    async def get_guest_events_async(self, guest_id: UUID) -> GetGuestEventsResponse:
         host_account_repository = HostAccountRepository(self.uow)
         guest_account_repository = GuestAccountRepository(self.uow)
         event_repository = EventRepository(self.uow)
@@ -328,8 +334,10 @@ class EventUseCase:
 
     @rollbackable
     async def get_guest_current_attendance_status_async(
-        self, guest_id: str, event_id: str, start: datetime
+        self, guest_id: UUID, event_id_str: str, start: datetime
     ) -> GetGuestCurrentAttendanceStatusResponse:
+        event_id = str_to_uuid(event_id_str)
+
         guest_account_repository = GuestAccountRepository(self.uow)
         event_repository = EventRepository(self.uow)
         event_attendance_action_log_repository = EventAttendanceActionLogRepository(

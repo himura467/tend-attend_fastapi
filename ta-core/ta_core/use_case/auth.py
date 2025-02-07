@@ -238,4 +238,4 @@ class AuthUseCase:
                 refresh_token_max_age=int(self._REFRESH_TOKEN_EXPIRES.total_seconds()),
             )
         else:
-            NotImplementedError()
+            raise NotImplementedError()
