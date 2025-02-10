@@ -63,7 +63,7 @@ async def attend_event(
 
     return await use_case.attend_event_async(
         guest_id=account.account_id,
-        event_id=event_id,
+        event_id_str=event_id,
         start=start,
         action=action,
     )
@@ -115,6 +115,6 @@ async def get_guest_current_attendance_status(
 
     return await use_case.get_guest_current_attendance_status_async(
         guest_id=account.account_id,
-        event_id=event_id,
+        event_id_str=event_id,
         start=start,
     )

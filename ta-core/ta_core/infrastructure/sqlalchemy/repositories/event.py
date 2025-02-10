@@ -19,6 +19,7 @@ from ta_core.infrastructure.sqlalchemy.models.shards.event import (
     RecurrenceRule,
 )
 from ta_core.infrastructure.sqlalchemy.repositories.base import AbstractRepository
+from ta_core.utils.uuid import UUID, uuid_to_bin
 
 
 class RecurrenceRuleRepository(
@@ -30,7 +31,7 @@ class RecurrenceRuleRepository(
 
     async def create_recurrence_rule_async(
         self,
-        entity_id: str,
+        entity_id: UUID,
         user_id: int,
         freq: Frequency,
         until: datetime | None,
@@ -77,9 +78,9 @@ class RecurrenceRepository(
 
     async def create_recurrence_async(
         self,
-        entity_id: str,
+        entity_id: UUID,
         user_id: int,
-        rrule_id: str,
+        rrule_id: UUID,
         rrule: RecurrenceRuleEntity,
         rdate: list[str],
         exdate: list[str],
@@ -102,14 +103,14 @@ class EventRepository(AbstractRepository[EventEntity, Event]):
 
     async def create_event_async(
         self,
-        entity_id: str,
+        entity_id: UUID,
         user_id: int,
         summary: str,
         location: str | None,
         start: datetime,
         end: datetime,
         is_all_day: bool,
-        recurrence_id: str | None,
+        recurrence_id: UUID | None,
         timezone: str,
     ) -> EventEntity | None:
         event = EventEntity(
@@ -145,21 +146,21 @@ class EventAttendanceRepository(
         return EventAttendance
 
     async def read_by_user_id_and_event_id_and_start_or_none_async(
-        self, user_id: int, event_id: str, start: datetime
+        self, user_id: int, event_id: UUID, start: datetime
     ) -> EventAttendanceEntity | None:
         return await self.read_one_or_none_async(
             where=(
                 self._model.user_id == user_id,
-                self._model.event_id == event_id,
+                self._model.event_id == uuid_to_bin(event_id),
                 self._model.start == start,
             )
         )
 
     async def create_or_update_event_attendance_async(
         self,
-        entity_id: str,
+        entity_id: UUID,
         user_id: int,
-        event_id: str,
+        event_id: UUID,
         start: datetime,
         state: AttendanceState,
     ) -> EventAttendanceEntity | None:
@@ -190,9 +191,9 @@ class EventAttendanceActionLogRepository(
 
     async def create_event_attendance_action_log_async(
         self,
-        entity_id: str,
+        entity_id: UUID,
         user_id: int,
-        event_id: str,
+        event_id: UUID,
         start: datetime,
         action: AttendanceAction,
         acted_at: datetime,
@@ -208,12 +209,12 @@ class EventAttendanceActionLogRepository(
         return await self.create_async(event_attendance_action_log)
 
     async def read_latest_by_user_id_and_event_id_and_start_or_none_async(
-        self, user_id: int, event_id: str, start: datetime
+        self, user_id: int, event_id: UUID, start: datetime
     ) -> EventAttendanceActionLogEntity | None:
         event_attendance_action_logs = await self.read_order_by_limit_async(
             where=(
                 self._model.user_id == user_id,
-                self._model.event_id == event_id,
+                self._model.event_id == uuid_to_bin(event_id),
                 self._model.start == start,
             ),
             order_by=self._model.acted_at.desc(),

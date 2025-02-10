@@ -12,6 +12,7 @@ from ta_core.infrastructure.sqlalchemy.models.commons.account import (
     HostAccount,
 )
 from ta_core.infrastructure.sqlalchemy.repositories.base import AbstractRepository
+from ta_core.utils.uuid import UUID, uuid_to_bin
 
 
 class HostAccountRepository(AbstractRepository[HostAccountEntity, HostAccount]):
@@ -21,7 +22,7 @@ class HostAccountRepository(AbstractRepository[HostAccountEntity, HostAccount]):
 
     async def create_host_account_async(
         self,
-        entity_id: str,
+        entity_id: UUID,
         host_name: str,
         hashed_password: str,
         email: EmailStr,
@@ -51,11 +52,11 @@ class HostAccountRepository(AbstractRepository[HostAccountEntity, HostAccount]):
         return await self.read_one_or_none_async(where=(self._model.email == email,))
 
     async def read_with_guests_by_id_or_none_async(
-        self, record_id: str
+        self, record_id: UUID
     ) -> HostAccountEntity | None:
         stmt = (
             select(self._model)
-            .where(self._model.id == record_id)
+            .where(self._model.id == uuid_to_bin(record_id))
             .options(joinedload(HostAccount.guests))
         )
         result = await self._uow.execute_async(stmt)
@@ -70,7 +71,7 @@ class GuestAccountRepository(AbstractRepository[GuestAccountEntity, GuestAccount
 
     async def create_guest_account_async(
         self,
-        entity_id: str,
+        entity_id: UUID,
         guest_first_name: str,
         guest_last_name: str,
         guest_nickname: str | None,
@@ -78,7 +79,7 @@ class GuestAccountRepository(AbstractRepository[GuestAccountEntity, GuestAccount
         gender: Gender,
         hashed_password: str,
         user_id: int,
-        host_id: str,
+        host_id: UUID,
         refresh_token: str | None = None,
     ) -> GuestAccountEntity | None:
         guest_account = GuestAccountEntity(
@@ -100,13 +101,13 @@ class GuestAccountRepository(AbstractRepository[GuestAccountEntity, GuestAccount
         guest_first_name: str,
         guest_last_name: str,
         guest_nickname: str | None,
-        host_id: str,
+        host_id: UUID,
     ) -> GuestAccountEntity | None:
         return await self.read_one_or_none_async(
             where=(
                 self._model.guest_first_name == guest_first_name,
                 self._model.guest_last_name == guest_last_name,
                 self._model.guest_nickname == guest_nickname,
-                self._model.host_id == host_id,
+                self._model.host_id == uuid_to_bin(host_id),
             )
         )

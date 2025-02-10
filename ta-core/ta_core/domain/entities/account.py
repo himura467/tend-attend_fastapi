@@ -4,12 +4,13 @@ from pydantic.networks import EmailStr
 
 from ta_core.domain.entities.base import IEntity
 from ta_core.features.account import Gender
+from ta_core.utils.uuid import UUID
 
 
 class HostAccount(IEntity):
     def __init__(
         self,
-        entity_id: str,
+        entity_id: UUID,
         host_name: str,
         hashed_password: str,
         refresh_token: str | None,
@@ -40,7 +41,7 @@ class HostAccount(IEntity):
 class GuestAccount(IEntity):
     def __init__(
         self,
-        entity_id: str,
+        entity_id: UUID,
         guest_first_name: str,
         guest_last_name: str,
         guest_nickname: str | None,
@@ -49,7 +50,7 @@ class GuestAccount(IEntity):
         hashed_password: str,
         refresh_token: str | None,
         user_id: int,
-        host_id: str,
+        host_id: UUID,
     ) -> None:
         super().__init__(entity_id)
         self.guest_first_name = guest_first_name

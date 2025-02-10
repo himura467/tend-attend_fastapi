@@ -5,6 +5,7 @@ from pydantic.networks import EmailStr
 from ta_core.domain.entities.verify import HostVerification as HostVerificationEntity
 from ta_core.infrastructure.sqlalchemy.models.commons.verify import HostVerification
 from ta_core.infrastructure.sqlalchemy.repositories.base import AbstractRepository
+from ta_core.utils.uuid import UUID
 
 
 class HostVerificationRepository(
@@ -16,9 +17,9 @@ class HostVerificationRepository(
 
     async def create_host_verification_async(
         self,
-        entity_id: str,
+        entity_id: UUID,
         host_email: EmailStr,
-        verification_token: str,
+        verification_token: UUID,
         token_expires_at: datetime,
     ) -> HostVerificationEntity | None:
         host_verification = HostVerificationEntity(

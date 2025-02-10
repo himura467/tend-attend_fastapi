@@ -7,6 +7,7 @@ from sqlalchemy.sql.elements import UnaryExpression
 
 from ta_core.domain.repositories.base import IRepository, TEntity, TModel
 from ta_core.use_case.unit_of_work_base import IUnitOfWork
+from ta_core.utils.uuid import UUID, uuid_to_bin
 
 
 class AbstractRepository(IRepository[TEntity, TModel]):
@@ -29,19 +30,21 @@ class AbstractRepository(IRepository[TEntity, TModel]):
                 await savepoint.rollback()
                 return None
 
-    async def read_by_id_async(self, record_id: str) -> TEntity:
-        stmt = select(self._model).where(self._model.id == record_id)
+    async def read_by_id_async(self, record_id: UUID) -> TEntity:
+        stmt = select(self._model).where(self._model.id == uuid_to_bin(record_id))
         result = await self._uow.execute_async(stmt)
         return result.scalar_one().to_entity()
 
-    async def read_by_id_or_none_async(self, record_id: str) -> TEntity | None:
-        stmt = select(self._model).where(self._model.id == record_id)
+    async def read_by_id_or_none_async(self, record_id: UUID) -> TEntity | None:
+        stmt = select(self._model).where(self._model.id == uuid_to_bin(record_id))
         result = await self._uow.execute_async(stmt)
         record = result.scalar_one_or_none()
         return record.to_entity() if record is not None else None
 
-    async def read_by_ids_async(self, record_ids: set[str]) -> tuple[TEntity, ...]:
-        stmt = select(self._model).where(self._model.id.in_(record_ids))
+    async def read_by_ids_async(self, record_ids: set[UUID]) -> tuple[TEntity, ...]:
+        stmt = select(self._model).where(
+            self._model.id.in_(uuid_to_bin(record_id) for record_id in record_ids)
+        )
         result = await self._uow.execute_async(stmt)
         return tuple(record.to_entity() for record in result.scalars().all())
 
@@ -83,8 +86,8 @@ class AbstractRepository(IRepository[TEntity, TModel]):
         await self._uow.execute_async(stmt)
         return entity
 
-    async def delete_by_id_async(self, record_id: str) -> bool:
-        stmt = select(self._model).where(self._model.id == record_id)
+    async def delete_by_id_async(self, record_id: UUID) -> bool:
+        stmt = select(self._model).where(self._model.id == uuid_to_bin(record_id))
         result = await self._uow.execute_async(stmt)
         record = result.scalar_one_or_none()
         if record is None:

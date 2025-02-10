@@ -10,7 +10,7 @@ from ta_core.infrastructure.sqlalchemy.repositories.verify import (
     HostVerificationRepository,
 )
 from ta_core.infrastructure.sqlalchemy.unit_of_work import SqlalchemyUnitOfWork
-from ta_core.utils.uuid import generate_uuid
+from ta_core.utils.uuid import UUID, generate_uuid
 
 
 @pytest.mark.asyncio
@@ -21,7 +21,7 @@ from ta_core.utils.uuid import generate_uuid
             "host_name",
             "hashed_password",
             "test@example.com",
-            "verification_token",
+            generate_uuid(),
             datetime(2000, 1, 2, 3, 4, 5, tzinfo=ZoneInfo("UTC")),
         ),
     ],
@@ -31,7 +31,7 @@ async def test_create_host_verification_async(
     host_name: str,
     hashed_password: str,
     host_email: EmailStr,
-    verification_token: str,
+    verification_token: UUID,
     token_expires_at: datetime,
 ) -> None:
     uow = SqlalchemyUnitOfWork(session=test_session)
@@ -67,7 +67,7 @@ async def test_create_host_verification_async(
             "host_name",
             "hashed_password",
             "test@example.com",
-            "verification_token",
+            generate_uuid(),
             datetime(2000, 1, 2, 3, 4, 5, tzinfo=ZoneInfo("UTC")),
             datetime(2000, 1, 2, 3, 4, 5),
         ),
@@ -78,7 +78,7 @@ async def test_read_latest_by_host_email_or_none_async(
     host_name: str,
     hashed_password: str,
     host_email: EmailStr,
-    verification_token: str,
+    verification_token: UUID,
     token_expires_at: datetime,
     expected_token_expires_at: datetime,
 ) -> None:
