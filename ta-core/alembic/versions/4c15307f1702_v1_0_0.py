@@ -1,8 +1,8 @@
 """v1.0.0
 
-Revision ID: bf349d75896b
+Revision ID: 4c15307f1702
 Revises:
-Create Date: 2025-01-08 04:50:18.414050
+Create Date: 2025-02-10 23:35:59.044022
 
 """
 
@@ -14,7 +14,7 @@ from sqlalchemy.dialects import mysql
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision: str = "bf349d75896b"
+revision: str = "4c15307f1702"
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -66,7 +66,7 @@ def upgrade_common() -> None:
             server_default=sa.text("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"),
             nullable=False,
         ),
-        sa.PrimaryKeyConstraint("id"),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_host_account")),
         sa.UniqueConstraint("email"),
         sa.UniqueConstraint("host_name"),
         sa.UniqueConstraint("user_id"),
@@ -137,10 +137,19 @@ def upgrade_common() -> None:
             server_default=sa.text("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"),
             nullable=False,
         ),
-        sa.ForeignKeyConstraint(["host_id"], ["host_account.id"], ondelete="CASCADE"),
-        sa.PrimaryKeyConstraint("id"),
+        sa.ForeignKeyConstraint(
+            ["host_id"],
+            ["host_account.id"],
+            name=op.f("fk_guest_account_host_id_host_account"),
+            ondelete="CASCADE",
+        ),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_guest_account")),
         sa.UniqueConstraint(
-            "guest_first_name", "guest_last_name", "guest_nickname", "host_id"
+            "guest_first_name",
+            "guest_last_name",
+            "guest_nickname",
+            "host_id",
+            name=op.f("uq_guest_account_guest_first_name"),
         ),
         sa.UniqueConstraint("user_id"),
         info={"shard_ids": ("common",)},
@@ -187,9 +196,12 @@ def upgrade_common() -> None:
             nullable=False,
         ),
         sa.ForeignKeyConstraint(
-            ["host_email"], ["host_account.email"], ondelete="CASCADE"
+            ["host_email"],
+            ["host_account.email"],
+            name=op.f("fk_host_verification_host_email_host_account"),
+            ondelete="CASCADE",
         ),
-        sa.PrimaryKeyConstraint("id"),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_host_verification")),
         info={"shard_ids": ("common",)},
         mysql_engine="InnoDB",
     )
@@ -242,7 +254,7 @@ def upgrade_sequence() -> None:
         sa.Column(
             "id", mysql.BIGINT(unsigned=True), autoincrement=False, nullable=False
         ),
-        sa.PrimaryKeyConstraint("id"),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_sequence_user_id")),
         info={"shard_ids": ("sequence",)},
         mysql_engine="InnoDB",
     )
@@ -285,8 +297,10 @@ def upgrade_shard0() -> None:
             nullable=False,
         ),
         sa.Column("user_id", mysql.BIGINT(unsigned=True), nullable=False),
-        sa.PrimaryKeyConstraint("id"),
-        sa.UniqueConstraint("user_id", "event_id", "start"),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_event_attendance")),
+        sa.UniqueConstraint(
+            "user_id", "event_id", "start", name=op.f("uq_event_attendance_user_id")
+        ),
         info={"shard_ids": ("shard0", "shard1")},
         mysql_engine="InnoDB",
     )
@@ -316,6 +330,12 @@ def upgrade_shard0() -> None:
             nullable=False,
             comment="Attendance Action",
         ),
+        sa.Column(
+            "acted_at",
+            mysql.DATETIME(timezone=True),
+            nullable=False,
+            comment="Acted At",
+        ),
         sa.Column("id", mysql.VARCHAR(length=36), autoincrement=False, nullable=False),
         sa.Column(
             "created_at",
@@ -330,7 +350,7 @@ def upgrade_shard0() -> None:
             nullable=False,
         ),
         sa.Column("user_id", mysql.BIGINT(unsigned=True), nullable=False),
-        sa.PrimaryKeyConstraint("id"),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_event_attendance_action_log")),
         info={"shard_ids": ("shard0", "shard1")},
         mysql_engine="InnoDB",
     )
@@ -383,7 +403,7 @@ def upgrade_shard0() -> None:
         ),
         sa.Column("id", mysql.VARCHAR(length=36), autoincrement=False, nullable=False),
         sa.Column("user_id", mysql.BIGINT(unsigned=True), nullable=False),
-        sa.PrimaryKeyConstraint("id"),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_recurrence_rule")),
         info={"shard_ids": ("shard0", "shard1")},
         mysql_engine="InnoDB",
     )
@@ -395,9 +415,12 @@ def upgrade_shard0() -> None:
         sa.Column("id", mysql.VARCHAR(length=36), autoincrement=False, nullable=False),
         sa.Column("user_id", mysql.BIGINT(unsigned=True), nullable=False),
         sa.ForeignKeyConstraint(
-            ["rrule_id"], ["recurrence_rule.id"], ondelete="RESTRICT"
+            ["rrule_id"],
+            ["recurrence_rule.id"],
+            name=op.f("fk_recurrence_rrule_id_recurrence_rule"),
+            ondelete="RESTRICT",
         ),
-        sa.PrimaryKeyConstraint("id"),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_recurrence")),
         info={"shard_ids": ("shard0", "shard1")},
         mysql_engine="InnoDB",
     )
@@ -433,9 +456,12 @@ def upgrade_shard0() -> None:
         ),
         sa.Column("user_id", mysql.BIGINT(unsigned=True), nullable=False),
         sa.ForeignKeyConstraint(
-            ["recurrence_id"], ["recurrence.id"], ondelete="RESTRICT"
+            ["recurrence_id"],
+            ["recurrence.id"],
+            name=op.f("fk_event_recurrence_id_recurrence"),
+            ondelete="RESTRICT",
         ),
-        sa.PrimaryKeyConstraint("id"),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_event")),
         sa.UniqueConstraint("summary"),
         info={"shard_ids": ("shard0", "shard1")},
         mysql_engine="InnoDB",
@@ -497,8 +523,10 @@ def upgrade_shard1() -> None:
             nullable=False,
         ),
         sa.Column("user_id", mysql.BIGINT(unsigned=True), nullable=False),
-        sa.PrimaryKeyConstraint("id"),
-        sa.UniqueConstraint("user_id", "event_id", "start"),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_event_attendance")),
+        sa.UniqueConstraint(
+            "user_id", "event_id", "start", name=op.f("uq_event_attendance_user_id")
+        ),
         info={"shard_ids": ("shard0", "shard1")},
         mysql_engine="InnoDB",
     )
@@ -528,6 +556,12 @@ def upgrade_shard1() -> None:
             nullable=False,
             comment="Attendance Action",
         ),
+        sa.Column(
+            "acted_at",
+            mysql.DATETIME(timezone=True),
+            nullable=False,
+            comment="Acted At",
+        ),
         sa.Column("id", mysql.VARCHAR(length=36), autoincrement=False, nullable=False),
         sa.Column(
             "created_at",
@@ -542,7 +576,7 @@ def upgrade_shard1() -> None:
             nullable=False,
         ),
         sa.Column("user_id", mysql.BIGINT(unsigned=True), nullable=False),
-        sa.PrimaryKeyConstraint("id"),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_event_attendance_action_log")),
         info={"shard_ids": ("shard0", "shard1")},
         mysql_engine="InnoDB",
     )
@@ -595,7 +629,7 @@ def upgrade_shard1() -> None:
         ),
         sa.Column("id", mysql.VARCHAR(length=36), autoincrement=False, nullable=False),
         sa.Column("user_id", mysql.BIGINT(unsigned=True), nullable=False),
-        sa.PrimaryKeyConstraint("id"),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_recurrence_rule")),
         info={"shard_ids": ("shard0", "shard1")},
         mysql_engine="InnoDB",
     )
@@ -607,9 +641,12 @@ def upgrade_shard1() -> None:
         sa.Column("id", mysql.VARCHAR(length=36), autoincrement=False, nullable=False),
         sa.Column("user_id", mysql.BIGINT(unsigned=True), nullable=False),
         sa.ForeignKeyConstraint(
-            ["rrule_id"], ["recurrence_rule.id"], ondelete="RESTRICT"
+            ["rrule_id"],
+            ["recurrence_rule.id"],
+            name=op.f("fk_recurrence_rrule_id_recurrence_rule"),
+            ondelete="RESTRICT",
         ),
-        sa.PrimaryKeyConstraint("id"),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_recurrence")),
         info={"shard_ids": ("shard0", "shard1")},
         mysql_engine="InnoDB",
     )
@@ -645,9 +682,12 @@ def upgrade_shard1() -> None:
         ),
         sa.Column("user_id", mysql.BIGINT(unsigned=True), nullable=False),
         sa.ForeignKeyConstraint(
-            ["recurrence_id"], ["recurrence.id"], ondelete="RESTRICT"
+            ["recurrence_id"],
+            ["recurrence.id"],
+            name=op.f("fk_event_recurrence_id_recurrence"),
+            ondelete="RESTRICT",
         ),
-        sa.PrimaryKeyConstraint("id"),
+        sa.PrimaryKeyConstraint("id", name=op.f("pk_event")),
         sa.UniqueConstraint("summary"),
         info={"shard_ids": ("shard0", "shard1")},
         mysql_engine="InnoDB",
