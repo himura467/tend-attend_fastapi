@@ -37,12 +37,12 @@ class AttendEventResponse(BaseModelWithErrorCodes):
     pass
 
 
-class GetHostEventsResponse(BaseModelWithErrorCodes):
-    events: list[EventWithId] = Field(..., title="Host Events")
+class GetFolloweeEventsResponse(BaseModelWithErrorCodes):
+    events: list[EventWithId] = Field(..., title="Followee Events")
 
 
-class GetGuestEventsResponse(BaseModelWithErrorCodes):
-    events: list[EventWithId] = Field(..., title="Guest Events")
+class GetFollowerEventsResponse(BaseModelWithErrorCodes):
+    events: list[EventWithId] = Field(..., title="Follower Events")
 
 
 class GetGuestCurrentAttendanceStatusResponse(BaseModelWithErrorCodes):

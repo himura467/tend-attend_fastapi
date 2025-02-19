@@ -14,7 +14,7 @@ router = APIRouter()
 
 
 @router.post(
-    path="/email",
+    path="/email/register",
     name="Request Email Verification",
     response_model=RequestEmailVerificationResponse,
 )
@@ -22,15 +22,15 @@ async def request_email_verification(
     req: RequestEmailVerificationRequest,
     session: AsyncSession = Depends(get_db_async),
 ) -> RequestEmailVerificationResponse:
-    host_email = req.host_email
+    email = req.email
 
     uow = SqlalchemyUnitOfWork(session=session)
     use_case = VerifyUseCase(uow=uow)
 
-    return await use_case.request_email_verification_async(host_email=host_email)
+    return await use_case.request_email_verification_async(email=email)
 
 
-@router.put(
+@router.post(
     path="/email",
     name="Verify Email",
     response_model=VerifyEmailResponse,
@@ -39,12 +39,12 @@ async def verify_email(
     req: VerifyEmailRequest,
     session: AsyncSession = Depends(get_db_async),
 ) -> VerifyEmailResponse:
-    host_email = req.host_email
+    email = req.email
     verification_token = req.verification_token
 
     uow = SqlalchemyUnitOfWork(session=session)
     use_case = VerifyUseCase(uow=uow)
 
     return await use_case.verify_email_async(
-        host_email=host_email, verification_token=verification_token
+        email=email, verification_token=verification_token
     )

@@ -1,2 +1,2 @@
-from .account import GuestAccount, HostAccount  # noqa: F401
-from .verify import HostVerification  # noqa: F401
+from .account import UserAccount  # noqa: F401
+from .verify import EmailVerification  # noqa: F401

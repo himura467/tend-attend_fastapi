@@ -8,36 +8,25 @@ from ta_core.dtos.base import BaseModelWithErrorCodes
 from ta_core.features.account import Gender
 
 
-class CreateHostAccountRequest(BaseModel):
-    host_name: str = Field(..., title="Host Name")
+class CreateUserAccountRequest(BaseModel):
+    username: str = Field(..., title="Username")
     password: str = Field(..., title="Password")
-    email: EmailStr = Field(..., title="Email")
-
-
-class CreateHostAccountResponse(BaseModelWithErrorCodes):
-    pass
-
-
-class CreateGuestAccountRequest(BaseModel):
-    guest_first_name: str = Field(..., title="Guest First Name")
-    guest_last_name: str = Field(..., title="Guest Last Name")
-    guest_nickname: str | None = Field(None, title="Guest Nickname")
+    nickname: str | None = Field(None, title="Nickname")
     birth_date: datetime = Field(..., title="Birth Date")
     gender: Gender = Field(..., title="Gender")
-    password: str = Field(..., title="Password")
-    host_name: str = Field(..., title="Associated Host Name")
+    email: EmailStr = Field(..., title="Email")
+    followee_username: str | None = Field(None, title="Followee Username")
 
 
-class CreateGuestAccountResponse(BaseModelWithErrorCodes):
+class CreateUserAccountResponse(BaseModelWithErrorCodes):
     pass
 
 
-class GuestInfo(BaseModel):
+class FollowerInfo(BaseModel):
     account_id: str = Field(..., title="Account ID")
-    first_name: str = Field(..., title="First Name")
-    last_name: str = Field(..., title="Last Name")
+    username: str = Field(..., title="Username")
     nickname: str | None = Field(None, title="Nickname")
 
 
-class GetGuestsInfoResponse(BaseModelWithErrorCodes):
-    guests: tuple[GuestInfo, ...] = Field(..., title="Guests Info")
+class GetFollowersInfoResponse(BaseModelWithErrorCodes):
+    followers: tuple[FollowerInfo, ...] = Field(..., title="Followers Info")
