@@ -10,6 +10,7 @@ from sqlalchemy.sql.schema import ForeignKey
 from ta_core.domain.entities.account import UserAccount as UserAccountEntity
 from ta_core.features.account import Gender
 from ta_core.infrastructure.sqlalchemy.models.commons.base import (
+    AbstractCommonBase,
     AbstractCommonDynamicBase,
 )
 from ta_core.utils.uuid import bin_to_uuid, uuid_to_bin
@@ -43,24 +44,32 @@ class UserAccount(AbstractCommonDynamicBase):
     email_verified: Mapped[bool] = mapped_column(
         BOOLEAN, nullable=False, comment="Email Verified"
     )
-    followee_id: Mapped[bytes] = mapped_column(
-        BINARY(16), ForeignKey("user_account.id", ondelete="CASCADE"), nullable=False
-    )
-    followee: Mapped["UserAccount"] = relationship(
-        back_populates="followers", uselist=False, remote_side="UserAccount.id"
+    followees: Mapped[list["UserAccount"]] = relationship(
+        secondary="follow_association",
+        primaryjoin="UserAccount.id == FollowAssociation.follower_id",
+        secondaryjoin="UserAccount.id == FollowAssociation.followee_id",
+        back_populates="followers",
     )
     followers: Mapped[list["UserAccount"]] = relationship(
-        back_populates="followee", uselist=True
+        secondary="follow_association",
+        primaryjoin="UserAccount.id == FollowAssociation.followee_id",
+        secondaryjoin="UserAccount.id == FollowAssociation.follower_id",
+        back_populates="followees",
     )
 
-    def to_entity(self, include_followers: bool = True) -> UserAccountEntity:
+    def to_entity(self, depth: int = 1) -> UserAccountEntity:
+        try:
+            followees = (
+                [followee.to_entity(depth=depth - 1) for followee in self.followees]
+                if depth > 0
+                else []
+            )
+        except StatementError:
+            followees = []
         try:
             followers = (
-                [
-                    follower.to_entity(include_followers=False)
-                    for follower in self.followers
-                ]
-                if include_followers
+                [follower.to_entity(depth=depth - 1) for follower in self.followers]
+                if depth > 0
                 else []
             )
         except StatementError:
@@ -77,7 +86,9 @@ class UserAccount(AbstractCommonDynamicBase):
             gender=self.gender,
             email=self.email,
             email_verified=self.email_verified,
-            followee_id=bin_to_uuid(self.followee_id),
+            followee_ids=[followee.id for followee in followees],
+            followees=followees,
+            follower_ids=[follower.id for follower in followers],
             followers=followers,
         )
 
@@ -94,5 +105,13 @@ class UserAccount(AbstractCommonDynamicBase):
             gender=entity.gender,
             email=entity.email,
             email_verified=entity.email_verified,
-            followee_id=uuid_to_bin(entity.followee_id),
         )
+
+
+class FollowAssociation(AbstractCommonBase):
+    followee_id: Mapped[bytes] = mapped_column(
+        BINARY(16), ForeignKey("user_account.id", ondelete="CASCADE"), primary_key=True
+    )
+    follower_id: Mapped[bytes] = mapped_column(
+        BINARY(16), ForeignKey("user_account.id", ondelete="CASCADE"), primary_key=True
+    )

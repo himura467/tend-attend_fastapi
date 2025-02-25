@@ -299,7 +299,9 @@ class EventUseCase:
 
         user_id = followee.user_id
 
-        events = await event_repository.read_with_recurrence_by_user_id_async(user_id)
+        events = await event_repository.read_with_recurrence_by_user_ids_async(
+            {user_id}
+        )
 
         return GetFolloweeEventsResponse(
             events=serialize_events(events), error_codes=()
@@ -318,17 +320,13 @@ class EventUseCase:
                 events=[], error_codes=(ErrorCode.ACCOUNT_NOT_FOUND,)
             )
 
-        followee = await user_account_repository.read_by_id_or_none_async(
-            follower.followee_id
+        followees = await user_account_repository.read_by_ids_async(
+            set(followee.id for followee in follower.followees)
         )
-        if followee is None:
-            return GetFollowerEventsResponse(
-                events=[], error_codes=(ErrorCode.ACCOUNT_NOT_FOUND,)
-            )
 
-        user_id = followee.user_id
+        user_ids = {followee.user_id for followee in followees}
 
-        events = await event_repository.read_with_recurrence_by_user_id_async(user_id)
+        events = await event_repository.read_with_recurrence_by_user_ids_async(user_ids)
 
         return GetFollowerEventsResponse(
             events=serialize_events(events), error_codes=()

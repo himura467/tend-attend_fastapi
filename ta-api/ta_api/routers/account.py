@@ -27,7 +27,7 @@ async def create_user_account(
     birth_date = req.birth_date
     gender = req.gender
     email = req.email
-    followee_username = req.followee_username
+    followee_usernames = req.followee_usernames
 
     uow = SqlalchemyUnitOfWork(session=session)
     use_case = AccountUseCase(uow=uow)
@@ -39,7 +39,7 @@ async def create_user_account(
         birth_date=birth_date,
         gender=gender,
         email=email,
-        followee_username=followee_username,
+        followee_usernames=set(followee_usernames),
     )
 
 

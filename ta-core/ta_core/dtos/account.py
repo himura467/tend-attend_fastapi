@@ -15,7 +15,7 @@ class CreateUserAccountRequest(BaseModel):
     birth_date: datetime = Field(..., title="Birth Date")
     gender: Gender = Field(..., title="Gender")
     email: EmailStr = Field(..., title="Email")
-    followee_username: str | None = Field(None, title="Followee Username")
+    followee_usernames: list[str] = Field(..., title="Followee Usernames")
 
 
 class CreateUserAccountResponse(BaseModelWithErrorCodes):

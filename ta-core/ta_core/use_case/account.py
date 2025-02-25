@@ -33,24 +33,15 @@ class AccountUseCase:
         birth_date: datetime,
         gender: Gender,
         email: EmailStr,
-        # TODO: followee_username は消す
-        followee_username: str | None,
+        followee_usernames: set[str],
     ) -> CreateUserAccountResponse:
         user_account_repository = UserAccountRepository(self.uow)
 
         user_id = await SequenceUserId.id_generator(self.uow)
 
-        followee = (
-            await user_account_repository.read_by_username_or_none_async(
-                followee_username
-            )
-            if followee_username is not None
-            else None
+        followees = await user_account_repository.read_by_usernames_async(
+            followee_usernames
         )
-        if followee is None and followee_username is not None:
-            return CreateUserAccountResponse(
-                error_codes=(ErrorCode.USERNAME_NOT_EXIST,)
-            )
 
         user_account_id = generate_uuid()
         user_account = await user_account_repository.create_user_account_async(
@@ -61,7 +52,8 @@ class AccountUseCase:
             birth_date=birth_date,
             gender=gender,
             email=email,
-            followee_id=followee.id if followee else user_account_id,
+            followee_ids={followee.id for followee in followees},
+            follower_ids=set(),
             nickname=nickname,
         )
         if user_account is None:

@@ -20,7 +20,9 @@ class UserAccount(IEntity):
         gender: Gender,
         email: EmailStr,
         email_verified: bool,
-        followee_id: UUID,
+        followee_ids: list[UUID],
+        followees: list["UserAccount"],
+        follower_ids: list[UUID],
         followers: list["UserAccount"],
     ) -> None:
         super().__init__(entity_id)
@@ -33,7 +35,9 @@ class UserAccount(IEntity):
         self.gender = gender
         self.email = email
         self.email_verified = email_verified
-        self.followee_id = followee_id
+        self.followee_ids = followee_ids
+        self.followees = followees
+        self.follower_ids = follower_ids
         self.followers = followers
 
     def set_refresh_token(self, refresh_token: str) -> "UserAccount":
@@ -48,6 +52,8 @@ class UserAccount(IEntity):
             gender=self.gender,
             email=self.email,
             email_verified=self.email_verified,
-            followee_id=self.followee_id,
+            followee_ids=self.followee_ids,
+            followees=self.followees,
+            follower_ids=self.follower_ids,
             followers=self.followers,
         )
