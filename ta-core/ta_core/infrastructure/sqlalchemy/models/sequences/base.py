@@ -41,5 +41,4 @@ class AbstractSequenceId(AbstractSequenceBase):
             await uow.delete_async(record)
         model = cls(id=new_id)
         uow.add(model)
-        await uow.flush_async()
         return new_id
