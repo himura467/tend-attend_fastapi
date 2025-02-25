@@ -13,9 +13,6 @@ from ta_core.infrastructure.db.settings import (
     SEQUENCE_DB_CONNECTION_KEY,
     SHARD_DB_CONNECTION_KEYS,
 )
-from ta_core.infrastructure.sqlalchemy.models.commons.base import AbstractCommonBase
-from ta_core.infrastructure.sqlalchemy.models.sequences.base import AbstractSequenceBase
-from ta_core.infrastructure.sqlalchemy.models.shards.base import AbstractShardBase
 
 _T = TypeVar("_T", bound=Any)
 
@@ -23,12 +20,13 @@ _T = TypeVar("_T", bound=Any)
 def shard_chooser(
     mapper: Optional[Mapper[_T]], instance: Any, clause: Optional[ClauseElement] = None
 ) -> Any:
-    if isinstance(instance, AbstractCommonBase):
+    shard_ids: tuple[str, ...] = mapper.local_table.info.get("shard_ids") if mapper else ()  # type: ignore[attr-defined]
+    if shard_ids == (COMMON_DB_CONNECTION_KEY,):
         return COMMON_DB_CONNECTION_KEY
-    if isinstance(instance, AbstractShardBase):
+    if shard_ids == SHARD_DB_CONNECTION_KEYS:
         shard_id = db_shard_resolver.resolve_shard_id(int(instance.user_id))
         return SHARD_DB_CONNECTION_KEYS[shard_id]
-    if isinstance(instance, AbstractSequenceBase):
+    if shard_ids == (SEQUENCE_DB_CONNECTION_KEY,):
         return SEQUENCE_DB_CONNECTION_KEY
     raise NotImplementedError()
 

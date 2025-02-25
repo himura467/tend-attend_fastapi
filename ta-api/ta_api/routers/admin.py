@@ -15,7 +15,7 @@ router.include_router(
 
 # TODO: JWT で認証されたユーザーのみがこのエンドポイントを呼び出せるようにする
 @router.post(
-    path="/reset/aurora",
+    path="/aurora/reset",
     name="Reset Aurora DB",
     response_model=ResetAuroraResponse,
 )

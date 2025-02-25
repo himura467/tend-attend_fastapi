@@ -5,9 +5,11 @@ import pytest
 from pydantic.networks import EmailStr
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ta_core.infrastructure.sqlalchemy.repositories.account import HostAccountRepository
+from ta_core.features.account import Gender
+from ta_core.infrastructure.sqlalchemy.models.sequences.sequence import SequenceUserId
+from ta_core.infrastructure.sqlalchemy.repositories.account import UserAccountRepository
 from ta_core.infrastructure.sqlalchemy.repositories.verify import (
-    HostVerificationRepository,
+    EmailVerificationRepository,
 )
 from ta_core.infrastructure.sqlalchemy.unit_of_work import SqlalchemyUnitOfWork
 from ta_core.utils.uuid import UUID, generate_uuid
@@ -15,96 +17,126 @@ from ta_core.utils.uuid import UUID, generate_uuid
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    "host_name, hashed_password, host_email, verification_token, token_expires_at",
+    "username, hashed_password, birth_date, gender, email, nickname, verification_token, token_expires_at",
     [
         (
-            "host_name",
+            "username",
             "hashed_password",
+            datetime(2000, 1, 1, 0, 0, 0, tzinfo=ZoneInfo("UTC")),
+            Gender.MALE,
             "test@example.com",
+            None,
             generate_uuid(),
             datetime(2000, 1, 2, 3, 4, 5, tzinfo=ZoneInfo("UTC")),
         ),
     ],
 )
-async def test_create_host_verification_async(
+async def test_create_email_verification_async(
     test_session: AsyncSession,
-    host_name: str,
+    username: str,
     hashed_password: str,
-    host_email: EmailStr,
+    birth_date: datetime,
+    gender: Gender,
+    email: EmailStr,
+    nickname: str | None,
     verification_token: UUID,
     token_expires_at: datetime,
 ) -> None:
     uow = SqlalchemyUnitOfWork(session=test_session)
-    host_account_repository = HostAccountRepository(uow)
-    host_verification_repository = HostVerificationRepository(uow)
+    user_account_repository = UserAccountRepository(uow)
+    email_verification_repository = EmailVerificationRepository(uow)
 
-    await host_account_repository.create_host_account_async(
-        entity_id=generate_uuid(),
-        host_name=host_name,
+    entity_id = generate_uuid()
+    user_id = await SequenceUserId.id_generator(uow)
+
+    await user_account_repository.create_user_account_async(
+        entity_id=entity_id,
+        user_id=user_id,
+        username=username,
         hashed_password=hashed_password,
-        email=host_email,
+        birth_date=birth_date,
+        gender=gender,
+        email=email,
+        followee_ids=set(),
+        follower_ids=set(),
+        refresh_token=None,
+        nickname=nickname,
     )
-    host_verification = (
-        await host_verification_repository.create_host_verification_async(
+    email_verification = (
+        await email_verification_repository.create_email_verification_async(
             entity_id=generate_uuid(),
-            host_email=host_email,
+            email=email,
             verification_token=verification_token,
             token_expires_at=token_expires_at,
         )
     )
 
-    assert host_verification is not None
-    assert host_verification.host_email == host_email
-    assert host_verification.verification_token == verification_token
-    assert host_verification.token_expires_at == token_expires_at
+    assert email_verification is not None
+    assert email_verification.email == email
+    assert email_verification.verification_token == verification_token
+    assert email_verification.token_expires_at == token_expires_at
 
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    "host_name, hashed_password, host_email, verification_token, token_expires_at, expected_token_expires_at",
+    "username, hashed_password, birth_date, gender, email, nickname, verification_token, token_expires_at",
     [
         (
-            "host_name",
+            "username",
             "hashed_password",
+            datetime(2000, 1, 1, 0, 0, 0, tzinfo=ZoneInfo("UTC")),
+            Gender.MALE,
             "test@example.com",
+            None,
             generate_uuid(),
             datetime(2000, 1, 2, 3, 4, 5, tzinfo=ZoneInfo("UTC")),
-            datetime(2000, 1, 2, 3, 4, 5),
         ),
     ],
 )
-async def test_read_latest_by_host_email_or_none_async(
+async def test_read_latest_by_email_or_none_async(
     test_session: AsyncSession,
-    host_name: str,
+    username: str,
     hashed_password: str,
-    host_email: EmailStr,
+    birth_date: datetime,
+    gender: Gender,
+    email: EmailStr,
+    nickname: str | None,
     verification_token: UUID,
     token_expires_at: datetime,
-    expected_token_expires_at: datetime,
 ) -> None:
     uow = SqlalchemyUnitOfWork(session=test_session)
-    host_account_repository = HostAccountRepository(uow)
-    host_verification_repository = HostVerificationRepository(uow)
+    user_account_repository = UserAccountRepository(uow)
+    email_verification_repository = EmailVerificationRepository(uow)
 
-    await host_account_repository.create_host_account_async(
-        entity_id=generate_uuid(),
-        host_name=host_name,
+    entity_id = generate_uuid()
+    user_id = await SequenceUserId.id_generator(uow)
+
+    await user_account_repository.create_user_account_async(
+        entity_id=entity_id,
+        user_id=user_id,
+        username=username,
         hashed_password=hashed_password,
-        email=host_email,
+        birth_date=birth_date,
+        gender=gender,
+        email=email,
+        followee_ids=set(),
+        follower_ids=set(),
+        refresh_token=None,
+        nickname=nickname,
     )
-    await host_verification_repository.create_host_verification_async(
+    await email_verification_repository.create_email_verification_async(
         entity_id=generate_uuid(),
-        host_email=host_email,
+        email=email,
         verification_token=verification_token,
         token_expires_at=token_expires_at,
     )
-    host_verification = (
-        await host_verification_repository.read_latest_by_host_email_or_none_async(
-            host_email=host_email
+    email_verification = (
+        await email_verification_repository.read_latest_by_email_or_none_async(
+            email=email
         )
     )
 
-    assert host_verification is not None
-    assert host_verification.host_email == host_email
-    assert host_verification.verification_token == verification_token
-    assert host_verification.token_expires_at == expected_token_expires_at
+    assert email_verification is not None
+    assert email_verification.email == email
+    assert email_verification.verification_token == verification_token
+    assert email_verification.token_expires_at == token_expires_at.replace(tzinfo=None)

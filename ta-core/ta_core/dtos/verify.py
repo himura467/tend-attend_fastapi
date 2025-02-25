@@ -5,7 +5,7 @@ from ta_core.dtos.base import BaseModelWithErrorCodes
 
 
 class RequestEmailVerificationRequest(BaseModel):
-    host_email: EmailStr
+    email: EmailStr
 
 
 class RequestEmailVerificationResponse(BaseModelWithErrorCodes):
@@ -13,7 +13,7 @@ class RequestEmailVerificationResponse(BaseModelWithErrorCodes):
 
 
 class VerifyEmailRequest(BaseModel):
-    host_email: EmailStr
+    email: EmailStr
     verification_token: str
 
 

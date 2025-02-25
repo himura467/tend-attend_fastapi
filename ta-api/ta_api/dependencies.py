@@ -23,7 +23,7 @@ class OAuth2Cookie(OAuth2PasswordBearer):
         return access_token
 
 
-cookie_scheme = OAuth2Cookie(tokenUrl="auth/token")
+cookie_scheme = OAuth2Cookie(tokenUrl="auth/tokens/create")
 
 
 @dataclass(frozen=True, eq=True)

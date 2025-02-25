@@ -1,25 +1,27 @@
 from datetime import datetime
-from typing import List
 
 from pydantic.networks import EmailStr
-from sqlalchemy.dialects.mysql import BIGINT, BINARY, DATETIME, ENUM, VARCHAR
+from sqlalchemy.dialects.mysql import BIGINT, BINARY, BOOLEAN, DATETIME, ENUM, VARCHAR
 from sqlalchemy.exc import StatementError
 from sqlalchemy.orm import mapped_column, relationship
 from sqlalchemy.orm.base import Mapped
-from sqlalchemy.sql.schema import ForeignKey, UniqueConstraint
+from sqlalchemy.sql.schema import ForeignKey
 
-from ta_core.domain.entities.account import GuestAccount as GuestAccountEntity
-from ta_core.domain.entities.account import HostAccount as HostAccountEntity
+from ta_core.domain.entities.account import UserAccount as UserAccountEntity
 from ta_core.features.account import Gender
 from ta_core.infrastructure.sqlalchemy.models.commons.base import (
+    AbstractCommonBase,
     AbstractCommonDynamicBase,
 )
 from ta_core.utils.uuid import bin_to_uuid, uuid_to_bin
 
 
-class HostAccount(AbstractCommonDynamicBase):
-    host_name: Mapped[str] = mapped_column(
-        VARCHAR(64), unique=True, nullable=False, comment="Host Name"
+class UserAccount(AbstractCommonDynamicBase):
+    user_id: Mapped[int] = mapped_column(
+        BIGINT(unsigned=True), unique=True, nullable=False, comment="User ID"
+    )
+    username: Mapped[str] = mapped_column(
+        VARCHAR(63), unique=True, nullable=False, comment="Username"
     )
     hashed_password: Mapped[str] = mapped_column(
         VARCHAR(512), nullable=False, comment="Hashed Password"
@@ -27,53 +29,8 @@ class HostAccount(AbstractCommonDynamicBase):
     refresh_token: Mapped[str | None] = mapped_column(
         VARCHAR(512), nullable=True, comment="Refresh Token"
     )
-    email: Mapped[EmailStr] = mapped_column(
-        VARCHAR(64), unique=True, nullable=False, comment="Email Address"
-    )
-    user_id: Mapped[int | None] = mapped_column(
-        BIGINT(unsigned=True), unique=True, nullable=True, comment="User ID"
-    )
-    guests: Mapped[List["GuestAccount"]] = relationship(
-        back_populates="host", uselist=True
-    )
-
-    def to_entity(self) -> HostAccountEntity:
-        try:
-            guests = [guest.to_entity() for guest in self.guests]
-        except StatementError:
-            guests = None
-
-        return HostAccountEntity(
-            entity_id=bin_to_uuid(self.id),
-            host_name=self.host_name,
-            hashed_password=self.hashed_password,
-            refresh_token=self.refresh_token,
-            email=self.email,
-            user_id=self.user_id,
-            guests=guests,
-        )
-
-    @classmethod
-    def from_entity(cls, entity: HostAccountEntity) -> "HostAccount":
-        return cls(
-            id=uuid_to_bin(entity.id),
-            host_name=entity.host_name,
-            hashed_password=entity.hashed_password,
-            refresh_token=entity.refresh_token,
-            email=entity.email,
-            user_id=entity.user_id,
-        )
-
-
-class GuestAccount(AbstractCommonDynamicBase):
-    guest_first_name: Mapped[str] = mapped_column(
-        VARCHAR(64), nullable=False, comment="Guest First Name"
-    )
-    guest_last_name: Mapped[str] = mapped_column(
-        VARCHAR(64), nullable=False, comment="Guest Last Name"
-    )
-    guest_nickname: Mapped[str | None] = mapped_column(
-        VARCHAR(64), nullable=True, comment="Guest Nickname"
+    nickname: Mapped[str | None] = mapped_column(
+        VARCHAR(63), nullable=True, comment="Nickname"
     )
     birth_date: Mapped[datetime] = mapped_column(
         DATETIME(timezone=True), nullable=False, comment="Birth Date"
@@ -81,53 +38,80 @@ class GuestAccount(AbstractCommonDynamicBase):
     gender: Mapped[Gender] = mapped_column(
         ENUM(Gender), nullable=False, comment="Gender"
     )
-    hashed_password: Mapped[str] = mapped_column(
-        VARCHAR(512), nullable=False, comment="Hashed Password"
+    email: Mapped[EmailStr] = mapped_column(
+        VARCHAR(63), unique=True, nullable=False, comment="Email Address"
     )
-    refresh_token: Mapped[str | None] = mapped_column(
-        VARCHAR(512), nullable=True, comment="Refresh Token"
+    email_verified: Mapped[bool] = mapped_column(
+        BOOLEAN, nullable=False, comment="Email Verified"
     )
-    user_id: Mapped[int] = mapped_column(
-        BIGINT(unsigned=True), unique=True, nullable=False, comment="User ID"
+    followees: Mapped[list["UserAccount"]] = relationship(
+        secondary="follow_association",
+        primaryjoin="UserAccount.id == FollowAssociation.follower_id",
+        secondaryjoin="UserAccount.id == FollowAssociation.followee_id",
+        back_populates="followers",
     )
-    host_id: Mapped[bytes] = mapped_column(
-        BINARY(16), ForeignKey("host_account.id", ondelete="CASCADE"), nullable=False
+    followers: Mapped[list["UserAccount"]] = relationship(
+        secondary="follow_association",
+        primaryjoin="UserAccount.id == FollowAssociation.followee_id",
+        secondaryjoin="UserAccount.id == FollowAssociation.follower_id",
+        back_populates="followees",
     )
-    host: Mapped["HostAccount"] = relationship(back_populates="guests", uselist=False)
 
-    def to_entity(self) -> GuestAccountEntity:
-        return GuestAccountEntity(
+    def to_entity(self, depth: int = 1) -> UserAccountEntity:
+        try:
+            followees = (
+                [followee.to_entity(depth=depth - 1) for followee in self.followees]
+                if depth > 0
+                else []
+            )
+        except StatementError:
+            followees = []
+        try:
+            followers = (
+                [follower.to_entity(depth=depth - 1) for follower in self.followers]
+                if depth > 0
+                else []
+            )
+        except StatementError:
+            followers = []
+
+        return UserAccountEntity(
             entity_id=bin_to_uuid(self.id),
-            guest_first_name=self.guest_first_name,
-            guest_last_name=self.guest_last_name,
-            guest_nickname=self.guest_nickname,
-            birth_date=self.birth_date,
-            gender=self.gender,
+            user_id=self.user_id,
+            username=self.username,
             hashed_password=self.hashed_password,
             refresh_token=self.refresh_token,
-            user_id=self.user_id,
-            host_id=bin_to_uuid(self.host_id),
+            nickname=self.nickname,
+            birth_date=self.birth_date,
+            gender=self.gender,
+            email=self.email,
+            email_verified=self.email_verified,
+            followee_ids=[followee.id for followee in followees],
+            followees=followees,
+            follower_ids=[follower.id for follower in followers],
+            followers=followers,
         )
 
     @classmethod
-    def from_entity(cls, entity: GuestAccountEntity) -> "GuestAccount":
+    def from_entity(cls, entity: UserAccountEntity) -> "UserAccount":
         return cls(
             id=uuid_to_bin(entity.id),
-            guest_first_name=entity.guest_first_name,
-            guest_last_name=entity.guest_last_name,
-            guest_nickname=entity.guest_nickname,
-            birth_date=entity.birth_date,
-            gender=entity.gender,
+            user_id=entity.user_id,
+            username=entity.username,
             hashed_password=entity.hashed_password,
             refresh_token=entity.refresh_token,
-            user_id=entity.user_id,
-            host_id=uuid_to_bin(entity.host_id),
+            nickname=entity.nickname,
+            birth_date=entity.birth_date,
+            gender=entity.gender,
+            email=entity.email,
+            email_verified=entity.email_verified,
         )
 
 
-UniqueConstraint(
-    GuestAccount.guest_first_name,
-    GuestAccount.guest_last_name,
-    GuestAccount.guest_nickname,
-    GuestAccount.host_id,
-)
+class FollowAssociation(AbstractCommonBase):
+    followee_id: Mapped[bytes] = mapped_column(
+        BINARY(16), ForeignKey("user_account.id", ondelete="CASCADE"), primary_key=True
+    )
+    follower_id: Mapped[bytes] = mapped_column(
+        BINARY(16), ForeignKey("user_account.id", ondelete="CASCADE"), primary_key=True
+    )

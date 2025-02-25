@@ -126,12 +126,12 @@ class EventRepository(AbstractRepository[EventEntity, Event]):
         )
         return await self.create_async(event)
 
-    async def read_with_recurrence_by_user_id_async(
-        self, user_id: int
+    async def read_with_recurrence_by_user_ids_async(
+        self, user_ids: set[int]
     ) -> tuple[EventEntity, ...]:
         stmt = (
             select(self._model)
-            .where(self._model.user_id == user_id)
+            .where(self._model.user_id.in_(user_ids))
             .options(joinedload(Event.recurrence).joinedload(Recurrence.rrule))
         )
         result = await self._uow.execute_async(stmt)

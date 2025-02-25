@@ -7,10 +7,9 @@ from pydantic.networks import EmailStr
 from ta_core.dtos.verify import RequestEmailVerificationResponse, VerifyEmailResponse
 from ta_core.error.error_code import ErrorCode
 from ta_core.infrastructure.db.transaction import rollbackable
-from ta_core.infrastructure.sqlalchemy.models.sequences.sequence import SequenceUserId
-from ta_core.infrastructure.sqlalchemy.repositories.account import HostAccountRepository
+from ta_core.infrastructure.sqlalchemy.repositories.account import UserAccountRepository
 from ta_core.infrastructure.sqlalchemy.repositories.verify import (
-    HostVerificationRepository,
+    EmailVerificationRepository,
 )
 from ta_core.use_case.unit_of_work_base import IUnitOfWork
 from ta_core.utils.smtp import send_verification_email_async
@@ -25,79 +24,71 @@ class VerifyUseCase:
 
     @rollbackable
     async def request_email_verification_async(
-        self, host_email: EmailStr
+        self, email: EmailStr
     ) -> RequestEmailVerificationResponse:
-        host_account_repository = HostAccountRepository(self.uow)
-        host_verification_repository = HostVerificationRepository(self.uow)
+        user_account_repository = UserAccountRepository(self.uow)
+        email_verification_repository = EmailVerificationRepository(self.uow)
 
-        host_account = await host_account_repository.read_by_email_or_none_async(
-            host_email
-        )
-        if host_account is None:
+        user_account = await user_account_repository.read_by_email_or_none_async(email)
+        if user_account is None:
             return RequestEmailVerificationResponse(
-                error_codes=(ErrorCode.HOST_EMAIL_NOT_EXIST,)
+                error_codes=(ErrorCode.EMAIL_NOT_REGISTERED,)
             )
-        if host_account.user_id is not None:
+        if user_account.email_verified:
             return RequestEmailVerificationResponse(
-                error_codes=(ErrorCode.HOST_EMAIL_ALREADY_VERIFIED,)
+                error_codes=(ErrorCode.EMAIL_ALREADY_VERIFIED,)
             )
 
         verification_token = generate_uuid()
         token_expires_at = datetime.now(ZoneInfo("UTC")) + self._TOKEN_EXPIRES
-        host_verification = (
-            await host_verification_repository.create_host_verification_async(
+        email_verification = (
+            await email_verification_repository.create_email_verification_async(
                 entity_id=generate_uuid(),
-                host_email=host_email,
+                email=email,
                 verification_token=verification_token,
                 token_expires_at=token_expires_at,
             )
         )
-        if host_verification is None:
-            raise Exception("Failed to create host verification")
+        if email_verification is None:
+            raise Exception("Failed to create email verification")
 
         verification_link = f"https://example.com/verify?token={verification_token}"
 
-        error_codes = await send_verification_email_async(host_email, verification_link)
+        error_codes = await send_verification_email_async(email, verification_link)
         return RequestEmailVerificationResponse(error_codes=error_codes)
 
     @rollbackable
     async def verify_email_async(
-        self, host_email: EmailStr, verification_token: str
+        self, email: EmailStr, verification_token: str
     ) -> VerifyEmailResponse:
-        host_account_repository = HostAccountRepository(self.uow)
-        host_verification_repository = HostVerificationRepository(self.uow)
+        user_account_repository = UserAccountRepository(self.uow)
+        email_verification_repository = EmailVerificationRepository(self.uow)
 
-        user_id = await SequenceUserId.id_generator(self.uow)
+        user_account = await user_account_repository.read_by_email_or_none_async(email)
+        if user_account is None:
+            return VerifyEmailResponse(error_codes=(ErrorCode.EMAIL_NOT_REGISTERED,))
+        if user_account.email_verified:
+            return VerifyEmailResponse(error_codes=(ErrorCode.EMAIL_ALREADY_VERIFIED,))
 
-        host_account = await host_account_repository.read_by_email_or_none_async(
-            host_email
-        )
-        if host_account is None:
-            return VerifyEmailResponse(error_codes=(ErrorCode.HOST_EMAIL_NOT_EXIST,))
-        if host_account.user_id is not None:
-            return VerifyEmailResponse(
-                error_codes=(ErrorCode.HOST_EMAIL_ALREADY_VERIFIED,)
-            )
-
-        host_verification = (
-            await host_verification_repository.read_latest_by_host_email_or_none_async(
-                host_email
+        email_verification = (
+            await email_verification_repository.read_latest_by_email_or_none_async(
+                email
             )
         )
-        if host_verification is None:
+        if email_verification is None:
             return VerifyEmailResponse(
                 error_codes=(ErrorCode.VERIFICATION_TOKEN_NOT_EXIST,)
             )
-        if host_verification.verification_token != verification_token:
+        if email_verification.verification_token != verification_token:
             return VerifyEmailResponse(
                 error_codes=(ErrorCode.VERIFICATION_TOKEN_INVALID,)
             )
-        if host_verification.token_expires_at < datetime.now(ZoneInfo("UTC")):
+        if email_verification.token_expires_at < datetime.now(ZoneInfo("UTC")):
             return VerifyEmailResponse(
                 error_codes=(ErrorCode.VERIFICATION_TOKEN_EXPIRED,)
             )
 
-        host_account.user_id = user_id
-        await host_account_repository.update_async(host_account)
+        user_account.email_verified = True
+        await user_account_repository.update_async(user_account)
 
         return VerifyEmailResponse(error_codes=())

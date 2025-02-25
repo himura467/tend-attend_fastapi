@@ -20,5 +20,9 @@ class RefreshAuthTokenRequest(BaseModel):
     refresh_token: str = Field(..., title="Refresh Token")
 
 
+class CreateAuthTokenResponse(BaseModelWithErrorCodes):
+    pass
+
+
 class RefreshAuthTokenResponse(BaseModelWithErrorCodes):
     pass

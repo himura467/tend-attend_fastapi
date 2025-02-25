@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Response, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio.session import AsyncSession
 from ta_core.dtos.auth import (
-    AuthToken,
+    CreateAuthTokenResponse,
     RefreshAuthTokenRequest,
     RefreshAuthTokenResponse,
 )
@@ -17,25 +17,27 @@ from ta_api.constants import ACCESS_TOKEN_NAME, COOKIE_DOMAIN, REFRESH_TOKEN_NAM
 router = APIRouter()
 
 
-@router.post(path="/token", name="Create Auth Token", response_model=AuthToken)
+@router.post(
+    path="/tokens/create",
+    name="Create Auth Token",
+    response_model=CreateAuthTokenResponse,
+)
 async def create_auth_token(
     response: Response,
     form_data: OAuth2PasswordRequestForm = Depends(),
     session: AsyncSession = Depends(get_db_async),
-) -> AuthToken:
-    auth_info_json = form_data.username
+) -> CreateAuthTokenResponse:
+    username = form_data.username
     password = form_data.password
 
     uow = SqlalchemyUnitOfWork(session=session)
     use_case = AuthUseCase(uow=uow)
 
-    res = await use_case.authenticate_async(
-        auth_info_json=auth_info_json, password=password
-    )
+    res = await use_case.auth_user_async(username=username, password=password)
     if res.auth_token is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect auth_info or password",
+            detail="Incorrect username or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
@@ -64,11 +66,11 @@ async def create_auth_token(
         samesite="strict",
     )
 
-    return res.auth_token
+    return CreateAuthTokenResponse(error_codes=res.error_codes)
 
 
 @router.post(
-    path="/token/refresh",
+    path="/tokens/refresh",
     name="Refresh Auth Token",
     response_model=RefreshAuthTokenResponse,
 )

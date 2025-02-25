@@ -116,7 +116,7 @@ class RecurrenceRule(AbstractShardStaticBase):
 class Recurrence(AbstractShardStaticBase):
     rrule_id: Mapped[bytes] = mapped_column(
         BINARY(16),
-        ForeignKey("recurrence_rule.id", ondelete="RESTRICT"),
+        ForeignKey("recurrence_rule.id", ondelete="CASCADE"),
         nullable=False,
     )
     rrule: Mapped[RecurrenceRule] = relationship(uselist=False)
@@ -148,10 +148,10 @@ class Recurrence(AbstractShardStaticBase):
 
 class Event(AbstractShardDynamicBase):
     summary: Mapped[str] = mapped_column(
-        VARCHAR(64), unique=True, nullable=False, comment="Summary"
+        VARCHAR(63), unique=True, nullable=False, comment="Summary"
     )
     location: Mapped[str | None] = mapped_column(
-        VARCHAR(64), nullable=True, comment="Location"
+        VARCHAR(63), nullable=True, comment="Location"
     )
     start: Mapped[datetime] = mapped_column(
         DATETIME(timezone=True), nullable=False, comment="Start"
@@ -164,11 +164,11 @@ class Event(AbstractShardDynamicBase):
     )
     recurrence_id: Mapped[bytes | None] = mapped_column(
         BINARY(16),
-        ForeignKey("recurrence.id", ondelete="RESTRICT"),
+        ForeignKey("recurrence.id", ondelete="CASCADE"),
         nullable=True,
     )
     timezone: Mapped[str] = mapped_column(
-        VARCHAR(64), nullable=False, comment="Timezone"
+        VARCHAR(63), nullable=False, comment="Timezone"
     )
     recurrence: Mapped[Recurrence | None] = relationship(uselist=False)
 

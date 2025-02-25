@@ -5,19 +5,15 @@ from pydantic.networks import EmailStr
 
 from ta_core.cryptography.hash import PasswordHasher
 from ta_core.dtos.account import (
-    CreateGuestAccountResponse,
-    CreateHostAccountResponse,
-    GetGuestsInfoResponse,
-    GuestInfo,
+    CreateUserAccountResponse,
+    FollowerInfo,
+    GetFollowersInfoResponse,
 )
 from ta_core.error.error_code import ErrorCode
 from ta_core.features.account import Gender
 from ta_core.infrastructure.db.transaction import rollbackable
 from ta_core.infrastructure.sqlalchemy.models.sequences.sequence import SequenceUserId
-from ta_core.infrastructure.sqlalchemy.repositories.account import (
-    GuestAccountRepository,
-    HostAccountRepository,
-)
+from ta_core.infrastructure.sqlalchemy.repositories.account import UserAccountRepository
 from ta_core.use_case.unit_of_work_base import IUnitOfWork
 from ta_core.utils.uuid import UUID, generate_uuid, uuid_to_str
 
@@ -29,93 +25,68 @@ class AccountUseCase:
     _password_hasher = PasswordHasher()
 
     @rollbackable
-    async def create_host_account_async(
-        self, host_name: str, password: str, email: EmailStr
-    ) -> CreateHostAccountResponse:
-        host_account_repository = HostAccountRepository(self.uow)
-
-        # TODO: Verification が実装出来たら消す
-        user_id = await SequenceUserId.id_generator(self.uow)
-
-        host_account = await host_account_repository.create_host_account_async(
-            entity_id=generate_uuid(),
-            host_name=host_name,
-            hashed_password=self._password_hasher.get_password_hash(password),
-            email=email,
-            user_id=user_id,  # TODO: Verification が実装出来たら消す
-        )
-        if host_account is None:
-            return CreateHostAccountResponse(
-                error_codes=(ErrorCode.HOST_NAME_OR_EMAIL_ALREADY_REGISTERED,)
-            )
-
-        return CreateHostAccountResponse(error_codes=())
-
-    @rollbackable
-    async def create_guest_account_async(
+    async def create_user_account_async(
         self,
-        guest_first_name: str,
-        guest_last_name: str,
-        guest_nickname: str | None,
+        username: str,
+        password: str,
+        nickname: str,
         birth_date: datetime,
         gender: Gender,
-        password: str,
-        host_name: str,
-    ) -> CreateGuestAccountResponse:
-        host_account_repository = HostAccountRepository(self.uow)
-        guest_account_repository = GuestAccountRepository(self.uow)
+        email: EmailStr,
+        followee_usernames: set[str],
+    ) -> CreateUserAccountResponse:
+        user_account_repository = UserAccountRepository(self.uow)
 
         user_id = await SequenceUserId.id_generator(self.uow)
 
-        host_account = await host_account_repository.read_by_host_name_or_none_async(
-            host_name=host_name
+        followees = await user_account_repository.read_by_usernames_async(
+            followee_usernames
         )
-        if host_account is None:
-            return CreateGuestAccountResponse(
-                error_codes=(ErrorCode.HOST_NAME_NOT_EXIST,)
-            )
 
-        guest_account = await guest_account_repository.create_guest_account_async(
-            entity_id=generate_uuid(),
-            guest_first_name=guest_first_name,
-            guest_last_name=guest_last_name,
-            guest_nickname=guest_nickname,
+        user_account_id = generate_uuid()
+        user_account = await user_account_repository.create_user_account_async(
+            entity_id=user_account_id,
+            user_id=user_id,
+            username=username,
+            hashed_password=self._password_hasher.get_password_hash(password),
             birth_date=birth_date,
             gender=gender,
-            hashed_password=self._password_hasher.get_password_hash(password),
-            user_id=user_id,
-            host_id=host_account.id,
+            email=email,
+            followee_ids={followee.id for followee in followees},
+            follower_ids=set(),
+            nickname=nickname,
         )
-        if guest_account is None:
-            return CreateGuestAccountResponse(
-                error_codes=(ErrorCode.GUEST_NAME_ALREADY_REGISTERED,)
+        if user_account is None:
+            return CreateUserAccountResponse(
+                error_codes=(ErrorCode.USERNAME_OR_EMAIL_ALREADY_REGISTERED,)
             )
 
-        return CreateGuestAccountResponse(error_codes=())
+        return CreateUserAccountResponse(error_codes=())
 
     @rollbackable
-    async def get_guests_info_async(self, host_id: UUID) -> GetGuestsInfoResponse:
-        host_account_repository = HostAccountRepository(self.uow)
+    async def get_followers_info_async(
+        self, followee_id: UUID
+    ) -> GetFollowersInfoResponse:
+        user_account_repository = UserAccountRepository(self.uow)
 
-        host_account = (
-            await host_account_repository.read_with_guests_by_id_or_none_async(host_id)
+        followee = (
+            await user_account_repository.read_with_followers_by_id_or_none_async(
+                followee_id
+            )
         )
-        if host_account is None:
-            raise ValueError("Host ID not found")
+        if followee is None:
+            raise ValueError("Followee ID not found")
 
-        return GetGuestsInfoResponse(
+        return GetFollowersInfoResponse(
             error_codes=(),
-            guests=(
+            followers=(
                 tuple(
-                    GuestInfo(
-                        account_id=uuid_to_str(guest.id),
-                        first_name=guest.guest_first_name,
-                        last_name=guest.guest_last_name,
-                        nickname=guest.guest_nickname,
+                    FollowerInfo(
+                        account_id=uuid_to_str(follower.id),
+                        username=follower.username,
+                        nickname=follower.nickname,
                     )
-                    for guest in host_account.guests
+                    for follower in followee.followers
                 )
-                if host_account.guests
-                else tuple()
             ),
         )
