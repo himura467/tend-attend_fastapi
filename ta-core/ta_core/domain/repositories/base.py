@@ -37,7 +37,7 @@ class IRepository(Generic[TEntity, TModel], metaclass=ABCMeta):
         raise NotImplementedError()
 
     @abstractmethod
-    async def read_all_async(self) -> tuple[TEntity, ...]:
+    async def read_all_async(self, where: tuple[Any, ...]) -> tuple[TEntity, ...]:
         raise NotImplementedError()
 
     @abstractmethod

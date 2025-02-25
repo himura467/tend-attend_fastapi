@@ -59,8 +59,8 @@ class AbstractRepository(IRepository[TEntity, TModel]):
         record = result.scalar_one_or_none()
         return record.to_entity() if record is not None else None
 
-    async def read_all_async(self) -> tuple[TEntity, ...]:
-        stmt = select(self._model)
+    async def read_all_async(self, where: tuple[Any, ...]) -> tuple[TEntity, ...]:
+        stmt = select(self._model).where(*where)
         result = await self._uow.execute_async(stmt)
         return tuple(record.to_entity() for record in result.scalars().all())
 
