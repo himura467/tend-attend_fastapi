@@ -38,6 +38,9 @@ class UserAccountRepository(AbstractRepository[UserAccountEntity, UserAccount]):
             result = await self._uow.execute_async(stmt)
             return result.scalars().all()
 
+        followees = await read_models_by_ids_async(followee_ids)
+        followers = await read_models_by_ids_async(follower_ids)
+
         user_account = UserAccount(
             id=uuid_to_bin(entity_id),
             user_id=user_id,
@@ -50,8 +53,9 @@ class UserAccountRepository(AbstractRepository[UserAccountEntity, UserAccount]):
             email=email,
             email_verified=False,
         )
-        user_account.followees = await read_models_by_ids_async(followee_ids)
-        user_account.followers = await read_models_by_ids_async(follower_ids)
+        user_account.followees = followees
+        user_account.followers = followers
+        self._uow.add(user_account)
 
         async with self._uow.begin_nested() as savepoint:
             try:
