@@ -16,7 +16,7 @@ from ta_core.use_case.unit_of_work_base import IUnitOfWork
 class AuthUseCase:
     uow: IUnitOfWork
 
-    # TODO: should be hidden
+    # TODO: 多分秘匿した方がいい
     # openssl rand -hex 32
     _SECRET_KEY = "58ae582561d69d9cd9853c01a75e6b51553c304a76d3065aad67644a0d4d26a9"
     _ALGORITHM = "HS256"
