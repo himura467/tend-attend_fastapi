@@ -49,7 +49,8 @@ async def test_create_user_account_async(
         birth_date=birth_date,
         gender=gender,
         email=email,
-        followee_id=entity_id,
+        followee_ids=set(),
+        follower_ids=set(),
         refresh_token=None,
         nickname=nickname,
     )
@@ -60,7 +61,8 @@ async def test_create_user_account_async(
     assert user_account.birth_date == birth_date
     assert user_account.gender == gender
     assert user_account.email == email
-    assert user_account.followee_id == entity_id
+    assert user_account.followees == []
+    assert user_account.followers == []
     assert user_account.refresh_token is None
     assert user_account.nickname == nickname
 
@@ -102,7 +104,8 @@ async def test_read_by_username_or_none_async(
         birth_date=birth_date,
         gender=gender,
         email=email,
-        followee_id=entity_id,
+        followee_ids=set(),
+        follower_ids=set(),
         refresh_token=None,
         nickname=nickname,
     )
@@ -116,9 +119,72 @@ async def test_read_by_username_or_none_async(
     assert user_account.birth_date == birth_date.replace(tzinfo=None)
     assert user_account.gender == gender
     assert user_account.email == email
-    assert user_account.followee_id == entity_id
+    assert user_account.followees == []
+    assert user_account.followers == []
     assert user_account.refresh_token is None
     assert user_account.nickname == nickname
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "usernames, hashed_password, birth_date, gender, emails, nickname",
+    [
+        (
+            ["username0", "username1"],
+            "hashed_password",
+            datetime(2000, 1, 1, 0, 0, 0, tzinfo=ZoneInfo("UTC")),
+            Gender.MALE,
+            ["user0@example.com", "user1@example.com"],
+            None,
+        ),
+    ],
+)
+async def test_read_by_usernames_async(
+    test_session: AsyncSession,
+    usernames: list[str],
+    hashed_password: str,
+    birth_date: datetime,
+    gender: Gender,
+    emails: list[EmailStr],
+    nickname: str | None,
+) -> None:
+    uow = SqlalchemyUnitOfWork(session=test_session)
+    user_account_repository = UserAccountRepository(uow)
+
+    for username, email in zip(usernames, emails):
+        entity_id = generate_uuid()
+        user_id = await SequenceUserId.id_generator(uow)
+
+        await user_account_repository.create_user_account_async(
+            entity_id=entity_id,
+            user_id=user_id,
+            username=username,
+            hashed_password=hashed_password,
+            birth_date=birth_date,
+            gender=gender,
+            email=email,
+            followee_ids=set(),
+            follower_ids=set(),
+            refresh_token=None,
+            nickname=nickname,
+        )
+
+    user_accounts = await user_account_repository.read_by_usernames_async(
+        usernames=set(usernames)
+    )
+
+    assert len(user_accounts) == len(usernames)
+    for user_account, username, email in zip(user_accounts, usernames, emails):
+        assert user_account is not None
+        assert user_account.username == username
+        assert user_account.hashed_password == hashed_password
+        assert user_account.birth_date == birth_date.replace(tzinfo=None)
+        assert user_account.gender == gender
+        assert user_account.email == email
+        assert user_account.followees == []
+        assert user_account.followers == []
+        assert user_account.refresh_token is None
+        assert user_account.nickname == nickname
 
 
 @pytest.mark.asyncio
@@ -158,7 +224,8 @@ async def test_read_by_email_or_none_async(
         birth_date=birth_date,
         gender=gender,
         email=email,
-        followee_id=entity_id,
+        followee_ids=set(),
+        follower_ids=set(),
         refresh_token=None,
         nickname=nickname,
     )
@@ -172,9 +239,79 @@ async def test_read_by_email_or_none_async(
     assert user_account.birth_date == birth_date.replace(tzinfo=None)
     assert user_account.gender == gender
     assert user_account.email == email
-    assert user_account.followee_id == entity_id
+    assert user_account.followees == []
+    assert user_account.followers == []
     assert user_account.refresh_token is None
     assert user_account.nickname == nickname
+
+
+@pytest.mark.asyncio
+async def test_read_with_followees_by_id_or_none_async(
+    test_session: AsyncSession,
+) -> None:
+    uow = SqlalchemyUnitOfWork(session=test_session)
+    user_account_repository = UserAccountRepository(uow)
+
+    user0_entity_id = generate_uuid()
+    user1_entity_id = generate_uuid()
+    user0_user_id = await SequenceUserId.id_generator(uow)
+    user1_user_id = await SequenceUserId.id_generator(uow)
+
+    hashed_password = "hashed_password"
+    birth_date = datetime(2000, 1, 1, 0, 0, 0, tzinfo=ZoneInfo("UTC"))
+    gender = Gender.MALE
+    nickname = None
+
+    await user_account_repository.create_user_account_async(
+        entity_id=user0_entity_id,
+        user_id=user0_user_id,
+        username="username0",
+        hashed_password=hashed_password,
+        birth_date=birth_date,
+        gender=gender,
+        email="user0@example.com",
+        followee_ids=set(),
+        follower_ids=set(),
+        refresh_token=None,
+        nickname=nickname,
+    )
+    await user_account_repository.create_user_account_async(
+        entity_id=user1_entity_id,
+        user_id=user1_user_id,
+        username="username1",
+        hashed_password=hashed_password,
+        birth_date=birth_date,
+        gender=gender,
+        email="user1@example.com",
+        followee_ids={user0_entity_id},
+        follower_ids=set(),
+        refresh_token=None,
+        nickname=nickname,
+    )
+
+    user1 = await user_account_repository.read_with_followees_by_id_or_none_async(
+        record_id=user1_entity_id
+    )
+
+    assert user1 is not None
+    assert len(user1.followees) == 1
+    assert len(user1.followers) == 0
+    assert user1.followees[0].id == user0_entity_id
+    assert user1.followees[0].user_id == user0_user_id
+    assert user1.followees[0].followees == []
+    assert user1.followees[0].followers == []
+
+    user0 = await user_account_repository.read_with_followers_by_id_or_none_async(
+        record_id=user0_entity_id
+    )
+
+    assert user0 is not None
+    assert len(user0.followees) == 0
+    assert len(user0.followers) == 1
+    assert user0.followers[0].id == user1_entity_id
+    assert user0.followers[0].user_id == user1_user_id
+    assert user0.followers[0].followees == []
+    assert user0.followers[0].followers == []
 
 
 @pytest.mark.asyncio
@@ -202,7 +339,8 @@ async def test_read_with_followers_by_id_or_none_async(
         birth_date=birth_date,
         gender=gender,
         email="user0@example.com",
-        followee_id=user0_entity_id,
+        followee_ids=set(),
+        follower_ids=set(),
         refresh_token=None,
         nickname=nickname,
     )
@@ -214,20 +352,32 @@ async def test_read_with_followers_by_id_or_none_async(
         birth_date=birth_date,
         gender=gender,
         email="user1@example.com",
-        followee_id=user0_entity_id,
+        followee_ids=set(),
+        follower_ids={user0_entity_id},
         refresh_token=None,
         nickname=nickname,
     )
 
-    followee = await user_account_repository.read_with_followers_by_id_or_none_async(
-        record_id=user0_entity_id
-    )
-    follower = await user_account_repository.read_with_followers_by_id_or_none_async(
+    user1 = await user_account_repository.read_with_followers_by_id_or_none_async(
         record_id=user1_entity_id
     )
 
-    assert followee is not None
-    assert follower is not None
-    assert len(followee.followers) == 2
-    assert followee.followers[0].id == user0_entity_id
-    assert followee.followers[1].id == user1_entity_id
+    assert user1 is not None
+    assert len(user1.followees) == 0
+    assert len(user1.followers) == 1
+    assert user1.followers[0].id == user0_entity_id
+    assert user1.followers[0].user_id == user0_user_id
+    assert user1.followers[0].followees == []
+    assert user1.followers[0].followers == []
+
+    user0 = await user_account_repository.read_with_followees_by_id_or_none_async(
+        record_id=user0_entity_id
+    )
+
+    assert user0 is not None
+    assert len(user0.followees) == 1
+    assert len(user0.followers) == 0
+    assert user0.followees[0].id == user1_entity_id
+    assert user0.followees[0].user_id == user1_user_id
+    assert user0.followees[0].followees == []
+    assert user0.followees[0].followers == []

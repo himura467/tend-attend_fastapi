@@ -57,7 +57,8 @@ async def test_create_email_verification_async(
         birth_date=birth_date,
         gender=gender,
         email=email,
-        followee_id=entity_id,
+        followee_ids=set(),
+        follower_ids=set(),
         refresh_token=None,
         nickname=nickname,
     )
@@ -118,7 +119,8 @@ async def test_read_latest_by_email_or_none_async(
         birth_date=birth_date,
         gender=gender,
         email=email,
-        followee_id=entity_id,
+        followee_ids=set(),
+        follower_ids=set(),
         refresh_token=None,
         nickname=nickname,
     )
