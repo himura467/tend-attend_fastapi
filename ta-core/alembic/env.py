@@ -58,7 +58,7 @@ def create_metadata_for_db(db_name: str) -> MetaData:
         if isinstance(member, DeclarativeAttributeIntercept)
     )
     for member in declarative_members:
-        member.id.table.tometadata(metadata)  # type: ignore[attr-defined]
+        member.__table__.tometadata(metadata)  # type: ignore[attr-defined]
 
     return metadata
 
