@@ -53,12 +53,12 @@ class UserAccountRepository(AbstractRepository[UserAccountEntity, UserAccount]):
             email=email,
             email_verified=False,
         )
-        user_account.followees = followees
-        user_account.followers = followers
-        self._uow.add(user_account)
 
         async with self._uow.begin_nested() as savepoint:
             try:
+                user_account.followees = followees
+                user_account.followers = followers
+
                 self._uow.add(user_account)
                 await self._uow.flush_async()
                 return user_account.to_entity()
