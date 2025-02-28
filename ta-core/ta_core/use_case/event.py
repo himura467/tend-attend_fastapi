@@ -9,7 +9,7 @@ from ta_core.dtos.event import Event as EventDto
 from ta_core.dtos.event import EventWithId as EventWithIdDto
 from ta_core.dtos.event import (
     GetFolloweeEventsResponse,
-    GetFollowerEventsResponse,
+    GetFollowingEventsResponse,
     GetGuestCurrentAttendanceStatusResponse,
 )
 from ta_core.error.error_code import ErrorCode
@@ -308,15 +308,15 @@ class EventUseCase:
         )
 
     @rollbackable
-    async def get_follower_events_async(
+    async def get_following_events_async(
         self, follower_id: UUID
-    ) -> GetFollowerEventsResponse:
+    ) -> GetFollowingEventsResponse:
         user_account_repository = UserAccountRepository(self.uow)
         event_repository = EventRepository(self.uow)
 
         follower = await user_account_repository.read_by_id_or_none_async(follower_id)
         if follower is None:
-            return GetFollowerEventsResponse(
+            return GetFollowingEventsResponse(
                 events=[], error_codes=(ErrorCode.ACCOUNT_NOT_FOUND,)
             )
 
@@ -324,11 +324,11 @@ class EventUseCase:
             set(followee.id for followee in follower.followees)
         )
 
-        user_ids = {followee.user_id for followee in followees}
+        user_ids = {followee.user_id for followee in followees} | {follower.user_id}
 
         events = await event_repository.read_with_recurrence_by_user_ids_async(user_ids)
 
-        return GetFollowerEventsResponse(
+        return GetFollowingEventsResponse(
             events=serialize_events(events), error_codes=()
         )
 

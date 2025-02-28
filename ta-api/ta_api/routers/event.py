@@ -8,7 +8,7 @@ from ta_core.dtos.event import (
     CreateEventRequest,
     CreateEventResponse,
     GetFolloweeEventsResponse,
-    GetFollowerEventsResponse,
+    GetFollowingEventsResponse,
     GetGuestCurrentAttendanceStatusResponse,
 )
 from ta_core.features.account import Account, Role
@@ -85,18 +85,18 @@ async def get_followee_events(
 
 
 @router.get(
-    path="/followers",
-    name="Get Follower Events",
-    response_model=GetFollowerEventsResponse,
+    path="/following",
+    name="Get Following Events",
+    response_model=GetFollowingEventsResponse,
 )
-async def get_follower_events(
+async def get_following_events(
     session: AsyncSession = Depends(get_db_async),
     account: Account = Depends(AccessControl(permit={Role.GUEST})),
-) -> GetFollowerEventsResponse:
+) -> GetFollowingEventsResponse:
     uow = SqlalchemyUnitOfWork(session=session)
     use_case = EventUseCase(uow=uow)
 
-    return await use_case.get_follower_events_async(guest_id=account.account_id)
+    return await use_case.get_following_events_async(follower_id=account.account_id)
 
 
 @router.get(
