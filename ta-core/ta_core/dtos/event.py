@@ -41,8 +41,8 @@ class GetFolloweeEventsResponse(BaseModelWithErrorCodes):
     events: list[EventWithId] = Field(..., title="Followee Events")
 
 
-class GetFollowerEventsResponse(BaseModelWithErrorCodes):
-    events: list[EventWithId] = Field(..., title="Follower Events")
+class GetFollowingEventsResponse(BaseModelWithErrorCodes):
+    events: list[EventWithId] = Field(..., title="Following Events")
 
 
 class GetGuestCurrentAttendanceStatusResponse(BaseModelWithErrorCodes):
