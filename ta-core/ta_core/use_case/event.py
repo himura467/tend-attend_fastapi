@@ -312,7 +312,11 @@ class EventUseCase:
         user_account_repository = UserAccountRepository(self.uow)
         event_repository = EventRepository(self.uow)
 
-        follower = await user_account_repository.read_by_id_or_none_async(follower_id)
+        follower = (
+            await user_account_repository.read_with_followees_by_id_or_none_async(
+                follower_id
+            )
+        )
         if follower is None:
             return GetFollowingEventsResponse(
                 events=[], error_codes=(ErrorCode.ACCOUNT_NOT_FOUND,)
