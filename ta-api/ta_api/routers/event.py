@@ -7,9 +7,9 @@ from ta_core.dtos.event import (
     AttendEventResponse,
     CreateEventRequest,
     CreateEventResponse,
-    GetFolloweeEventsResponse,
     GetFollowingEventsResponse,
     GetGuestCurrentAttendanceStatusResponse,
+    GetMyEventsResponse,
 )
 from ta_core.features.account import Account, Role
 from ta_core.infrastructure.sqlalchemy.db import get_db_async
@@ -70,18 +70,18 @@ async def attend_event(
 
 
 @router.get(
-    path="/followees",
-    name="Get Followee Events",
-    response_model=GetFolloweeEventsResponse,
+    path="/mine",
+    name="Get My Events",
+    response_model=GetMyEventsResponse,
 )
-async def get_followee_events(
+async def get_my_events(
     session: AsyncSession = Depends(get_db_async),
     account: Account = Depends(AccessControl(permit={Role.HOST})),
-) -> GetFolloweeEventsResponse:
+) -> GetMyEventsResponse:
     uow = SqlalchemyUnitOfWork(session=session)
     use_case = EventUseCase(uow=uow)
 
-    return await use_case.get_followee_events_async(followee_id=account.account_id)
+    return await use_case.get_my_events_async(account_id=account.account_id)
 
 
 @router.get(

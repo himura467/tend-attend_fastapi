@@ -8,9 +8,9 @@ from ta_core.dtos.event import AttendEventResponse, CreateEventResponse
 from ta_core.dtos.event import Event as EventDto
 from ta_core.dtos.event import EventWithId as EventWithIdDto
 from ta_core.dtos.event import (
-    GetFolloweeEventsResponse,
     GetFollowingEventsResponse,
     GetGuestCurrentAttendanceStatusResponse,
+    GetMyEventsResponse,
 )
 from ta_core.error.error_code import ErrorCode
 from ta_core.features.event import (
@@ -157,11 +157,11 @@ class EventUseCase:
             is_all_day=event_dto.is_all_day,
         )
 
-        host_account = await user_account_repository.read_by_id_or_none_async(host_id)
-        if host_account is None:
+        host = await user_account_repository.read_by_id_or_none_async(host_id)
+        if host is None:
             return CreateEventResponse(error_codes=(ErrorCode.ACCOUNT_NOT_FOUND,))
 
-        user_id = host_account.user_id
+        user_id = host.user_id
 
         recurrence_id: UUID | None
         if event.recurrence is None:
@@ -238,11 +238,11 @@ class EventUseCase:
 
         event_id = str_to_uuid(event_id_str)
 
-        guest_account = await user_account_repository.read_by_id_or_none_async(guest_id)
-        if guest_account is None:
+        guest = await user_account_repository.read_by_id_or_none_async(guest_id)
+        if guest is None:
             return AttendEventResponse(error_codes=(ErrorCode.ACCOUNT_NOT_FOUND,))
 
-        user_id = guest_account.user_id
+        user_id = guest.user_id
 
         event = await event_repository.read_by_id_or_none_async(event_id)
         if event is None:
@@ -285,27 +285,25 @@ class EventUseCase:
         return AttendEventResponse(error_codes=())
 
     @rollbackable
-    async def get_followee_events_async(
-        self, followee_id: UUID
-    ) -> GetFolloweeEventsResponse:
+    async def get_my_events_async(self, account_id: UUID) -> GetMyEventsResponse:
         user_account_repository = UserAccountRepository(self.uow)
         event_repository = EventRepository(self.uow)
 
-        followee = await user_account_repository.read_by_id_or_none_async(followee_id)
-        if followee is None:
-            return GetFolloweeEventsResponse(
+        user_account = await user_account_repository.read_by_id_or_none_async(
+            account_id
+        )
+        if user_account is None:
+            return GetMyEventsResponse(
                 events=[], error_codes=(ErrorCode.ACCOUNT_NOT_FOUND,)
             )
 
-        user_id = followee.user_id
+        user_id = user_account.user_id
 
         events = await event_repository.read_with_recurrence_by_user_ids_async(
             {user_id}
         )
 
-        return GetFolloweeEventsResponse(
-            events=serialize_events(events), error_codes=()
-        )
+        return GetMyEventsResponse(events=serialize_events(events), error_codes=())
 
     @rollbackable
     async def get_following_events_async(
@@ -344,13 +342,13 @@ class EventUseCase:
 
         event_id = str_to_uuid(event_id_str)
 
-        guest_account = await user_account_repository.read_by_id_or_none_async(guest_id)
-        if guest_account is None:
+        guest = await user_account_repository.read_by_id_or_none_async(guest_id)
+        if guest is None:
             return GetGuestCurrentAttendanceStatusResponse(
                 attend=False, error_codes=(ErrorCode.ACCOUNT_NOT_FOUND,)
             )
 
-        user_id = guest_account.user_id
+        user_id = guest.user_id
 
         event = await event_repository.read_by_id_or_none_async(event_id)
         if event is None:
