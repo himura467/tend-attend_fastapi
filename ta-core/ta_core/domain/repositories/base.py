@@ -25,6 +25,10 @@ class IRepository(Generic[TEntity, TModel], metaclass=ABCMeta):
         raise NotImplementedError()
 
     @abstractmethod
+    async def bulk_create_async(self, entities: list[TEntity]) -> list[TEntity] | None:
+        raise NotImplementedError()
+
+    @abstractmethod
     async def read_by_id_async(self, record_id: UUID) -> TEntity:
         raise NotImplementedError()
 
@@ -45,5 +49,9 @@ class IRepository(Generic[TEntity, TModel], metaclass=ABCMeta):
         raise NotImplementedError()
 
     @abstractmethod
-    async def delete_by_id_async(self, record_id: UUID) -> bool:
+    async def delete_by_id_async(self, record_id: UUID) -> None:
+        raise NotImplementedError()
+
+    @abstractmethod
+    async def delete_all_async(self, where: tuple[Any, ...]) -> None:
         raise NotImplementedError()

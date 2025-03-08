@@ -1,5 +1,5 @@
 from abc import ABCMeta, abstractmethod
-from typing import Any
+from typing import Any, Iterable
 
 
 class IUnitOfWork(metaclass=ABCMeta):
@@ -9,6 +9,10 @@ class IUnitOfWork(metaclass=ABCMeta):
 
     @abstractmethod
     def add(self, model: object) -> None:
+        raise NotImplementedError()
+
+    @abstractmethod
+    def add_all(self, models: Iterable[object]) -> None:
         raise NotImplementedError()
 
     @abstractmethod
@@ -28,5 +32,5 @@ class IUnitOfWork(metaclass=ABCMeta):
         raise NotImplementedError()
 
     @abstractmethod
-    async def execute_async(self, stmt: Any) -> Any:
+    async def execute_async(self, stmt: Any, params: Any = None) -> Any:
         raise NotImplementedError()

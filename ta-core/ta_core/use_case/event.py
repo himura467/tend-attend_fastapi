@@ -4,6 +4,10 @@ from typing import TypeVar
 from zoneinfo import ZoneInfo
 
 from ta_core.domain.entities.event import Event as EventEntity
+from ta_core.domain.entities.event import (
+    EventAttendanceActionLog as EventAttendanceActionLogEntity,
+)
+from ta_core.dtos.event import Attendance as AttendanceDto
 from ta_core.dtos.event import AttendEventResponse, CreateEventResponse
 from ta_core.dtos.event import Event as EventDto
 from ta_core.dtos.event import EventWithId as EventWithIdDto
@@ -11,6 +15,7 @@ from ta_core.dtos.event import (
     GetFollowingEventsResponse,
     GetGuestCurrentAttendanceStatusResponse,
     GetMyEventsResponse,
+    UpdateAttendancesResponse,
 )
 from ta_core.error.error_code import ErrorCode
 from ta_core.features.event import (
@@ -283,6 +288,72 @@ class EventUseCase:
         )
 
         return AttendEventResponse(error_codes=())
+
+    @rollbackable
+    async def update_attendances_async(
+        self,
+        guest_id: UUID,
+        event_id_str: str,
+        start: datetime,
+        attendances: list[AttendanceDto],
+    ) -> UpdateAttendancesResponse:
+        user_account_repository = UserAccountRepository(self.uow)
+        event_repository = EventRepository(self.uow)
+        event_attendance_repository = EventAttendanceRepository(self.uow)
+        event_attendance_action_log_repository = EventAttendanceActionLogRepository(
+            self.uow
+        )
+
+        event_id = str_to_uuid(event_id_str)
+
+        guest = await user_account_repository.read_by_id_or_none_async(guest_id)
+        if guest is None:
+            return UpdateAttendancesResponse(error_codes=(ErrorCode.ACCOUNT_NOT_FOUND,))
+
+        user_id = guest.user_id
+
+        event = await event_repository.read_by_id_or_none_async(event_id)
+        if event is None:
+            return UpdateAttendancesResponse(error_codes=(ErrorCode.EVENT_NOT_FOUND,))
+
+        await event_attendance_action_log_repository.delete_by_user_id_and_event_id_and_start_async(
+            user_id=user_id, event_id=event.id, start=start
+        )
+
+        event_attendance_action_logs = [
+            EventAttendanceActionLogEntity(
+                entity_id=generate_uuid(),
+                user_id=user_id,
+                event_id=event.id,
+                start=start,
+                action=AttendanceAction(attendance.action),
+                acted_at=attendance.acted_at,
+            )
+            for attendance in attendances
+        ]
+        await event_attendance_action_log_repository.bulk_create_event_attendance_action_logs_async(
+            event_attendance_action_logs
+        )
+
+        latest_log = max(event_attendance_action_logs, key=lambda log: log.acted_at)
+        if latest_log.action == AttendanceAction.ATTEND:
+            await event_attendance_repository.create_or_update_event_attendance_async(
+                entity_id=generate_uuid(),
+                user_id=user_id,
+                event_id=event.id,
+                start=start,
+                state=AttendanceState.PRESENT,
+            )
+        elif latest_log.action == AttendanceAction.LEAVE:
+            await event_attendance_repository.create_or_update_event_attendance_async(
+                entity_id=generate_uuid(),
+                user_id=user_id,
+                event_id=event.id,
+                start=start,
+                state=AttendanceState.EXCUSED_ABSENCE,
+            )
+
+        return UpdateAttendancesResponse(error_codes=())
 
     @rollbackable
     async def get_my_events_async(self, account_id: UUID) -> GetMyEventsResponse:

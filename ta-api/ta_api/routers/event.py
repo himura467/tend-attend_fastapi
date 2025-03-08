@@ -10,6 +10,8 @@ from ta_core.dtos.event import (
     GetFollowingEventsResponse,
     GetGuestCurrentAttendanceStatusResponse,
     GetMyEventsResponse,
+    UpdateAttendancesRequest,
+    UpdateAttendancesResponse,
 )
 from ta_core.features.account import Account, Role
 from ta_core.infrastructure.sqlalchemy.db import get_db_async
@@ -66,6 +68,33 @@ async def attend_event(
         event_id_str=event_id,
         start=start,
         action=action,
+    )
+
+
+@router.put(
+    path="/attend/{event_id}/{start}",
+    name="Update Attendances",
+    response_model=UpdateAttendancesResponse,
+)
+async def update_attendances(
+    event_id: str,
+    start: datetime,
+    request: UpdateAttendancesRequest,
+    session: AsyncSession = Depends(get_db_async),
+    account: Account = Depends(AccessControl(permit={Role.GUEST})),
+) -> UpdateAttendancesResponse:
+    event_id = event_id
+    start = start
+    attendances = request.attendances
+
+    uow = SqlalchemyUnitOfWork(session=session)
+    use_case = EventUseCase(uow=uow)
+
+    return await use_case.update_attendances_async(
+        guest_id=account.account_id,
+        event_id_str=event_id,
+        start=start,
+        attendances=attendances,
     )
 
 
