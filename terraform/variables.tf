@@ -16,6 +16,12 @@ variable "domain_name" {
   default     = "aws.tend-attend.com"
 }
 
+variable "jwt_secret_key" {
+  description = "JWT secret key (openssl rand -hex 32)"
+  type        = string
+  default     = "38b0ab2ea67a66315f3117518db7943b09ab281e362b9fd4a293704324eb0404"
+}
+
 variable "common_dbname" {
   description = "Common DB name"
   type        = string

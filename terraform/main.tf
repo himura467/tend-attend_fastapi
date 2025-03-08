@@ -274,6 +274,7 @@ resource "aws_lambda_function" "tend_attend_lambda" {
     variables = {
       FRONTEND_URLS                   = var.frontend_urls
       COOKIE_DOMAIN                   = var.cookie_domain
+      JWT_SECRET_KEY                  = var.jwt_secret_key
       AWS_SECRETSMANAGER_SECRET_ID    = aws_secretsmanager_secret.aurora_credentials.id
       AWS_SECRETSMANAGER_REGION       = var.aws_region
       DB_SHARD_COUNT                  = var.db_shard_count
