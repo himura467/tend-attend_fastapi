@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from datetime import timedelta
 
+from ta_core.constants.secrets import JWT_SECRET_KEY
 from ta_core.cryptography.hash import PasswordHasher
 from ta_core.cryptography.jwt import JWTCryptography
 from ta_core.dtos.auth import AuthTokenResponse
@@ -14,18 +15,17 @@ from ta_core.use_case.unit_of_work_base import IUnitOfWork
 
 @dataclass(frozen=True)
 class AuthUseCase:
+    assert JWT_SECRET_KEY is not None
+
     uow: IUnitOfWork
 
-    # TODO: 多分秘匿した方がいい
-    # openssl rand -hex 32
-    _SECRET_KEY = "58ae582561d69d9cd9853c01a75e6b51553c304a76d3065aad67644a0d4d26a9"
     _ALGORITHM = "HS256"
     _ACCESS_TOKEN_EXPIRES = timedelta(minutes=60)
     _REFRESH_TOKEN_EXPIRES = timedelta(days=30)
 
     _password_hasher = PasswordHasher()
     _jwt_cryptography = JWTCryptography(
-        secret_key=_SECRET_KEY,
+        secret_key=JWT_SECRET_KEY,
         algorithm=_ALGORITHM,
         access_token_expires=_ACCESS_TOKEN_EXPIRES,
         refresh_token_expires=_REFRESH_TOKEN_EXPIRES,
