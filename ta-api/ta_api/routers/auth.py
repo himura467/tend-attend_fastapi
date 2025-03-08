@@ -1,4 +1,5 @@
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from fastapi.security import OAuth2PasswordRequestForm
@@ -45,7 +46,7 @@ async def create_auth_token(
         key=ACCESS_TOKEN_NAME,
         value=res.auth_token.access_token,
         max_age=res.access_token_max_age,
-        expires=datetime.now(timezone.utc)
+        expires=datetime.now(ZoneInfo("UTC"))
         + timedelta(seconds=res.access_token_max_age),
         path="/",
         domain=COOKIE_DOMAIN,
@@ -57,7 +58,7 @@ async def create_auth_token(
         key=REFRESH_TOKEN_NAME,
         value=res.auth_token.refresh_token,
         max_age=res.refresh_token_max_age,
-        expires=datetime.now(timezone.utc)
+        expires=datetime.now(ZoneInfo("UTC"))
         + timedelta(seconds=res.refresh_token_max_age),
         path="/",
         domain=COOKIE_DOMAIN,
@@ -96,7 +97,7 @@ async def refresh_auth_token(
         key=ACCESS_TOKEN_NAME,
         value=res.auth_token.access_token,
         max_age=res.access_token_max_age,
-        expires=datetime.now(timezone.utc)
+        expires=datetime.now(ZoneInfo("UTC"))
         + timedelta(seconds=res.access_token_max_age),
         path="/",
         domain=COOKIE_DOMAIN,
@@ -108,7 +109,7 @@ async def refresh_auth_token(
         key=REFRESH_TOKEN_NAME,
         value=res.auth_token.refresh_token,
         max_age=res.refresh_token_max_age,
-        expires=datetime.now(timezone.utc)
+        expires=datetime.now(ZoneInfo("UTC"))
         + timedelta(seconds=res.refresh_token_max_age),
         path="/",
         domain=COOKIE_DOMAIN,

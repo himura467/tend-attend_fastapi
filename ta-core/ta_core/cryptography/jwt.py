@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 
 from jose import JWTError, jwt
 
@@ -25,10 +26,10 @@ class JWTCryptography:
     ) -> str:
         registered_claims = {
             "sub": uuid_to_str(subject),
-            "iat": datetime.utcnow(),
-            "nbf": datetime.utcnow(),
+            "iat": datetime.now(ZoneInfo("UTC")),
+            "nbf": datetime.now(ZoneInfo("UTC")),
             "jti": uuid_to_str(generate_uuid()),
-            "exp": datetime.utcnow() + expires_delta,
+            "exp": datetime.now(ZoneInfo("UTC")) + expires_delta,
         }
         private_claims = {"group": group, "type": token_type}
 
