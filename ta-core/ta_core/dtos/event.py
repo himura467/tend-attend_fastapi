@@ -50,6 +50,10 @@ class UpdateAttendancesResponse(BaseModelWithErrorCodes):
     pass
 
 
+class GetAttendancesResponse(BaseModelWithErrorCodes):
+    attendances: list[Attendance] = Field(..., title="Attendances")
+
+
 class GetMyEventsResponse(BaseModelWithErrorCodes):
     events: list[EventWithId] = Field(..., title="My Events")
 

@@ -214,6 +214,17 @@ class EventAttendanceActionLogRepository(
     ) -> list[EventAttendanceActionLogEntity] | None:
         return await self.bulk_create_async(event_attendance_action_logs)
 
+    async def read_by_user_id_and_event_id_and_start_async(
+        self, user_id: int, event_id: UUID, start: datetime
+    ) -> tuple[EventAttendanceActionLogEntity, ...]:
+        return await self.read_all_async(
+            where=(
+                self._model.user_id == user_id,
+                self._model.event_id == uuid_to_bin(event_id),
+                self._model.start == start,
+            )
+        )
+
     async def read_latest_by_user_id_and_event_id_and_start_or_none_async(
         self, user_id: int, event_id: UUID, start: datetime
     ) -> EventAttendanceActionLogEntity | None:

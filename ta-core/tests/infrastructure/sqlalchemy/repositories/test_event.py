@@ -665,6 +665,70 @@ async def test_bulk_create_event_attendance_action_logs_async(
         )
     ],
 )
+async def test_read_by_user_id_and_event_id_and_start_async(
+    test_session: AsyncSession,
+    event_id: UUID,
+    start: datetime,
+    actions: list[AttendanceAction],
+    acted_ats: list[datetime],
+) -> None:
+    uow = SqlalchemyUnitOfWork(session=test_session)
+    event_attendance_action_log_repository = EventAttendanceActionLogRepository(uow)
+
+    entity_ids = [generate_uuid() for _ in range(len(actions))]
+    user_id = await SequenceUserId.id_generator(uow)
+
+    for action, acted_at, entity_id in zip(actions, acted_ats, entity_ids):
+        created_log = await event_attendance_action_log_repository.create_event_attendance_action_log_async(
+            entity_id=entity_id,
+            user_id=user_id,
+            event_id=event_id,
+            start=start,
+            action=action,
+            acted_at=acted_at,
+        )
+
+        assert created_log is not None
+
+    logs = await event_attendance_action_log_repository.read_by_user_id_and_event_id_and_start_async(
+        user_id=user_id,
+        event_id=event_id,
+        start=start,
+    )
+
+    assert len(logs) == len(actions)
+    for log in logs:
+        assert log.id in entity_ids
+        assert log.user_id == user_id
+        assert log.event_id == event_id
+        assert log.start == start.replace(tzinfo=None)
+        assert log.action in actions
+        assert log.acted_at in [acted_at.replace(tzinfo=None) for acted_at in acted_ats]
+
+    non_existent_logs = await event_attendance_action_log_repository.read_by_user_id_and_event_id_and_start_async(
+        user_id=user_id,
+        event_id=generate_uuid(),
+        start=start,
+    )
+
+    assert len(non_existent_logs) == 0
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "event_id, start, actions, acted_ats",
+    [
+        (
+            generate_uuid(),
+            datetime(2000, 1, 1, 0, 0, 0, tzinfo=ZoneInfo("UTC")),
+            [AttendanceAction.ATTEND, AttendanceAction.LEAVE],
+            [
+                datetime(2000, 1, 1, 0, 0, 0, tzinfo=ZoneInfo("UTC")),
+                datetime(2000, 1, 1, 6, 0, 0, tzinfo=ZoneInfo("UTC")),
+            ],
+        )
+    ],
+)
 async def test_read_latest_by_user_id_and_event_id_and_start_or_none_async(
     test_session: AsyncSession,
     event_id: UUID,
