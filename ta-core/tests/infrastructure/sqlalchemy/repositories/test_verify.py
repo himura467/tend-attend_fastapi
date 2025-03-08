@@ -50,7 +50,7 @@ async def test_create_email_verification_async(
     user_id = await SequenceUserId.id_generator(uow)
 
     await user_account_repository.create_user_account_async(
-        entity_id=entity_id,
+        entity_id=generate_uuid(),
         user_id=user_id,
         username=username,
         hashed_password=hashed_password,
@@ -64,7 +64,7 @@ async def test_create_email_verification_async(
     )
     email_verification = (
         await email_verification_repository.create_email_verification_async(
-            entity_id=generate_uuid(),
+            entity_id=entity_id,
             email=email,
             verification_token=verification_token,
             token_expires_at=token_expires_at,
@@ -72,9 +72,21 @@ async def test_create_email_verification_async(
     )
 
     assert email_verification is not None
+    assert email_verification.id == entity_id
     assert email_verification.email == email
     assert email_verification.verification_token == verification_token
     assert email_verification.token_expires_at == token_expires_at
+
+    non_existent_email_verification = (
+        await email_verification_repository.create_email_verification_async(
+            entity_id=generate_uuid(),
+            email="non_existent" + email,
+            verification_token=verification_token,
+            token_expires_at=token_expires_at,
+        )
+    )
+
+    assert non_existent_email_verification is None
 
 
 @pytest.mark.asyncio
@@ -112,7 +124,7 @@ async def test_read_latest_by_email_or_none_async(
     user_id = await SequenceUserId.id_generator(uow)
 
     await user_account_repository.create_user_account_async(
-        entity_id=entity_id,
+        entity_id=generate_uuid(),
         user_id=user_id,
         username=username,
         hashed_password=hashed_password,
@@ -125,7 +137,7 @@ async def test_read_latest_by_email_or_none_async(
         nickname=nickname,
     )
     await email_verification_repository.create_email_verification_async(
-        entity_id=generate_uuid(),
+        entity_id=entity_id,
         email=email,
         verification_token=verification_token,
         token_expires_at=token_expires_at,
@@ -137,6 +149,15 @@ async def test_read_latest_by_email_or_none_async(
     )
 
     assert email_verification is not None
+    assert email_verification.id == entity_id
     assert email_verification.email == email
     assert email_verification.verification_token == verification_token
     assert email_verification.token_expires_at == token_expires_at.replace(tzinfo=None)
+
+    non_existent_email_verification = (
+        await email_verification_repository.read_latest_by_email_or_none_async(
+            email="non_existent" + email
+        )
+    )
+
+    assert non_existent_email_verification is None
