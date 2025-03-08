@@ -2,7 +2,7 @@ from abc import abstractmethod
 from typing import Any
 
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.sql import select, update
+from sqlalchemy.sql import delete, select, update
 from sqlalchemy.sql.elements import UnaryExpression
 
 from ta_core.domain.repositories.base import IRepository, TEntity, TModel
@@ -26,6 +26,17 @@ class AbstractRepository(IRepository[TEntity, TModel]):
                 self._uow.add(model)
                 await self._uow.flush_async()
                 return entity
+            except IntegrityError:
+                await savepoint.rollback()
+                return None
+
+    async def bulk_create_async(self, entities: list[TEntity]) -> list[TEntity] | None:
+        models = [self._model.from_entity(entity) for entity in entities]
+        async with self._uow.begin_nested() as savepoint:
+            try:
+                self._uow.add_all(models)
+                await self._uow.flush_async()
+                return entities
             except IntegrityError:
                 await savepoint.rollback()
                 return None
@@ -86,11 +97,10 @@ class AbstractRepository(IRepository[TEntity, TModel]):
         await self._uow.execute_async(stmt)
         return entity
 
-    async def delete_by_id_async(self, record_id: UUID) -> bool:
-        stmt = select(self._model).where(self._model.id == uuid_to_bin(record_id))
-        result = await self._uow.execute_async(stmt)
-        record = result.scalar_one_or_none()
-        if record is None:
-            return False
-        await self._uow.delete_async(record)
-        return True
+    async def delete_by_id_async(self, record_id: UUID) -> None:
+        stmt = delete(self._model).where(self._model.id == uuid_to_bin(record_id))
+        await self._uow.execute_async(stmt)
+
+    async def delete_all_async(self, where: tuple[Any, ...]) -> None:
+        stmt = delete(self._model).where(*where)
+        await self._uow.execute_async(stmt)

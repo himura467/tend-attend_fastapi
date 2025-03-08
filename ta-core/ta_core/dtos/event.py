@@ -21,6 +21,11 @@ class EventWithId(Event):
     id: str = Field(..., title="Event ID")
 
 
+class Attendance(BaseModel):
+    action: AttendanceAction = Field(..., title="Attendance Action")
+    acted_at: datetime = Field(..., title="Acted At")
+
+
 class CreateEventRequest(BaseModel):
     event: Event = Field(..., title="Event")
 
@@ -34,6 +39,14 @@ class AttendEventRequest(BaseModel):
 
 
 class AttendEventResponse(BaseModelWithErrorCodes):
+    pass
+
+
+class UpdateAttendancesRequest(BaseModel):
+    attendances: list[Attendance] = Field(..., title="Attendances")
+
+
+class UpdateAttendancesResponse(BaseModelWithErrorCodes):
     pass
 
 
