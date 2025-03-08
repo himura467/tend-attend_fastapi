@@ -7,6 +7,7 @@ from ta_core.dtos.event import (
     AttendEventResponse,
     CreateEventRequest,
     CreateEventResponse,
+    GetAttendancesResponse,
     GetFollowingEventsResponse,
     GetGuestCurrentAttendanceStatusResponse,
     GetMyEventsResponse,
@@ -29,11 +30,11 @@ router = APIRouter()
     response_model=CreateEventResponse,
 )
 async def create_event(
-    request: CreateEventRequest,
+    req: CreateEventRequest,
     session: AsyncSession = Depends(get_db_async),
     account: Account = Depends(AccessControl(permit={Role.HOST})),
 ) -> CreateEventResponse:
-    event = request.event
+    event = req.event
 
     uow = SqlalchemyUnitOfWork(session=session)
     use_case = EventUseCase(uow=uow)
@@ -52,13 +53,11 @@ async def create_event(
 async def attend_event(
     event_id: str,
     start: datetime,
-    request: AttendEventRequest,
+    req: AttendEventRequest,
     session: AsyncSession = Depends(get_db_async),
     account: Account = Depends(AccessControl(permit={Role.GUEST})),
 ) -> AttendEventResponse:
-    event_id = event_id
-    start = start
-    action = request.action
+    action = req.action
 
     uow = SqlalchemyUnitOfWork(session=session)
     use_case = EventUseCase(uow=uow)
@@ -73,19 +72,17 @@ async def attend_event(
 
 @router.put(
     path="/attend/{event_id}/{start}",
-    name="Update Attendances",
+    name="Update Guest Attendance History",
     response_model=UpdateAttendancesResponse,
 )
 async def update_attendances(
     event_id: str,
     start: datetime,
-    request: UpdateAttendancesRequest,
+    req: UpdateAttendancesRequest,
     session: AsyncSession = Depends(get_db_async),
     account: Account = Depends(AccessControl(permit={Role.GUEST})),
 ) -> UpdateAttendancesResponse:
-    event_id = event_id
-    start = start
-    attendances = request.attendances
+    attendances = req.attendances
 
     uow = SqlalchemyUnitOfWork(session=session)
     use_case = EventUseCase(uow=uow)
@@ -95,6 +92,27 @@ async def update_attendances(
         event_id_str=event_id,
         start=start,
         attendances=attendances,
+    )
+
+
+@router.get(
+    path="/attend/{event_id}/{start}",
+    name="Get Guest Attendance History",
+    response_model=GetAttendancesResponse,
+)
+async def get_attendances(
+    event_id: str,
+    start: datetime,
+    session: AsyncSession = Depends(get_db_async),
+    account: Account = Depends(AccessControl(permit={Role.GUEST})),
+) -> GetAttendancesResponse:
+    uow = SqlalchemyUnitOfWork(session=session)
+    use_case = EventUseCase(uow=uow)
+
+    return await use_case.get_attendances_async(
+        guest_id=account.account_id,
+        event_id_str=event_id,
+        start=start,
     )
 
 

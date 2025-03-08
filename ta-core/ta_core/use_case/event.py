@@ -12,6 +12,7 @@ from ta_core.dtos.event import AttendEventResponse, CreateEventResponse
 from ta_core.dtos.event import Event as EventDto
 from ta_core.dtos.event import EventWithId as EventWithIdDto
 from ta_core.dtos.event import (
+    GetAttendancesResponse,
     GetFollowingEventsResponse,
     GetGuestCurrentAttendanceStatusResponse,
     GetMyEventsResponse,
@@ -354,6 +355,42 @@ class EventUseCase:
             )
 
         return UpdateAttendancesResponse(error_codes=())
+
+    @rollbackable
+    async def get_attendances_async(
+        self, guest_id: UUID, event_id_str: str, start: datetime
+    ) -> GetAttendancesResponse:
+        user_account_repository = UserAccountRepository(self.uow)
+        event_repository = EventRepository(self.uow)
+        event_attendance_action_log_repository = EventAttendanceActionLogRepository(
+            self.uow
+        )
+
+        event_id = str_to_uuid(event_id_str)
+
+        guest = await user_account_repository.read_by_id_or_none_async(guest_id)
+        if guest is None:
+            return GetAttendancesResponse(
+                attendances=[], error_codes=(ErrorCode.ACCOUNT_NOT_FOUND,)
+            )
+
+        user_id = guest.user_id
+
+        event = await event_repository.read_by_id_or_none_async(event_id)
+        if event is None:
+            return GetAttendancesResponse(
+                attendances=[], error_codes=(ErrorCode.EVENT_NOT_FOUND,)
+            )
+
+        logs = await event_attendance_action_log_repository.read_by_user_id_and_event_id_and_start_async(
+            user_id=user_id, event_id=event_id, start=start
+        )
+
+        attendances = [
+            AttendanceDto(action=log.action, acted_at=log.acted_at) for log in logs
+        ]
+
+        return GetAttendancesResponse(attendances=attendances, error_codes=())
 
     @rollbackable
     async def get_my_events_async(self, account_id: UUID) -> GetMyEventsResponse:
