@@ -28,11 +28,10 @@ class AbstractCommonDynamicBase(AbstractCommonBase):
 
     id: Mapped[bytes] = mapped_column(BINARY(16), primary_key=True, autoincrement=False)
     created_at: Mapped[datetime] = mapped_column(
-        DATETIME(timezone=True), server_default=func.now(), index=True, nullable=False
+        DATETIME(timezone=True), server_default=func.now(), nullable=False
     )
     updated_at: Mapped[datetime] = mapped_column(
         DATETIME(timezone=True),
         server_default=text("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"),
-        index=True,
         nullable=False,
     )
