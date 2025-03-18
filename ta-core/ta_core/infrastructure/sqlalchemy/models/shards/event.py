@@ -12,7 +12,7 @@ from sqlalchemy.dialects.mysql import (
 from sqlalchemy.exc import StatementError
 from sqlalchemy.orm import mapped_column, relationship
 from sqlalchemy.orm.base import Mapped
-from sqlalchemy.sql.schema import ForeignKey, UniqueConstraint
+from sqlalchemy.sql.schema import ForeignKey, Index, UniqueConstraint
 
 from ta_core.domain.entities.event import Event as EventEntity
 from ta_core.domain.entities.event import EventAttendance as EventAttendanceEntity
@@ -210,6 +210,9 @@ class Event(AbstractShardDynamicBase):
         )
 
 
+Index(None, Event.user_id)
+
+
 class EventAttendance(AbstractShardDynamicBase):
     event_id: Mapped[bytes] = mapped_column(
         BINARY(16),
@@ -286,3 +289,11 @@ class EventAttendanceActionLog(AbstractShardDynamicBase):
             action=entity.action,
             acted_at=entity.acted_at,
         )
+
+
+Index(
+    None,
+    EventAttendanceActionLog.user_id,
+    EventAttendanceActionLog.event_id,
+    EventAttendanceActionLog.start,
+)
