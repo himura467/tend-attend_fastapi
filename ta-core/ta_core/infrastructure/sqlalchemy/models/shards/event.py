@@ -289,3 +289,11 @@ class EventAttendanceActionLog(AbstractShardDynamicBase):
             action=entity.action,
             acted_at=entity.acted_at,
         )
+
+
+Index(
+    None,
+    EventAttendanceActionLog.user_id,
+    EventAttendanceActionLog.event_id,
+    EventAttendanceActionLog.start,
+)
