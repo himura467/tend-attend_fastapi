@@ -2,8 +2,7 @@
 
 set -e
 
-SCRIPT_DIR=$(cd $(dirname $0); pwd)
-ROOT_DIR=${SCRIPT_DIR}/..
+ROOT_DIR=$(cd $(dirname $0)/..; pwd)
 
 projects=(
   "ta-api"
