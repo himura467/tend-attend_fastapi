@@ -1,10 +1,18 @@
 from datetime import datetime
 
-from sqlalchemy.dialects.mysql import BOOLEAN, DATETIME, ENUM, JSON, SMALLINT, VARCHAR
+from sqlalchemy.dialects.mysql import (
+    BINARY,
+    BOOLEAN,
+    DATETIME,
+    ENUM,
+    JSON,
+    SMALLINT,
+    VARCHAR,
+)
 from sqlalchemy.exc import StatementError
 from sqlalchemy.orm import mapped_column, relationship
 from sqlalchemy.orm.base import Mapped
-from sqlalchemy.sql.schema import ForeignKey, UniqueConstraint
+from sqlalchemy.sql.schema import ForeignKey, Index, UniqueConstraint
 
 from ta_core.domain.entities.event import Event as EventEntity
 from ta_core.domain.entities.event import EventAttendance as EventAttendanceEntity
@@ -18,6 +26,7 @@ from ta_core.infrastructure.sqlalchemy.models.shards.base import (
     AbstractShardDynamicBase,
     AbstractShardStaticBase,
 )
+from ta_core.utils.uuid import bin_to_uuid, uuid_to_bin
 
 
 class RecurrenceRule(AbstractShardStaticBase):
@@ -64,7 +73,7 @@ class RecurrenceRule(AbstractShardStaticBase):
 
     def to_entity(self) -> RecurrenceRuleEntity:
         return RecurrenceRuleEntity(
-            entity_id=self.id,
+            entity_id=bin_to_uuid(self.id),
             user_id=self.user_id,
             freq=self.freq,
             until=self.until,
@@ -85,7 +94,7 @@ class RecurrenceRule(AbstractShardStaticBase):
     @classmethod
     def from_entity(cls, entity: RecurrenceRuleEntity) -> "RecurrenceRule":
         return cls(
-            id=entity.id,
+            id=uuid_to_bin(entity.id),
             user_id=entity.user_id,
             freq=entity.freq,
             until=entity.until,
@@ -105,9 +114,9 @@ class RecurrenceRule(AbstractShardStaticBase):
 
 
 class Recurrence(AbstractShardStaticBase):
-    rrule_id: Mapped[str] = mapped_column(
-        VARCHAR(36),
-        ForeignKey("recurrence_rule.id", ondelete="RESTRICT"),
+    rrule_id: Mapped[bytes] = mapped_column(
+        BINARY(16),
+        ForeignKey("recurrence_rule.id", ondelete="CASCADE"),
         nullable=False,
     )
     rrule: Mapped[RecurrenceRule] = relationship(uselist=False)
@@ -118,9 +127,9 @@ class Recurrence(AbstractShardStaticBase):
         rrule = self.rrule.to_entity()
 
         return RecurrenceEntity(
-            entity_id=self.id,
+            entity_id=bin_to_uuid(self.id),
             user_id=self.user_id,
-            rrule_id=self.rrule_id,
+            rrule_id=bin_to_uuid(self.rrule_id),
             rrule=rrule,
             rdate=self.rdate,
             exdate=self.exdate,
@@ -129,9 +138,9 @@ class Recurrence(AbstractShardStaticBase):
     @classmethod
     def from_entity(cls, entity: RecurrenceEntity) -> "Recurrence":
         return cls(
-            id=entity.id,
+            id=uuid_to_bin(entity.id),
             user_id=entity.user_id,
-            rrule_id=entity.rrule_id,
+            rrule_id=uuid_to_bin(entity.rrule_id),
             rdate=entity.rdate,
             exdate=entity.exdate,
         )
@@ -139,10 +148,10 @@ class Recurrence(AbstractShardStaticBase):
 
 class Event(AbstractShardDynamicBase):
     summary: Mapped[str] = mapped_column(
-        VARCHAR(64), unique=True, nullable=False, comment="Summary"
+        VARCHAR(63), unique=True, nullable=False, comment="Summary"
     )
     location: Mapped[str | None] = mapped_column(
-        VARCHAR(64), nullable=True, comment="Location"
+        VARCHAR(63), nullable=True, comment="Location"
     )
     start: Mapped[datetime] = mapped_column(
         DATETIME(timezone=True), nullable=False, comment="Start"
@@ -153,13 +162,13 @@ class Event(AbstractShardDynamicBase):
     is_all_day: Mapped[bool] = mapped_column(
         BOOLEAN, nullable=False, comment="Is All Day"
     )
-    recurrence_id: Mapped[str | None] = mapped_column(
-        VARCHAR(36),
-        ForeignKey("recurrence.id", ondelete="RESTRICT"),
+    recurrence_id: Mapped[bytes | None] = mapped_column(
+        BINARY(16),
+        ForeignKey("recurrence.id", ondelete="CASCADE"),
         nullable=True,
     )
     timezone: Mapped[str] = mapped_column(
-        VARCHAR(64), nullable=False, comment="Timezone"
+        VARCHAR(63), nullable=False, comment="Timezone"
     )
     recurrence: Mapped[Recurrence | None] = relationship(uselist=False)
 
@@ -170,14 +179,16 @@ class Event(AbstractShardDynamicBase):
             recurrence = None
 
         return EventEntity(
-            entity_id=self.id,
+            entity_id=bin_to_uuid(self.id),
             user_id=self.user_id,
             summary=self.summary,
             location=self.location,
             start=self.start,
             end=self.end,
             is_all_day=self.is_all_day,
-            recurrence_id=self.recurrence_id,
+            recurrence_id=(
+                bin_to_uuid(self.recurrence_id) if self.recurrence_id else None
+            ),
             timezone=self.timezone,
             recurrence=recurrence,
         )
@@ -185,21 +196,26 @@ class Event(AbstractShardDynamicBase):
     @classmethod
     def from_entity(cls, entity: EventEntity) -> "Event":
         return cls(
-            id=entity.id,
+            id=uuid_to_bin(entity.id),
             user_id=entity.user_id,
             summary=entity.summary,
             location=entity.location,
             start=entity.start,
             end=entity.end,
             is_all_day=entity.is_all_day,
-            recurrence_id=entity.recurrence_id,
+            recurrence_id=(
+                uuid_to_bin(entity.recurrence_id) if entity.recurrence_id else None
+            ),
             timezone=entity.timezone,
         )
 
 
+Index(None, Event.user_id)
+
+
 class EventAttendance(AbstractShardDynamicBase):
-    event_id: Mapped[str] = mapped_column(
-        VARCHAR(36),
+    event_id: Mapped[bytes] = mapped_column(
+        BINARY(16),
         nullable=False,
         comment="Event ID",
     )
@@ -212,9 +228,9 @@ class EventAttendance(AbstractShardDynamicBase):
 
     def to_entity(self) -> EventAttendanceEntity:
         return EventAttendanceEntity(
-            entity_id=self.id,
+            entity_id=bin_to_uuid(self.id),
             user_id=self.user_id,
-            event_id=self.event_id,
+            event_id=bin_to_uuid(self.event_id),
             start=self.start,
             state=self.state,
         )
@@ -222,9 +238,9 @@ class EventAttendance(AbstractShardDynamicBase):
     @classmethod
     def from_entity(cls, entity: EventAttendanceEntity) -> "EventAttendance":
         return cls(
-            id=entity.id,
+            id=uuid_to_bin(entity.id),
             user_id=entity.user_id,
-            event_id=entity.event_id,
+            event_id=uuid_to_bin(entity.event_id),
             start=entity.start,
             state=entity.state,
         )
@@ -236,8 +252,8 @@ UniqueConstraint(
 
 
 class EventAttendanceActionLog(AbstractShardDynamicBase):
-    event_id: Mapped[str] = mapped_column(
-        VARCHAR(36),
+    event_id: Mapped[bytes] = mapped_column(
+        BINARY(16),
         nullable=False,
         comment="Event ID",
     )
@@ -247,14 +263,18 @@ class EventAttendanceActionLog(AbstractShardDynamicBase):
     action: Mapped[AttendanceAction] = mapped_column(
         ENUM(AttendanceAction), nullable=False, comment="Attendance Action"
     )
+    acted_at: Mapped[datetime] = mapped_column(
+        DATETIME(timezone=True), nullable=False, comment="Acted At"
+    )
 
     def to_entity(self) -> EventAttendanceActionLogEntity:
         return EventAttendanceActionLogEntity(
-            entity_id=self.id,
+            entity_id=bin_to_uuid(self.id),
             user_id=self.user_id,
-            event_id=self.event_id,
+            event_id=bin_to_uuid(self.event_id),
             start=self.start,
             action=self.action,
+            acted_at=self.acted_at,
         )
 
     @classmethod
@@ -262,9 +282,18 @@ class EventAttendanceActionLog(AbstractShardDynamicBase):
         cls, entity: EventAttendanceActionLogEntity
     ) -> "EventAttendanceActionLog":
         return cls(
-            id=entity.id,
+            id=uuid_to_bin(entity.id),
             user_id=entity.user_id,
-            event_id=entity.event_id,
+            event_id=uuid_to_bin(entity.event_id),
             start=entity.start,
             action=entity.action,
+            acted_at=entity.acted_at,
         )
+
+
+Index(
+    None,
+    EventAttendanceActionLog.user_id,
+    EventAttendanceActionLog.event_id,
+    EventAttendanceActionLog.start,
+)

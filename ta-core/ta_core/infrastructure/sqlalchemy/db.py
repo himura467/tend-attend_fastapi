@@ -12,8 +12,8 @@ from ta_core.infrastructure.db.sharding import (
 )
 
 async_engines = {
-    connection_key: create_async_engine(connection_string, echo=True)
-    for connection_key, connection_string in CONNECTIONS.items()
+    connection_key: create_async_engine(url, echo=True)
+    for connection_key, url in CONNECTIONS.items()
 }
 
 async_session = async_sessionmaker(

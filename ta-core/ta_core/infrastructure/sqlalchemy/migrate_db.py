@@ -4,25 +4,22 @@ from sqlalchemy import create_mock_engine
 from sqlalchemy.sql.ddl import ExecutableDDLElement
 
 from ta_core.aws.aurora import execute
-from ta_core.constants.constants import AURORA_DATABASE_NAME
+from ta_core.constants.constants import (
+    AURORA_COMMON_DBNAME,
+    AURORA_SEQUENCE_DBNAME,
+    AURORA_SHARD_DBNAME_PREFIX,
+    DB_SHARD_COUNT,
+)
 from ta_core.infrastructure.sqlalchemy.db import async_engines
 from ta_core.infrastructure.sqlalchemy.models.base import AbstractBase
-from ta_core.infrastructure.sqlalchemy.models.commons.account import (  # noqa: F401
-    GuestAccount,
-    HostAccount,
+from ta_core.infrastructure.sqlalchemy.models.commons.base import (  # noqa: F401
+    AbstractCommonBase,
 )
-from ta_core.infrastructure.sqlalchemy.models.commons.verify import (  # noqa: F401
-    HostVerification,
+from ta_core.infrastructure.sqlalchemy.models.sequences.base import (  # noqa: F401
+    AbstractSequenceBase,
 )
-from ta_core.infrastructure.sqlalchemy.models.sequences.sequence import (  # noqa: F401
-    SequenceUserId,
-)
-from ta_core.infrastructure.sqlalchemy.models.shards.event import (  # noqa: F401
-    Event,
-    EventAttendance,
-    EventAttendanceActionLog,
-    Recurrence,
-    RecurrenceRule,
+from ta_core.infrastructure.sqlalchemy.models.shards.base import (  # noqa: F401
+    AbstractShardBase,
 )
 
 
@@ -53,9 +50,14 @@ async def reset_db_async() -> None:
 
 
 def reset_aurora_db() -> None:
-    if AURORA_DATABASE_NAME is None:
-        raise ValueError("AURORA_DATABASE_NAME is not set")
-    execute(query=f"DROP DATABASE IF EXISTS {AURORA_DATABASE_NAME}", dbname="mysql")
-    execute(query=f"CREATE DATABASE {AURORA_DATABASE_NAME}", dbname="mysql")
-    for ddl_statement in generate_ddl():
-        execute(query=ddl_statement, dbname=AURORA_DATABASE_NAME)
+    assert AURORA_COMMON_DBNAME is not None
+    assert AURORA_SEQUENCE_DBNAME is not None
+    assert AURORA_SHARD_DBNAME_PREFIX is not None
+    execute(query=f"DROP DATABASE IF EXISTS {AURORA_COMMON_DBNAME}", dbname="mysql")
+    execute(query=f"CREATE DATABASE {AURORA_COMMON_DBNAME}", dbname="mysql")
+    execute(query=f"DROP DATABASE IF EXISTS {AURORA_SEQUENCE_DBNAME}", dbname="mysql")
+    execute(query=f"CREATE DATABASE {AURORA_SEQUENCE_DBNAME}", dbname="mysql")
+    for i in range(DB_SHARD_COUNT):
+        shard_dbname = f"{AURORA_SHARD_DBNAME_PREFIX}{i}"
+        execute(query=f"DROP DATABASE IF EXISTS {shard_dbname}", dbname="mysql")
+        execute(query=f"CREATE DATABASE {shard_dbname}", dbname="mysql")

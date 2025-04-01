@@ -6,17 +6,19 @@ authors = ["Your Name <you@example.com>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "3.12.7"
-sqlalchemy = {extras = ["asyncio"], version = "^2.0.29"}
-aiomysql = "^0.2.0"
+python = "3.10.16"
 pydantic = {extras = ["email"], version = "^2.8.2"}
+pathlib = "^1.0.1"
+sqlalchemy = {extras = ["asyncio"], version = "^2.0.29"}
+alembic = "^1.14.0"
+aiomysql = "^0.2.0"
 passlib = {extras = ["bcrypt"], version = "^1.7.4"}
 python-jose = {extras = ["cryptography"], version = "^3.3.0"}
 aiosmtplib = "^3.0.2"
 python-dotenv = "^1.0.1"
+mysql-connector-python = "^8.4.0"
 aws-advanced-python-wrapper = "^1.2.0"
-mysql-connector-python = "^9.1.0"
-
+uuid6 = "^2024.7.10"
 
 [tool.poetry.group.dev.dependencies]
 mypy = "^1.9.0"
@@ -37,10 +39,10 @@ profile = "black"
 line_length = 88
 
 [tool.poe.tasks]
-mypy = "mypy --config-file ../mypy.ini ta_core tests"
-flake8 = "flake8 --config ../.flake8 ta_core tests"
-black = "black ta_core tests"
-isort = "isort ta_core tests"
+mypy = "mypy --config-file ../mypy.ini ta_core alembic/env.py alembic/versions tests"
+flake8 = "flake8 --config ../.flake8 ta_core alembic/env.py alembic/versions tests"
+black = "black ta_core alembic/env.py alembic/versions tests"
+isort = "isort ta_core alembic/env.py alembic/versions tests"
 lint = ["mypy", "flake8"]
 format = ["black", "isort"]
 test = "pytest tests"

@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Iterable, Mapping, Sequence
 
 from sqlalchemy.engine.result import Result
 from sqlalchemy.ext.asyncio.session import AsyncSession, AsyncSessionTransaction
@@ -17,6 +17,9 @@ class SqlalchemyUnitOfWork(IUnitOfWork):
     def add(self, model: object) -> None:
         self._session.add(model)
 
+    def add_all(self, models: Iterable[object]) -> None:
+        self._session.add_all(models)
+
     async def flush_async(self) -> None:
         await self._session.flush()
 
@@ -29,5 +32,9 @@ class SqlalchemyUnitOfWork(IUnitOfWork):
     async def delete_async(self, record: object) -> None:
         await self._session.delete(record)
 
-    async def execute_async(self, stmt: Executable) -> Result[Any]:
-        return await self._session.execute(stmt)
+    async def execute_async(
+        self,
+        stmt: Executable,
+        params: Sequence[Mapping[str, Any]] | Mapping[str, Any] | None = None,
+    ) -> Result[Any]:
+        return await self._session.execute(stmt, params)

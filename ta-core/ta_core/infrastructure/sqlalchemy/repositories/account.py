@@ -1,112 +1,108 @@
 from datetime import datetime
 
 from pydantic.networks import EmailStr
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm.strategy_options import joinedload
 from sqlalchemy.sql import select
 
-from ta_core.domain.entities.account import GuestAccount as GuestAccountEntity
-from ta_core.domain.entities.account import HostAccount as HostAccountEntity
+from ta_core.domain.entities.account import UserAccount as UserAccountEntity
 from ta_core.features.account import Gender
-from ta_core.infrastructure.sqlalchemy.models.commons.account import (
-    GuestAccount,
-    HostAccount,
-)
+from ta_core.infrastructure.sqlalchemy.models.commons.account import UserAccount
 from ta_core.infrastructure.sqlalchemy.repositories.base import AbstractRepository
+from ta_core.utils.uuid import UUID, uuid_to_bin
 
 
-class HostAccountRepository(AbstractRepository[HostAccountEntity, HostAccount]):
+class UserAccountRepository(AbstractRepository[UserAccountEntity, UserAccount]):
     @property
-    def _model(self) -> type[HostAccount]:
-        return HostAccount
+    def _model(self) -> type[UserAccount]:
+        return UserAccount
 
-    async def create_host_account_async(
+    async def create_user_account_async(
         self,
-        entity_id: str,
-        host_name: str,
+        entity_id: UUID,
+        user_id: int,
+        username: str,
         hashed_password: str,
+        birth_date: datetime,
+        gender: Gender,
         email: EmailStr,
+        followee_ids: set[UUID],
+        follower_ids: set[UUID],
         refresh_token: str | None = None,
-        user_id: int | None = None,
-    ) -> HostAccountEntity | None:
-        host_account = HostAccountEntity(
-            entity_id=entity_id,
-            host_name=host_name,
+        nickname: str | None = None,
+    ) -> UserAccountEntity | None:
+        async def read_models_by_ids_async(record_ids: set[UUID]) -> list[UserAccount]:
+            stmt = select(self._model).where(
+                self._model.id.in_(uuid_to_bin(record_id) for record_id in record_ids)
+            )
+            result = await self._uow.execute_async(stmt)
+            return result.scalars().all()
+
+        followees = await read_models_by_ids_async(followee_ids)
+        followers = await read_models_by_ids_async(follower_ids)
+
+        user_account = UserAccount(
+            id=uuid_to_bin(entity_id),
+            user_id=user_id,
+            username=username,
             hashed_password=hashed_password,
             refresh_token=refresh_token,
+            nickname=nickname,
+            birth_date=birth_date,
+            gender=gender,
             email=email,
-            user_id=user_id,
+            email_verified=False,
         )
-        return await self.create_async(host_account)
 
-    async def read_by_host_name_or_none_async(
-        self, host_name: str
-    ) -> HostAccountEntity | None:
+        async with self._uow.begin_nested() as savepoint:
+            try:
+                user_account.followees = followees
+                user_account.followers = followers
+
+                self._uow.add(user_account)
+                await self._uow.flush_async()
+                return user_account.to_entity()
+            except IntegrityError:
+                await savepoint.rollback()
+                return None
+
+    async def read_by_username_or_none_async(
+        self, username: str
+    ) -> UserAccountEntity | None:
         return await self.read_one_or_none_async(
-            where=(self._model.host_name == host_name,)
+            where=(self._model.username == username,)
         )
+
+    async def read_by_usernames_async(
+        self, usernames: set[str]
+    ) -> tuple[UserAccountEntity, ...]:
+        return await self.read_all_async(where=(self._model.username.in_(usernames),))
 
     async def read_by_email_or_none_async(
         self, email: EmailStr
-    ) -> HostAccountEntity | None:
+    ) -> UserAccountEntity | None:
         return await self.read_one_or_none_async(where=(self._model.email == email,))
 
-    async def read_with_guests_by_id_or_none_async(
-        self, record_id: str
-    ) -> HostAccountEntity | None:
+    async def read_with_followees_by_id_or_none_async(
+        self, record_id: UUID
+    ) -> UserAccountEntity | None:
         stmt = (
             select(self._model)
-            .where(self._model.id == record_id)
-            .options(joinedload(HostAccount.guests))
+            .where(self._model.id == uuid_to_bin(record_id))
+            .options(joinedload(UserAccount.followees))
         )
         result = await self._uow.execute_async(stmt)
         record = result.unique().scalar_one_or_none()
         return record.to_entity() if record is not None else None
 
-
-class GuestAccountRepository(AbstractRepository[GuestAccountEntity, GuestAccount]):
-    @property
-    def _model(self) -> type[GuestAccount]:
-        return GuestAccount
-
-    async def create_guest_account_async(
-        self,
-        entity_id: str,
-        guest_first_name: str,
-        guest_last_name: str,
-        guest_nickname: str | None,
-        birth_date: datetime,
-        gender: Gender,
-        hashed_password: str,
-        user_id: int,
-        host_id: str,
-        refresh_token: str | None = None,
-    ) -> GuestAccountEntity | None:
-        guest_account = GuestAccountEntity(
-            entity_id=entity_id,
-            guest_first_name=guest_first_name,
-            guest_last_name=guest_last_name,
-            guest_nickname=guest_nickname,
-            birth_date=birth_date,
-            gender=gender,
-            hashed_password=hashed_password,
-            refresh_token=refresh_token,
-            user_id=user_id,
-            host_id=host_id,
+    async def read_with_followers_by_id_or_none_async(
+        self, record_id: UUID
+    ) -> UserAccountEntity | None:
+        stmt = (
+            select(self._model)
+            .where(self._model.id == uuid_to_bin(record_id))
+            .options(joinedload(UserAccount.followers))
         )
-        return await self.create_async(guest_account)
-
-    async def read_by_guest_name_and_host_id_or_none_async(
-        self,
-        guest_first_name: str,
-        guest_last_name: str,
-        guest_nickname: str | None,
-        host_id: str,
-    ) -> GuestAccountEntity | None:
-        return await self.read_one_or_none_async(
-            where=(
-                self._model.guest_first_name == guest_first_name,
-                self._model.guest_last_name == guest_last_name,
-                self._model.guest_nickname == guest_nickname,
-                self._model.host_id == host_id,
-            )
-        )
+        result = await self._uow.execute_async(stmt)
+        record = result.unique().scalar_one_or_none()
+        return record.to_entity() if record is not None else None

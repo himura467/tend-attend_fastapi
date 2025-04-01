@@ -4,13 +4,14 @@ from typing import Any, Generic, Protocol, Type, TypeVar
 from sqlalchemy.orm.base import Mapped
 
 from ta_core.domain.entities.base import IEntity
+from ta_core.utils.uuid import UUID
 
 TEntity = TypeVar("TEntity", bound=IEntity)
 TModel = TypeVar("TModel", bound="ModelProtocol[Any]")
 
 
 class ModelProtocol(Protocol[TEntity]):
-    id: Mapped[str]
+    id: Mapped[bytes]
 
     def to_entity(self) -> TEntity: ...
 
@@ -24,19 +25,23 @@ class IRepository(Generic[TEntity, TModel], metaclass=ABCMeta):
         raise NotImplementedError()
 
     @abstractmethod
-    async def read_by_id_async(self, record_id: str) -> TEntity:
+    async def bulk_create_async(self, entities: list[TEntity]) -> list[TEntity] | None:
         raise NotImplementedError()
 
     @abstractmethod
-    async def read_by_id_or_none_async(self, record_id: str) -> TEntity | None:
+    async def read_by_id_async(self, record_id: UUID) -> TEntity:
         raise NotImplementedError()
 
     @abstractmethod
-    async def read_by_ids_async(self, record_ids: set[str]) -> tuple[TEntity, ...]:
+    async def read_by_id_or_none_async(self, record_id: UUID) -> TEntity | None:
         raise NotImplementedError()
 
     @abstractmethod
-    async def read_all_async(self) -> tuple[TEntity, ...]:
+    async def read_by_ids_async(self, record_ids: set[UUID]) -> tuple[TEntity, ...]:
+        raise NotImplementedError()
+
+    @abstractmethod
+    async def read_all_async(self, where: tuple[Any, ...]) -> tuple[TEntity, ...]:
         raise NotImplementedError()
 
     @abstractmethod
@@ -44,5 +49,9 @@ class IRepository(Generic[TEntity, TModel], metaclass=ABCMeta):
         raise NotImplementedError()
 
     @abstractmethod
-    async def delete_by_id_async(self, record_id: str) -> bool:
+    async def delete_by_id_async(self, record_id: UUID) -> None:
+        raise NotImplementedError()
+
+    @abstractmethod
+    async def delete_all_async(self, where: tuple[Any, ...]) -> None:
         raise NotImplementedError()

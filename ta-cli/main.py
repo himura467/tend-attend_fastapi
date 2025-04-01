@@ -1,5 +1,6 @@
 from asyncio.proactor_events import _ProactorBasePipeTransport
 from functools import wraps
+from typing import Any, Callable
 
 import typer
 from rich.console import Console
@@ -7,9 +8,9 @@ from rich.console import Console
 from ta_cli.typers import db_migration
 
 
-def silence_event_loop_closed(func):
+def silence_event_loop_closed(func: Callable[..., Any]) -> Callable[..., Any]:
     @wraps(func)
-    def wrapper(self, *args, **kwargs):
+    def wrapper(self: Any, *args: Any, **kwargs: Any) -> Any:
         try:
             return func(self, *args, **kwargs)
         except RuntimeError as e:
@@ -19,9 +20,7 @@ def silence_event_loop_closed(func):
     return wrapper
 
 
-_ProactorBasePipeTransport.__del__ = silence_event_loop_closed(
-    _ProactorBasePipeTransport.__del__
-)
+_ProactorBasePipeTransport.__del__ = silence_event_loop_closed(_ProactorBasePipeTransport.__del__)  # type: ignore[method-assign]
 
 app = typer.Typer()
 

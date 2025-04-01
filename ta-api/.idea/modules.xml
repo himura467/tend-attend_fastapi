@@ -5,6 +5,7 @@
       <module fileurl="file://$PROJECT_DIR$/.idea/ta-api.iml" filepath="$PROJECT_DIR$/.idea/ta-api.iml" />
       <module fileurl="file://$PROJECT_DIR$/../ta-cli/.idea/ta-cli.iml" filepath="$PROJECT_DIR$/../ta-cli/.idea/ta-cli.iml" />
       <module fileurl="file://$PROJECT_DIR$/../ta-core/.idea/ta-core.iml" filepath="$PROJECT_DIR$/../ta-core/.idea/ta-core.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../ta-ml/.idea/ta-ml.iml" filepath="$PROJECT_DIR$/../ta-ml/.idea/ta-ml.iml" />
     </modules>
   </component>
 </project>

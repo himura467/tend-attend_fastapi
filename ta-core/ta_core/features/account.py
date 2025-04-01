@@ -1,8 +1,10 @@
 from dataclasses import dataclass
-from enum import IntEnum, StrEnum
+from enum import Enum, IntEnum
+
+from ta_core.utils.uuid import UUID
 
 
-class Group(StrEnum):
+class Group(str, Enum):
     HOST = "host"
     GUEST = "guest"
 
@@ -18,13 +20,13 @@ groupRoleMap: dict[Group, list[Role]] = {
 }
 
 
-class Gender(StrEnum):
+class Gender(str, Enum):
     MALE = "male"
     FEMALE = "female"
 
 
 @dataclass(frozen=True)
 class Account:
-    account_id: str
+    account_id: UUID
     group: Group
     disabled: bool

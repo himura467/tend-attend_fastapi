@@ -1,4 +1,4 @@
-from datetime import UTC, date, datetime
+from datetime import date, datetime
 
 import pytest
 
@@ -36,11 +36,11 @@ from ta_core.utils.rfc5545 import parse_recurrence, parse_rrule, serialize_recur
             ),
         ),
         (
-            "FREQ=WEEKLY;UNTIL=20000101T120000Z;INTERVAL=1;BYSECOND=0,1,2;BYMONTHDAY=1,2,3;WKST=TU",
+            "FREQ=WEEKLY;UNTIL=20000101T120000;INTERVAL=1;BYSECOND=0,1,2;BYMONTHDAY=1,2,3;WKST=TU",
             False,
             RecurrenceRule(
                 freq=Frequency.WEEKLY,
-                until=datetime(2000, 1, 1, 12, 0, 0, tzinfo=UTC),
+                until=datetime(2000, 1, 1, 12, 0, 0),
                 count=None,
                 interval=1,
                 bysecond=(0, 1, 2),
@@ -95,16 +95,16 @@ def test_parse_rrule(
             "RRULE cannot have both COUNT and UNTIL",
         ),
         (
-            "FREQ=MONTHLY;UNTIL=20000101T120000Z",
+            "FREQ=MONTHLY;UNTIL=20000101T120000",
             True,
             ValueError,
-            "Invalid time: 2000-01-01 12:00:00+00:00",
+            "unconverted data remains: T120000",
         ),
         (
             "FREQ=MONTHLY;UNTIL=20000101T001000Z",
             False,
             ValueError,
-            "Invalid time: 2000-01-01 00:10:00+00:00",
+            "unconverted data remains: Z",
         ),
     ],
 )
@@ -164,13 +164,13 @@ def test_parse_rrule_error(
         ),
         (
             [
-                "RRULE:FREQ=HOURLY;UNTIL=20000101T123000Z;INTERVAL=1;BYSECOND=0,1,2;BYMONTHDAY=1,2,3;WKST=TU",
+                "RRULE:FREQ=HOURLY;UNTIL=20000101T123000;INTERVAL=1;BYSECOND=0,1,2;BYMONTHDAY=1,2,3;WKST=TU",
             ],
             False,
             Recurrence(
                 rrule=RecurrenceRule(
                     freq=Frequency.HOURLY,
-                    until=datetime(2000, 1, 1, 12, 30, 0, tzinfo=UTC),
+                    until=datetime(2000, 1, 1, 12, 30, 0),
                     count=None,
                     interval=1,
                     bysecond=(0, 1, 2),
@@ -203,7 +203,7 @@ def test_parse_recurrence(
     [
         (
             [
-                "RRULE:FREQ=DAILY;UNTIL=20000101;INTERVAL=1;BYSECOND=0;BYMINUTE=0;BYHOUR=0;BYDAY=-2MO,-1TU,WE,1TH,2FR;BYMONTHDAY=1,2,3,4,5;BYYEARDAY=1,2,3,4,5;BYWEEKNO=1,2,3,4,5;BYMONTH=1,2,3,4,5;BYSETPOS=1,2,3,4,5;WKST=MO",
+                "RRULE:FREQ=DAILY;UNTIL=20000101T000000;INTERVAL=1;BYSECOND=0;BYMINUTE=0;BYHOUR=0;BYDAY=-2MO,-1TU,WE,1TH,2FR;BYMONTHDAY=1,2,3,4,5;BYYEARDAY=1,2,3,4,5;BYWEEKNO=1,2,3,4,5;BYMONTH=1,2,3,4,5;BYSETPOS=1,2,3,4,5;WKST=MO",
                 "RDATE;VALUE=DATE:20000102,20000103",
             ],
             False,
@@ -212,7 +212,7 @@ def test_parse_recurrence(
         ),
         (
             [
-                "RRULE:FREQ=DAILY;UNTIL=20000101;INTERVAL=1;BYSECOND=0;BYMINUTE=0;BYHOUR=0;BYDAY=-2MO,-1TU,WE,1TH,2FR;BYMONTHDAY=1,2,3,4,5;BYYEARDAY=1,2,3,4,5;BYWEEKNO=1,2,3,4,5;BYMONTH=1,2,3,4,5;BYSETPOS=1,2,3,4,5;WKST=MO",
+                "RRULE:FREQ=DAILY;UNTIL=20000101T000000;INTERVAL=1;BYSECOND=0;BYMINUTE=0;BYHOUR=0;BYDAY=-2MO,-1TU,WE,1TH,2FR;BYMONTHDAY=1,2,3,4,5;BYYEARDAY=1,2,3,4,5;BYWEEKNO=1,2,3,4,5;BYMONTH=1,2,3,4,5;BYSETPOS=1,2,3,4,5;WKST=MO",
                 "EXDATE;VALUE=DATE:19991231",
             ],
             False,
@@ -273,7 +273,7 @@ def test_parse_recurrence_error(
             ),
             True,
             [
-                "RRULE:FREQ=DAILY;UNTIL=2000-01-01;INTERVAL=1;BYSECOND=0;BYMINUTE=0;BYHOUR=0;BYDAY=MO,TU,WE;BYMONTHDAY=1,2,3;BYYEARDAY=1,2,3;BYWEEKNO=1,2,3;BYMONTH=1,2,3;BYSETPOS=1,2,3;WKST=MO",
+                "RRULE:FREQ=DAILY;UNTIL=20000101;INTERVAL=1;BYSECOND=0;BYMINUTE=0;BYHOUR=0;BYDAY=MO,TU,WE;BYMONTHDAY=1,2,3;BYYEARDAY=1,2,3;BYWEEKNO=1,2,3;BYMONTH=1,2,3;BYSETPOS=1,2,3;WKST=MO",
                 "RDATE;VALUE=DATE:20000102,20000103",
                 "EXDATE;VALUE=DATE:19991231",
             ],

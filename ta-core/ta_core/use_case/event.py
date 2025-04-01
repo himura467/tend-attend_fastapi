@@ -1,15 +1,22 @@
 from dataclasses import dataclass
 from datetime import date, datetime
+from typing import TypeVar
 from zoneinfo import ZoneInfo
 
 from ta_core.domain.entities.event import Event as EventEntity
+from ta_core.domain.entities.event import (
+    EventAttendanceActionLog as EventAttendanceActionLogEntity,
+)
+from ta_core.dtos.event import Attendance as AttendanceDto
 from ta_core.dtos.event import AttendEventResponse, CreateEventResponse
 from ta_core.dtos.event import Event as EventDto
 from ta_core.dtos.event import EventWithId as EventWithIdDto
 from ta_core.dtos.event import (
+    GetAttendancesResponse,
+    GetFollowingEventsResponse,
     GetGuestCurrentAttendanceStatusResponse,
-    GetGuestEventsResponse,
-    GetHostEventsResponse,
+    GetMyEventsResponse,
+    UpdateAttendancesResponse,
 )
 from ta_core.error.error_code import ErrorCode
 from ta_core.features.event import (
@@ -21,10 +28,7 @@ from ta_core.features.event import (
     Weekday,
 )
 from ta_core.infrastructure.db.transaction import rollbackable
-from ta_core.infrastructure.sqlalchemy.repositories.account import (
-    GuestAccountRepository,
-    HostAccountRepository,
-)
+from ta_core.infrastructure.sqlalchemy.repositories.account import UserAccountRepository
 from ta_core.infrastructure.sqlalchemy.repositories.event import (
     EventAttendanceActionLogRepository,
     EventAttendanceRepository,
@@ -35,14 +39,16 @@ from ta_core.infrastructure.sqlalchemy.repositories.event import (
 from ta_core.use_case.unit_of_work_base import IUnitOfWork
 from ta_core.utils.datetime import validate_date
 from ta_core.utils.rfc5545 import parse_recurrence, serialize_recurrence
-from ta_core.utils.uuid import generate_uuid
+from ta_core.utils.uuid import UUID, generate_uuid, str_to_uuid, uuid_to_str
+
+T = TypeVar("T")
 
 
-def convert_tuple_to_list[T](tpl: tuple[T, ...] | None) -> list[T] | None:
+def convert_tuple_to_list(tpl: tuple[T, ...] | None) -> list[T] | None:
     return list(tpl) if tpl is not None else None
 
 
-def convert_list_to_tuple[T](lst: list[T] | None) -> tuple[T, ...] | None:
+def convert_list_to_tuple(lst: list[T] | None) -> tuple[T, ...] | None:
     return tuple(lst) if lst is not None else None
 
 
@@ -105,7 +111,7 @@ def serialize_events(events: tuple[EventEntity, ...]) -> list[EventWithIdDto]:
             )
         event_dto_list.append(
             EventWithIdDto(
-                id=event.id,
+                id=uuid_to_str(event.id),
                 summary=event.summary,
                 location=event.location,
                 start=event.start,
@@ -125,10 +131,10 @@ class EventUseCase:
     @rollbackable
     async def create_event_async(
         self,
-        host_id: str,
+        host_id: UUID,
         event_dto: EventDto,
     ) -> CreateEventResponse:
-        host_account_repository = HostAccountRepository(self.uow)
+        user_account_repository = UserAccountRepository(self.uow)
         recurrence_rule_repository = RecurrenceRuleRepository(self.uow)
         recurrence_repository = RecurrenceRepository(self.uow)
         event_repository = EventRepository(self.uow)
@@ -145,6 +151,7 @@ class EventUseCase:
             date_value=event_dto.end,
             timezone=event_dto.timezone,
         )
+
         recurrence = parse_recurrence(event_dto.recurrence_list, event_dto.is_all_day)
         event = Event(
             summary=event_dto.summary,
@@ -156,15 +163,13 @@ class EventUseCase:
             is_all_day=event_dto.is_all_day,
         )
 
-        host_account = await host_account_repository.read_by_id_or_none_async(host_id)
-        if host_account is None:
-            return CreateEventResponse(error_codes=(ErrorCode.HOST_ACCOUNT_NOT_FOUND,))
-        if host_account.user_id is None:
-            return CreateEventResponse(error_codes=(ErrorCode.ACCOUNT_DISABLED,))
+        host = await user_account_repository.read_by_id_or_none_async(host_id)
+        if host is None:
+            return CreateEventResponse(error_codes=(ErrorCode.ACCOUNT_NOT_FOUND,))
 
-        user_id = host_account.user_id
+        user_id = host.user_id
 
-        recurrence_id: str | None
+        recurrence_id: UUID | None
         if event.recurrence is None:
             recurrence_id = None
         else:
@@ -192,6 +197,7 @@ class EventUseCase:
             )
             if recurrence_rule is None:
                 raise ValueError("Failed to create recurrence rule")
+
             recurrence_entity = await recurrence_repository.create_recurrence_async(
                 entity_id=generate_uuid(),
                 user_id=user_id,
@@ -202,7 +208,9 @@ class EventUseCase:
             )
             if recurrence_entity is None:
                 raise ValueError("Failed to create recurrence")
+
             recurrence_id = recurrence_entity.id
+
         event_entity = await event_repository.create_event_async(
             entity_id=generate_uuid(),
             user_id=user_id,
@@ -221,22 +229,26 @@ class EventUseCase:
 
     @rollbackable
     async def attend_event_async(
-        self, guest_id: str, event_id: str, start: datetime, action: AttendanceAction
+        self,
+        guest_id: UUID,
+        event_id_str: str,
+        start: datetime,
+        action: AttendanceAction,
     ) -> AttendEventResponse:
-        guest_account_repository = GuestAccountRepository(self.uow)
+        user_account_repository = UserAccountRepository(self.uow)
         event_repository = EventRepository(self.uow)
         event_attendance_repository = EventAttendanceRepository(self.uow)
         event_attendance_action_log_repository = EventAttendanceActionLogRepository(
             self.uow
         )
 
-        guest_account = await guest_account_repository.read_by_id_or_none_async(
-            guest_id
-        )
-        if guest_account is None:
-            return AttendEventResponse(error_codes=(ErrorCode.GUEST_ACCOUNT_NOT_FOUND,))
+        event_id = str_to_uuid(event_id_str)
 
-        user_id = guest_account.user_id
+        guest = await user_account_repository.read_by_id_or_none_async(guest_id)
+        if guest is None:
+            return AttendEventResponse(error_codes=(ErrorCode.ACCOUNT_NOT_FOUND,))
+
+        user_id = guest.user_id
 
         event = await event_repository.read_by_id_or_none_async(event_id)
         if event is None:
@@ -259,88 +271,196 @@ class EventUseCase:
             if not event.is_leaveable(start, datetime.now(ZoneInfo("UTC"))):
                 return AttendEventResponse(error_codes=(ErrorCode.EVENT_NOT_LEAVEABLE,))
 
+            await event_attendance_repository.create_or_update_event_attendance_async(
+                entity_id=generate_uuid(),
+                user_id=user_id,
+                event_id=event.id,
+                start=start,
+                state=AttendanceState.EXCUSED_ABSENCE,
+            )
+
         await event_attendance_action_log_repository.create_event_attendance_action_log_async(
             entity_id=generate_uuid(),
             user_id=user_id,
             event_id=event.id,
             start=start,
             action=action,
+            acted_at=datetime.now(ZoneInfo("UTC")),
         )
 
         return AttendEventResponse(error_codes=())
 
     @rollbackable
-    async def get_host_events_async(self, host_id: str) -> GetHostEventsResponse:
-        host_account_repository = HostAccountRepository(self.uow)
+    async def update_attendances_async(
+        self,
+        guest_id: UUID,
+        event_id_str: str,
+        start: datetime,
+        attendances: list[AttendanceDto],
+    ) -> UpdateAttendancesResponse:
+        user_account_repository = UserAccountRepository(self.uow)
         event_repository = EventRepository(self.uow)
+        event_attendance_repository = EventAttendanceRepository(self.uow)
+        event_attendance_action_log_repository = EventAttendanceActionLogRepository(
+            self.uow
+        )
 
-        host_account = await host_account_repository.read_by_id_or_none_async(host_id)
-        if host_account is None:
-            return GetHostEventsResponse(
-                events=[], error_codes=(ErrorCode.HOST_ACCOUNT_NOT_FOUND,)
+        event_id = str_to_uuid(event_id_str)
+
+        guest = await user_account_repository.read_by_id_or_none_async(guest_id)
+        if guest is None:
+            return UpdateAttendancesResponse(error_codes=(ErrorCode.ACCOUNT_NOT_FOUND,))
+
+        user_id = guest.user_id
+
+        event = await event_repository.read_by_id_or_none_async(event_id)
+        if event is None:
+            return UpdateAttendancesResponse(error_codes=(ErrorCode.EVENT_NOT_FOUND,))
+
+        await event_attendance_action_log_repository.delete_by_user_id_and_event_id_and_start_async(
+            user_id=user_id, event_id=event.id, start=start
+        )
+
+        event_attendance_action_logs = [
+            EventAttendanceActionLogEntity(
+                entity_id=generate_uuid(),
+                user_id=user_id,
+                event_id=event.id,
+                start=start,
+                action=AttendanceAction(attendance.action),
+                acted_at=attendance.acted_at,
             )
-        if host_account.user_id is None:
-            return GetHostEventsResponse(
-                events=[], error_codes=(ErrorCode.ACCOUNT_DISABLED,)
+            for attendance in attendances
+        ]
+        await event_attendance_action_log_repository.bulk_create_event_attendance_action_logs_async(
+            event_attendance_action_logs
+        )
+
+        latest_log = max(event_attendance_action_logs, key=lambda log: log.acted_at)
+        if latest_log.action == AttendanceAction.ATTEND:
+            await event_attendance_repository.create_or_update_event_attendance_async(
+                entity_id=generate_uuid(),
+                user_id=user_id,
+                event_id=event.id,
+                start=start,
+                state=AttendanceState.PRESENT,
+            )
+        elif latest_log.action == AttendanceAction.LEAVE:
+            await event_attendance_repository.create_or_update_event_attendance_async(
+                entity_id=generate_uuid(),
+                user_id=user_id,
+                event_id=event.id,
+                start=start,
+                state=AttendanceState.EXCUSED_ABSENCE,
             )
 
-        user_id = host_account.user_id
-
-        events = await event_repository.read_with_recurrence_by_user_id_async(user_id)
-
-        return GetHostEventsResponse(events=serialize_events(events), error_codes=())
+        return UpdateAttendancesResponse(error_codes=())
 
     @rollbackable
-    async def get_guest_events_async(self, guest_id: str) -> GetGuestEventsResponse:
-        host_account_repository = HostAccountRepository(self.uow)
-        guest_account_repository = GuestAccountRepository(self.uow)
-        event_repository = EventRepository(self.uow)
-
-        guest_account = await guest_account_repository.read_by_id_or_none_async(
-            guest_id
-        )
-        if guest_account is None:
-            return GetGuestEventsResponse(
-                events=[], error_codes=(ErrorCode.GUEST_ACCOUNT_NOT_FOUND,)
-            )
-
-        host_account = await host_account_repository.read_by_id_or_none_async(
-            guest_account.host_id
-        )
-        if host_account is None:
-            return GetGuestEventsResponse(
-                events=[], error_codes=(ErrorCode.HOST_ACCOUNT_NOT_FOUND,)
-            )
-        if host_account.user_id is None:
-            return GetGuestEventsResponse(
-                events=[], error_codes=(ErrorCode.ACCOUNT_DISABLED,)
-            )
-
-        user_id = host_account.user_id
-
-        events = await event_repository.read_with_recurrence_by_user_id_async(user_id)
-
-        return GetGuestEventsResponse(events=serialize_events(events), error_codes=())
-
-    @rollbackable
-    async def get_guest_current_attendance_status_async(
-        self, guest_id: str, event_id: str, start: datetime
-    ) -> GetGuestCurrentAttendanceStatusResponse:
-        guest_account_repository = GuestAccountRepository(self.uow)
+    async def get_attendances_async(
+        self, guest_id: UUID, event_id_str: str, start: datetime
+    ) -> GetAttendancesResponse:
+        user_account_repository = UserAccountRepository(self.uow)
         event_repository = EventRepository(self.uow)
         event_attendance_action_log_repository = EventAttendanceActionLogRepository(
             self.uow
         )
 
-        guest_account = await guest_account_repository.read_by_id_or_none_async(
-            guest_id
-        )
-        if guest_account is None:
-            return GetGuestCurrentAttendanceStatusResponse(
-                attend=False, error_codes=(ErrorCode.GUEST_ACCOUNT_NOT_FOUND,)
+        event_id = str_to_uuid(event_id_str)
+
+        guest = await user_account_repository.read_by_id_or_none_async(guest_id)
+        if guest is None:
+            return GetAttendancesResponse(
+                attendances=[], error_codes=(ErrorCode.ACCOUNT_NOT_FOUND,)
             )
 
-        user_id = guest_account.user_id
+        user_id = guest.user_id
+
+        event = await event_repository.read_by_id_or_none_async(event_id)
+        if event is None:
+            return GetAttendancesResponse(
+                attendances=[], error_codes=(ErrorCode.EVENT_NOT_FOUND,)
+            )
+
+        logs = await event_attendance_action_log_repository.read_by_user_id_and_event_id_and_start_async(
+            user_id=user_id, event_id=event_id, start=start
+        )
+
+        attendances = [
+            AttendanceDto(action=log.action, acted_at=log.acted_at) for log in logs
+        ]
+
+        return GetAttendancesResponse(attendances=attendances, error_codes=())
+
+    @rollbackable
+    async def get_my_events_async(self, account_id: UUID) -> GetMyEventsResponse:
+        user_account_repository = UserAccountRepository(self.uow)
+        event_repository = EventRepository(self.uow)
+
+        user_account = await user_account_repository.read_by_id_or_none_async(
+            account_id
+        )
+        if user_account is None:
+            return GetMyEventsResponse(
+                events=[], error_codes=(ErrorCode.ACCOUNT_NOT_FOUND,)
+            )
+
+        user_id = user_account.user_id
+
+        events = await event_repository.read_with_recurrence_by_user_ids_async(
+            {user_id}
+        )
+
+        return GetMyEventsResponse(events=serialize_events(events), error_codes=())
+
+    @rollbackable
+    async def get_following_events_async(
+        self, follower_id: UUID
+    ) -> GetFollowingEventsResponse:
+        user_account_repository = UserAccountRepository(self.uow)
+        event_repository = EventRepository(self.uow)
+
+        follower = (
+            await user_account_repository.read_with_followees_by_id_or_none_async(
+                follower_id
+            )
+        )
+        if follower is None:
+            return GetFollowingEventsResponse(
+                events=[], error_codes=(ErrorCode.ACCOUNT_NOT_FOUND,)
+            )
+
+        followees = await user_account_repository.read_by_ids_async(
+            set(followee.id for followee in follower.followees)
+        )
+
+        user_ids = {followee.user_id for followee in followees} | {follower.user_id}
+
+        events = await event_repository.read_with_recurrence_by_user_ids_async(user_ids)
+
+        return GetFollowingEventsResponse(
+            events=serialize_events(events), error_codes=()
+        )
+
+    @rollbackable
+    async def get_guest_current_attendance_status_async(
+        self, guest_id: UUID, event_id_str: str, start: datetime
+    ) -> GetGuestCurrentAttendanceStatusResponse:
+        user_account_repository = UserAccountRepository(self.uow)
+        event_repository = EventRepository(self.uow)
+        event_attendance_action_log_repository = EventAttendanceActionLogRepository(
+            self.uow
+        )
+
+        event_id = str_to_uuid(event_id_str)
+
+        guest = await user_account_repository.read_by_id_or_none_async(guest_id)
+        if guest is None:
+            return GetGuestCurrentAttendanceStatusResponse(
+                attend=False, error_codes=(ErrorCode.ACCOUNT_NOT_FOUND,)
+            )
+
+        user_id = guest.user_id
 
         event = await event_repository.read_by_id_or_none_async(event_id)
         if event is None:

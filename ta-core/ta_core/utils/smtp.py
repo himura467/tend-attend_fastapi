@@ -9,7 +9,7 @@ from ta_core.error.error_code import ErrorCode
 
 
 async def send_verification_email_async(
-    host_email: EmailStr, verification_link: str
+    user_email: EmailStr, verification_link: str
 ) -> tuple[int, ...]:
     if GMAIL_SENDER_EMAIL is None or GMAIL_APP_PASSWORD is None:
         return (ErrorCode.ENVIRONMENT_VARIABLE_NOT_SET,)
@@ -17,7 +17,7 @@ async def send_verification_email_async(
     message = MIMEMultipart("alternative")
     message["Subject"] = "[No-Reply] Email Verification"
     message["From"] = GMAIL_SENDER_EMAIL
-    message["To"] = host_email
+    message["To"] = user_email
 
     text = f"Click the link below to verify your email address.\n{verification_link}"
     html = f'<html><body><a href="{verification_link}">Click here to verify your email address.</a></body></html>'

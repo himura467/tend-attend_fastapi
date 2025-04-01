@@ -3,12 +3,13 @@ from datetime import datetime
 from ta_core.domain.entities.base import IEntity
 from ta_core.features.event import AttendanceAction, AttendanceState, Frequency, Weekday
 from ta_core.utils.datetime import apply_timezone
+from ta_core.utils.uuid import UUID
 
 
 class RecurrenceRule(IEntity):
     def __init__(
         self,
-        entity_id: str,
+        entity_id: UUID,
         user_id: int,
         freq: Frequency,
         until: datetime | None,
@@ -46,9 +47,9 @@ class RecurrenceRule(IEntity):
 class Recurrence(IEntity):
     def __init__(
         self,
-        entity_id: str,
+        entity_id: UUID,
         user_id: int,
-        rrule_id: str,
+        rrule_id: UUID,
         rrule: RecurrenceRule,
         rdate: list[str],
         exdate: list[str],
@@ -64,14 +65,14 @@ class Recurrence(IEntity):
 class Event(IEntity):
     def __init__(
         self,
-        entity_id: str,
+        entity_id: UUID,
         user_id: int,
         summary: str,
         location: str | None,
         start: datetime,
         end: datetime,
         is_all_day: bool,
-        recurrence_id: str | None,
+        recurrence_id: UUID | None,
         timezone: str,
         recurrence: Recurrence | None = None,
     ) -> None:
@@ -120,9 +121,9 @@ class Event(IEntity):
 class EventAttendance(IEntity):
     def __init__(
         self,
-        entity_id: str,
+        entity_id: UUID,
         user_id: int,
-        event_id: str,
+        event_id: UUID,
         start: datetime,
         state: AttendanceState,
     ) -> None:
@@ -145,14 +146,16 @@ class EventAttendance(IEntity):
 class EventAttendanceActionLog(IEntity):
     def __init__(
         self,
-        entity_id: str,
+        entity_id: UUID,
         user_id: int,
-        event_id: str,
+        event_id: UUID,
         start: datetime,
         action: AttendanceAction,
+        acted_at: datetime,
     ) -> None:
         super().__init__(entity_id)
         self.user_id = user_id
         self.event_id = event_id
         self.start = start
         self.action = action
+        self.acted_at = acted_at
