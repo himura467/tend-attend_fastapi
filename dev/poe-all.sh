@@ -2,8 +2,7 @@
 
 set -e
 
-SCRIPT_DIR=$(cd $(dirname $0); pwd)
-ROOT_DIR=${SCRIPT_DIR}/..
+ROOT_DIR=$(cd $(dirname $0)/..; pwd)
 
 command=$1
 
@@ -11,6 +10,7 @@ projects=(
   "ta-api"
   "ta-cli"
   "ta-core"
+  "ta-ml"
 )
 
 for project in "${projects[@]}"; do

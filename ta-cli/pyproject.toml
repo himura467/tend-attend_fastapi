@@ -6,10 +6,9 @@ authors = ["Your Name <you@example.com>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "3.12.7"
+python = "3.10.16"
 typer = {extras = ["all"], version = "^0.12.3"}
 ta-core = {path = "../ta-core", develop = true}
-
 
 [tool.poetry.group.dev.dependencies]
 mypy = "^1.9.0"
@@ -29,10 +28,9 @@ line_length = 88
 [tool.poe.tasks]
 db-migration-print-ddl = "python main.py db-migration print-ddl"
 db-migration-migrate = "python main.py db-migration migrate"
-db-migration-migrate-aurora = "python main.py db-migration migrate-aurora"
-mypy = "mypy --config-file ../mypy.ini ta_cli tests"
-flake8 = "flake8 --config ../.flake8 ta_cli tests"
-black = "black ta_cli tests"
-isort = "isort ta_cli tests"
+mypy = "mypy --config-file ../mypy.ini ta_cli tests main.py"
+flake8 = "flake8 --config ../.flake8 ta_cli tests main.py"
+black = "black ta_cli tests main.py"
+isort = "isort ta_cli tests main.py"
 lint = ["mypy", "flake8"]
 format = ["black", "isort"]

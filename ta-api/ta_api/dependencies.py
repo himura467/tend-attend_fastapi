@@ -9,10 +9,12 @@ from ta_core.infrastructure.sqlalchemy.db import get_db_async
 from ta_core.infrastructure.sqlalchemy.unit_of_work import SqlalchemyUnitOfWork
 from ta_core.use_case.auth import AuthUseCase
 
+from ta_api.constants import ACCESS_TOKEN_NAME
+
 
 class OAuth2Cookie(OAuth2PasswordBearer):
     async def __call__(self, request: Request) -> str | None:
-        access_token = request.cookies.get("access_token")
+        access_token = request.cookies.get(ACCESS_TOKEN_NAME)
         if not access_token:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
@@ -21,7 +23,7 @@ class OAuth2Cookie(OAuth2PasswordBearer):
         return access_token
 
 
-cookie_scheme = OAuth2Cookie(tokenUrl="auth/token")
+cookie_scheme = OAuth2Cookie(tokenUrl="auth/tokens/create")
 
 
 @dataclass(frozen=True, eq=True)

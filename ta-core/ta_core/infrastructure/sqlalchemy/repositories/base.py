@@ -2,11 +2,12 @@ from abc import abstractmethod
 from typing import Any
 
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.sql import select, update
+from sqlalchemy.sql import delete, select, update
 from sqlalchemy.sql.elements import UnaryExpression
 
 from ta_core.domain.repositories.base import IRepository, TEntity, TModel
 from ta_core.use_case.unit_of_work_base import IUnitOfWork
+from ta_core.utils.uuid import UUID, uuid_to_bin
 
 
 class AbstractRepository(IRepository[TEntity, TModel]):
@@ -29,19 +30,32 @@ class AbstractRepository(IRepository[TEntity, TModel]):
                 await savepoint.rollback()
                 return None
 
-    async def read_by_id_async(self, record_id: str) -> TEntity:
-        stmt = select(self._model).where(self._model.id == record_id)
+    async def bulk_create_async(self, entities: list[TEntity]) -> list[TEntity] | None:
+        models = [self._model.from_entity(entity) for entity in entities]
+        async with self._uow.begin_nested() as savepoint:
+            try:
+                self._uow.add_all(models)
+                await self._uow.flush_async()
+                return entities
+            except IntegrityError:
+                await savepoint.rollback()
+                return None
+
+    async def read_by_id_async(self, record_id: UUID) -> TEntity:
+        stmt = select(self._model).where(self._model.id == uuid_to_bin(record_id))
         result = await self._uow.execute_async(stmt)
         return result.scalar_one().to_entity()
 
-    async def read_by_id_or_none_async(self, record_id: str) -> TEntity | None:
-        stmt = select(self._model).where(self._model.id == record_id)
+    async def read_by_id_or_none_async(self, record_id: UUID) -> TEntity | None:
+        stmt = select(self._model).where(self._model.id == uuid_to_bin(record_id))
         result = await self._uow.execute_async(stmt)
         record = result.scalar_one_or_none()
         return record.to_entity() if record is not None else None
 
-    async def read_by_ids_async(self, record_ids: set[str]) -> tuple[TEntity, ...]:
-        stmt = select(self._model).where(self._model.id.in_(record_ids))
+    async def read_by_ids_async(self, record_ids: set[UUID]) -> tuple[TEntity, ...]:
+        stmt = select(self._model).where(
+            self._model.id.in_(uuid_to_bin(record_id) for record_id in record_ids)
+        )
         result = await self._uow.execute_async(stmt)
         return tuple(record.to_entity() for record in result.scalars().all())
 
@@ -56,8 +70,8 @@ class AbstractRepository(IRepository[TEntity, TModel]):
         record = result.scalar_one_or_none()
         return record.to_entity() if record is not None else None
 
-    async def read_all_async(self) -> tuple[TEntity, ...]:
-        stmt = select(self._model)
+    async def read_all_async(self, where: tuple[Any, ...]) -> tuple[TEntity, ...]:
+        stmt = select(self._model).where(*where)
         result = await self._uow.execute_async(stmt)
         return tuple(record.to_entity() for record in result.scalars().all())
 
@@ -83,11 +97,10 @@ class AbstractRepository(IRepository[TEntity, TModel]):
         await self._uow.execute_async(stmt)
         return entity
 
-    async def delete_by_id_async(self, record_id: str) -> bool:
-        stmt = select(self._model).where(self._model.id == record_id)
-        result = await self._uow.execute_async(stmt)
-        record = result.scalar_one_or_none()
-        if record is None:
-            return False
-        await self._uow.delete_async(record)
-        return True
+    async def delete_by_id_async(self, record_id: UUID) -> None:
+        stmt = delete(self._model).where(self._model.id == uuid_to_bin(record_id))
+        await self._uow.execute_async(stmt)
+
+    async def delete_all_async(self, where: tuple[Any, ...]) -> None:
+        stmt = delete(self._model).where(*where)
+        await self._uow.execute_async(stmt)

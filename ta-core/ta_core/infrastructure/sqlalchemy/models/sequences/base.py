@@ -6,7 +6,7 @@ from sqlalchemy.orm.base import Mapped
 from sqlalchemy.orm.decl_api import declared_attr
 from sqlalchemy.sql import select
 
-from ta_core.infrastructure.db.settings import DB_SEQUENCE_CONNECTION_KEY
+from ta_core.infrastructure.db.settings import SEQUENCE_DB_CONNECTION_KEY
 from ta_core.infrastructure.sqlalchemy.models.base import AbstractBase
 from ta_core.use_case.unit_of_work_base import IUnitOfWork
 
@@ -18,7 +18,7 @@ class AbstractSequenceBase(AbstractBase):
     def __table_args__(self) -> Any:
         return {
             **super().__table_args__,
-            "info": {"shard_ids": (DB_SEQUENCE_CONNECTION_KEY,)},
+            "info": {"shard_ids": (SEQUENCE_DB_CONNECTION_KEY,)},
         }
 
 
@@ -41,5 +41,4 @@ class AbstractSequenceId(AbstractSequenceBase):
             await uow.delete_async(record)
         model = cls(id=new_id)
         uow.add(model)
-        await uow.flush_async()
         return new_id

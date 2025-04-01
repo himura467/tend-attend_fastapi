@@ -1,9 +1,9 @@
 from dataclasses import dataclass
 from datetime import date, datetime
-from enum import IntEnum, StrEnum
+from enum import Enum, IntEnum
 
 
-class Frequency(StrEnum):
+class Frequency(str, Enum):
     SECONDLY = "SECONDLY"
     MINUTELY = "MINUTELY"
     HOURLY = "HOURLY"
@@ -13,7 +13,7 @@ class Frequency(StrEnum):
     YEARLY = "YEARLY"
 
 
-class Weekday(StrEnum):
+class Weekday(str, Enum):
     MO = "MO"
     TU = "TU"
     WE = "WE"
@@ -120,7 +120,7 @@ class Event:
     is_all_day: bool
 
 
-class AttendanceAction(StrEnum):
+class AttendanceAction(str, Enum):
     ATTEND = "attend"
     LEAVE = "leave"
 

@@ -1,12 +1,13 @@
 from dataclasses import dataclass
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 
 from jose import JWTError, jwt
 
 from ta_core.dtos.auth import AuthToken
 from ta_core.features.account import Group
 from ta_core.features.auth import TokenType
-from ta_core.utils.uuid import generate_uuid
+from ta_core.utils.uuid import UUID, generate_uuid, str_to_uuid, uuid_to_str
 
 
 @dataclass(frozen=True)
@@ -18,17 +19,17 @@ class JWTCryptography:
 
     def _create_token(
         self,
-        subject: str,
+        subject: UUID,
         group: Group,
         token_type: TokenType,
         expires_delta: timedelta,
     ) -> str:
         registered_claims = {
-            "sub": subject,
-            "iat": datetime.utcnow(),
-            "nbf": datetime.utcnow(),
-            "jti": generate_uuid(),
-            "exp": datetime.utcnow() + expires_delta,
+            "sub": uuid_to_str(subject),
+            "iat": datetime.now(ZoneInfo("UTC")),
+            "nbf": datetime.now(ZoneInfo("UTC")),
+            "jti": uuid_to_str(generate_uuid()),
+            "exp": datetime.now(ZoneInfo("UTC")) + expires_delta,
         }
         private_claims = {"group": group, "type": token_type}
 
@@ -39,7 +40,7 @@ class JWTCryptography:
         )
         return encoded_jwt
 
-    def create_auth_token(self, subject: str, group: Group) -> AuthToken:
+    def create_auth_token(self, subject: UUID, group: Group) -> AuthToken:
         access_token = self._create_token(
             subject=subject,
             group=group,
@@ -60,12 +61,12 @@ class JWTCryptography:
 
     def get_subject_and_group_from_token(
         self, token: str, token_type: TokenType
-    ) -> tuple[str, Group] | None:
+    ) -> tuple[UUID, Group] | None:
         try:
             payload = jwt.decode(token, self.secret_key, algorithms=[self.algorithm])
             if payload.get("type") != token_type:
                 return None
-            subject: str = payload.get("sub")
+            subject: UUID = str_to_uuid(payload.get("sub"))
             group: Group = payload.get("group")
             if not subject or not group:
                 return None
