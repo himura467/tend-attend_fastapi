@@ -1,7 +1,22 @@
-FROM public.ecr.aws/lambda/python:3.10
+FROM amazonlinux:2023
+
+ARG PYTHON_VERSION
 
 ENV PYTHONUNBUFFERED=1
-RUN yum update -y && yum install -y git
+
+RUN yum update -y && \
+    yum install -y wget tar make gzip gcc zlib-devel && \
+    wget https://www.python.org/ftp/python/${PYTHON_VERSION}/Python-${PYTHON_VERSION}.tgz && \
+    tar xzf Python-${PYTHON_VERSION}.tgz && \
+    cd Python-${PYTHON_VERSION} && \
+    ./configure --enable-optimizations && \
+    make altinstall && \
+    cd .. && \
+    rm -rf Python-${PYTHON_VERSION} Python-${PYTHON_VERSION}.tgz && \
+    wget https://bootstrap.pypa.io/get-pip.py && \
+    python3 get-pip.py && \
+    rm get-pip.py && \
+    yum clean all
 RUN pip install --upgrade pip
 
 COPY ta-api/main.py ./main.py
