@@ -10,7 +10,9 @@ python = "3.10.16"
 torch = ">=2.0.0,<2.6.0"
 jax = "^0.4.38"
 matplotlib = "^3.10.0"
-timesfm = { git = "https://github.com/google-research/timesfm.git" }
+statsmodels = "^0.14.4"
+timesfm = {git = "https://github.com/google-research/timesfm.git"}
+ta-core = {path = "../ta-core", develop = true}
 
 [tool.poetry.group.dev.dependencies]
 mypy = "^1.9.0"
