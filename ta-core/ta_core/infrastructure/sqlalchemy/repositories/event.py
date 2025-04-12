@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Any
 
 from sqlalchemy.orm.strategy_options import joinedload
 from sqlalchemy.sql import select
@@ -133,6 +134,17 @@ class EventRepository(AbstractRepository[EventEntity, Event]):
         stmt = (
             select(self._model)
             .where(self._model.user_id.in_(user_ids))
+            .options(joinedload(Event.recurrence).joinedload(Recurrence.rrule))
+        )
+        result = await self._uow.execute_async(stmt)
+        return tuple(record.to_entity() for record in result.unique().scalars().all())
+
+    async def read_all_with_recurrence_async(
+        self, where: tuple[Any, ...]
+    ) -> tuple[EventEntity, ...]:
+        stmt = (
+            select(self._model)
+            .where(*where)
             .options(joinedload(Event.recurrence).joinedload(Recurrence.rrule))
         )
         result = await self._uow.execute_async(stmt)
