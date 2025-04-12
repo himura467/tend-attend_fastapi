@@ -289,6 +289,43 @@ class EventAttendanceActionLogRepository(
         result = await self._uow.execute_async(stmt)
         return tuple(record.to_entity() for record in result.scalars().all())
 
+    async def read_all_latest_leave_async(
+        self,
+    ) -> tuple[EventAttendanceActionLogEntity, ...]:
+        sub_query = (
+            select(
+                self._model.user_id,
+                self._model.event_id,
+                self._model.start,
+                self._model.acted_at,
+                func.row_number()
+                .over(
+                    partition_by=[
+                        self._model.user_id,
+                        self._model.event_id,
+                        self._model.start,
+                    ],
+                    order_by=self._model.acted_at.desc(),
+                )
+                .label("rn"),
+            )
+            .where(self._model.action == "leave")
+            .subquery()
+        )
+        stmt = (
+            select(self._model)
+            .join(
+                sub_query,
+                (self._model.user_id == sub_query.c.user_id)
+                & (self._model.event_id == sub_query.c.event_id)
+                & (self._model.start == sub_query.c.start)
+                & (self._model.acted_at == sub_query.c.acted_at),
+            )
+            .where(sub_query.c.rn == 1)
+        )
+        result = await self._uow.execute_async(stmt)
+        return tuple(record.to_entity() for record in result.scalars().all())
+
     async def delete_by_user_id_and_event_id_and_start_async(
         self, user_id: int, event_id: UUID, start: datetime
     ) -> None:
