@@ -28,6 +28,7 @@ line_length = 88
 [tool.poe.tasks]
 db-migration-print-ddl = "python main.py db-migration print-ddl"
 db-migration-migrate = "python main.py db-migration migrate"
+db-mock-attendance-log = "python main.py db-mock attendance-log"
 mypy = "mypy --config-file ../mypy.ini ta_cli tests main.py"
 flake8 = "flake8 --config ../.flake8 ta_cli tests main.py"
 black = "black ta_cli tests main.py"
