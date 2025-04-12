@@ -1,4 +1,4 @@
-CHECKPOINT_REPO_ID = "google/timesfm-1.0-200m-pytorch"
+CHECKPOINT_REPO_ID = "google/timesfm-2.0-500m-pytorch"
 BACKEND = "gpu"
 CONTEXT_LEN = 128
 HORIZON_LEN = 32
