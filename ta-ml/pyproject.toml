@@ -9,7 +9,6 @@ readme = "README.md"
 python = "3.10.16"
 torch = ">=2.0.0,<2.6.0"
 jax = "^0.4.38"
-matplotlib = "^3.10.0"
 statsmodels = "^0.14.4"
 timesfm = "^1.2.9"
 ta-core = {path = "../ta-core", develop = true}
