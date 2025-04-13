@@ -330,106 +330,136 @@ async def test_create_event_async(
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    "summaries, location, start, end, is_all_day, timezone",
+    "events_by_user",
     [
-        (
-            ["summary0", "summary1", "summary2"],
-            "location",
-            datetime(2000, 1, 1, 0, 0, 0, tzinfo=ZoneInfo("UTC")),
-            datetime(2000, 1, 2, 0, 0, 0, tzinfo=ZoneInfo("UTC")),
-            True,
-            "UTC",
-        )
+        {
+            0: [  # ユーザー 0 のイベント
+                {
+                    "summary": "event 0",
+                    "location": "location 0",
+                    "start": datetime(2000, 1, 1, 0, 0, 0, tzinfo=ZoneInfo("UTC")),
+                    "end": datetime(2000, 1, 2, 0, 0, 0, tzinfo=ZoneInfo("UTC")),
+                    "is_all_day": True,
+                    "timezone": "UTC",
+                },
+                {
+                    "summary": "event 1",
+                    "location": "location 1",
+                    "start": datetime(2000, 1, 3, 12, 0, 0, tzinfo=ZoneInfo("UTC")),
+                    "end": datetime(2000, 1, 4, 0, 0, 0, tzinfo=ZoneInfo("UTC")),
+                    "is_all_day": False,
+                    "timezone": "Asia/Tokyo",
+                },
+            ],
+            1: [  # ユーザー 1 のイベント
+                {
+                    "summary": "event 2",
+                    "location": "location 2",
+                    "start": datetime(2000, 1, 5, 0, 0, 0, tzinfo=ZoneInfo("UTC")),
+                    "end": datetime(2000, 1, 6, 0, 0, 0, tzinfo=ZoneInfo("UTC")),
+                    "is_all_day": True,
+                    "timezone": "UTC",
+                },
+            ],
+        },
     ],
 )
 async def test_read_with_recurrence_by_user_ids_async(
     test_session: AsyncSession,
-    summaries: list[str],
-    location: str | None,
-    start: datetime,
-    end: datetime,
-    is_all_day: bool,
-    timezone: str,
+    events_by_user: dict[int, list[dict[str, Any]]],
 ) -> None:
     uow = SqlalchemyUnitOfWork(session=test_session)
     recurrence_rule_repository = RecurrenceRuleRepository(uow)
     recurrence_repository = RecurrenceRepository(uow)
     event_repository = EventRepository(uow)
 
-    entity_ids = [generate_uuid() for _ in range(3)]
-    user_ids = [await SequenceUserId.id_generator(uow) for _ in range(3)]
-
+    user_ids = {
+        user_index: await SequenceUserId.id_generator(uow)
+        for user_index in events_by_user.keys()
+    }
+    created_events = []
     recurrences = []
-    for summary, entity_id, user_id in zip(summaries, entity_ids, user_ids):
-        recurrence_rule = await recurrence_rule_repository.create_recurrence_rule_async(
-            entity_id=generate_uuid(),
-            user_id=user_id,
-            freq=Frequency.DAILY,
-            until=None,
-            count=3,
-            interval=1,
-            bysecond=[0],
-            byminute=[0],
-            byhour=[0],
-            byday=[
-                [0, Weekday.MO],
-                [0, Weekday.TU],
-                [0, Weekday.WE],
-                [0, Weekday.TH],
-                [0, Weekday.FR],
-            ],
-            bymonthday=[0],
-            byyearday=[0],
-            byweekno=[0],
-            bymonth=[0],
-            bysetpos=[0],
-            wkst=Weekday.MO,
-        )
 
-        assert recurrence_rule is not None
+    for user_index, events in events_by_user.items():
+        user_id = user_ids[user_index]
+        for event_data in events:
+            recurrence_rule = (
+                await recurrence_rule_repository.create_recurrence_rule_async(
+                    entity_id=generate_uuid(),
+                    user_id=user_id,
+                    freq=Frequency.DAILY,
+                    until=None,
+                    count=3,
+                    interval=1,
+                    bysecond=None,
+                    byminute=None,
+                    byhour=None,
+                    byday=None,
+                    bymonthday=None,
+                    byyearday=None,
+                    byweekno=None,
+                    bymonth=None,
+                    bysetpos=None,
+                    wkst=Weekday.MO,
+                )
+            )
+            assert recurrence_rule is not None
 
-        recurrence = await recurrence_repository.create_recurrence_async(
-            entity_id=generate_uuid(),
-            user_id=user_id,
-            rrule_id=recurrence_rule.id,
-            rrule=recurrence_rule,
-            rdate=[],
-            exdate=[],
-        )
+            recurrence = await recurrence_repository.create_recurrence_async(
+                entity_id=generate_uuid(),
+                user_id=user_id,
+                rrule_id=recurrence_rule.id,
+                rrule=recurrence_rule,
+                rdate=[],
+                exdate=[],
+            )
+            assert recurrence is not None
+            recurrences.append(recurrence)
 
-        assert recurrence is not None
-        recurrences.append(recurrence)
+            entity_id = generate_uuid()
+            event = await event_repository.create_event_async(
+                entity_id=entity_id,
+                user_id=user_id,
+                summary=event_data["summary"],
+                location=event_data["location"],
+                start=event_data["start"],
+                end=event_data["end"],
+                is_all_day=event_data["is_all_day"],
+                recurrence_id=recurrence.id,
+                timezone=event_data["timezone"],
+            )
+            assert event is not None
+            created_events.append(
+                {
+                    "event": event_data,
+                    "id": entity_id,
+                    "recurrence": recurrence,
+                }
+            )
 
-        event = await event_repository.create_event_async(
-            entity_id=entity_id,
-            user_id=user_id,
-            summary=summary,
-            location=location,
-            start=start,
-            end=end,
-            is_all_day=is_all_day,
-            recurrence_id=recurrence.id,
-            timezone=timezone,
-        )
-
-        assert event is not None
-
-    events = await event_repository.read_with_recurrence_by_user_ids_async(
-        set(user_ids)
+    fetched_events = await event_repository.read_with_recurrence_by_user_ids_async(
+        set(user_ids.values())
     )
+    total_events = sum(len(user_events) for user_events in events_by_user.values())
+    assert len(fetched_events) == total_events
 
-    assert len(events) == len(user_ids)
-    for event in events:
-        assert event.id in entity_ids
-        assert event.user_id in user_ids
-        assert event.summary in summaries
-        assert event.location == location
-        assert event.start == start.replace(tzinfo=None)
-        assert event.end == end.replace(tzinfo=None)
-        assert event.is_all_day == is_all_day
-        assert event.recurrence_id in [recurrence.id for recurrence in recurrences]
-        assert event.timezone == timezone
-        assert event.recurrence in recurrences
+    for event in fetched_events:
+        matching_created_event = next(
+            (ce for ce in created_events if event.id == ce["id"]), None
+        )
+        assert (
+            matching_created_event is not None
+        ), f"Event {event.id} not found in created events"
+
+        created_event_data: dict[str, Any] = matching_created_event["event"]  # type: ignore[assignment]
+        assert event.summary == created_event_data["summary"]
+        assert event.location == created_event_data["location"]
+        assert event.start == created_event_data["start"].replace(tzinfo=None)
+        assert event.end == created_event_data["end"].replace(tzinfo=None)
+        assert event.is_all_day == created_event_data["is_all_day"]
+        assert event.timezone == created_event_data["timezone"]
+        assert event.recurrence_id == matching_created_event["recurrence"].id  # type: ignore[attr-defined]
+        assert event.recurrence == matching_created_event["recurrence"]
 
 
 @pytest.mark.asyncio
@@ -806,63 +836,115 @@ async def test_bulk_create_event_attendance_action_logs_async(
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    "event_id, start, actions, acted_ats",
+    "action_logs_by_user",
     [
-        (
-            generate_uuid(),
-            datetime(2000, 1, 1, 0, 0, 0, tzinfo=ZoneInfo("UTC")),
-            [AttendanceAction.ATTEND, AttendanceAction.LEAVE],
-            [
-                datetime(2000, 1, 1, 0, 0, 0, tzinfo=ZoneInfo("UTC")),
-                datetime(2000, 1, 1, 6, 0, 0, tzinfo=ZoneInfo("UTC")),
-            ],
-        )
+        {
+            0: {  # ユーザー 0
+                0: [  # イベント 0
+                    {
+                        "start": datetime(2000, 1, 1, 0, 0, 0, tzinfo=ZoneInfo("UTC")),
+                        "action": AttendanceAction.ATTEND,
+                        "acted_at": datetime(
+                            2000, 1, 1, 0, 0, 0, tzinfo=ZoneInfo("UTC")
+                        ),
+                    },
+                    {
+                        "start": datetime(2000, 1, 1, 0, 0, 0, tzinfo=ZoneInfo("UTC")),
+                        "action": AttendanceAction.LEAVE,
+                        "acted_at": datetime(
+                            2000, 1, 1, 6, 0, 0, tzinfo=ZoneInfo("UTC")
+                        ),
+                    },
+                    {
+                        "start": datetime(2000, 1, 1, 0, 0, 0, tzinfo=ZoneInfo("UTC")),
+                        "action": AttendanceAction.ATTEND,
+                        "acted_at": datetime(
+                            2000, 1, 1, 7, 0, 0, tzinfo=ZoneInfo("UTC")
+                        ),
+                    },
+                ],
+            },
+        },
     ],
 )
 async def test_read_by_user_id_and_event_id_and_start_async(
     test_session: AsyncSession,
-    event_id: UUID,
-    start: datetime,
-    actions: list[AttendanceAction],
-    acted_ats: list[datetime],
+    action_logs_by_user: dict[int, dict[int, list[dict[str, Any]]]],
 ) -> None:
     uow = SqlalchemyUnitOfWork(session=test_session)
     event_attendance_action_log_repository = EventAttendanceActionLogRepository(uow)
 
-    entity_ids = [generate_uuid() for _ in range(len(actions))]
-    user_id = await SequenceUserId.id_generator(uow)
+    user_ids = {
+        user_index: await SequenceUserId.id_generator(uow)
+        for user_index in action_logs_by_user.keys()
+    }
+    event_ids = {
+        event_index: generate_uuid()
+        for user_dict in action_logs_by_user.values()
+        for event_index in user_dict.keys()
+    }
 
-    for action, acted_at, entity_id in zip(actions, acted_ats, entity_ids):
-        created_log = await event_attendance_action_log_repository.create_event_attendance_action_log_async(
-            entity_id=entity_id,
-            user_id=user_id,
-            event_id=event_id,
-            start=start,
-            action=action,
-            acted_at=acted_at,
-        )
+    created_logs = []
+    for user_index, event_dict in action_logs_by_user.items():
+        user_id = user_ids[user_index]
+        for event_index, logs in event_dict.items():
+            event_id = event_ids[event_index]
+            for log_data in logs:
+                entity_id = generate_uuid()
+                created_log = await event_attendance_action_log_repository.create_event_attendance_action_log_async(
+                    entity_id=entity_id,
+                    user_id=user_id,
+                    event_id=event_id,
+                    start=log_data["start"],
+                    action=log_data["action"],
+                    acted_at=log_data["acted_at"],
+                )
+                assert created_log is not None
+                created_logs.append(
+                    {
+                        "id": entity_id,
+                        "user_id": user_id,
+                        "event_id": event_id,
+                        "data": log_data,
+                    }
+                )
 
-        assert created_log is not None
+    test_user_id = user_ids[0]
+    test_event_id = event_ids[0]
+    test_start = action_logs_by_user[0][0][0]["start"]
 
-    logs = await event_attendance_action_log_repository.read_by_user_id_and_event_id_and_start_async(
-        user_id=user_id,
-        event_id=event_id,
-        start=start,
+    fetched_logs = await event_attendance_action_log_repository.read_by_user_id_and_event_id_and_start_async(
+        user_id=test_user_id,
+        event_id=test_event_id,
+        start=test_start,
     )
+    expected_logs = [
+        log
+        for log in created_logs
+        if log["user_id"] == test_user_id
+        and log["event_id"] == test_event_id
+        and log["data"]["start"] == test_start  # type: ignore[index]
+    ]
+    assert len(fetched_logs) == len(expected_logs)
 
-    assert len(logs) == len(actions)
-    for log in logs:
-        assert log.id in entity_ids
-        assert log.user_id == user_id
-        assert log.event_id == event_id
-        assert log.start == start.replace(tzinfo=None)
-        assert log.action in actions
-        assert log.acted_at in [acted_at.replace(tzinfo=None) for acted_at in acted_ats]
+    for log in fetched_logs:
+        matching_log = next(
+            (log_entry for log_entry in expected_logs if log.id == log_entry["id"]),
+            None,
+        )
+        assert matching_log is not None, f"Log {log.id} not found in expected logs"
+
+        assert log.user_id == matching_log["user_id"]
+        assert log.event_id == matching_log["event_id"]
+        matching_log_data: dict[str, Any] = matching_log["data"]  # type: ignore[assignment]
+        assert log.start == matching_log_data["start"].replace(tzinfo=None)
+        assert log.action == matching_log_data["action"]
+        assert log.acted_at == matching_log_data["acted_at"].replace(tzinfo=None)
 
     non_existent_logs = await event_attendance_action_log_repository.read_by_user_id_and_event_id_and_start_async(
-        user_id=user_id,
+        user_id=test_user_id,
         event_id=generate_uuid(),
-        start=start,
+        start=test_start,
     )
 
     assert len(non_existent_logs) == 0
@@ -870,62 +952,104 @@ async def test_read_by_user_id_and_event_id_and_start_async(
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    "event_id, start, actions, acted_ats",
+    "action_logs_by_user",
     [
-        (
-            generate_uuid(),
-            datetime(2000, 1, 1, 0, 0, 0, tzinfo=ZoneInfo("UTC")),
-            [AttendanceAction.ATTEND, AttendanceAction.LEAVE],
-            [
-                datetime(2000, 1, 1, 0, 0, 0, tzinfo=ZoneInfo("UTC")),
-                datetime(2000, 1, 1, 6, 0, 0, tzinfo=ZoneInfo("UTC")),
-            ],
-        )
+        {
+            0: {  # ユーザー 0
+                0: [  # イベント 0
+                    {
+                        "start": datetime(2000, 1, 1, 0, 0, 0, tzinfo=ZoneInfo("UTC")),
+                        "action": AttendanceAction.ATTEND,
+                        "acted_at": datetime(
+                            2000, 1, 1, 0, 0, 0, tzinfo=ZoneInfo("UTC")
+                        ),
+                    },
+                    {
+                        "start": datetime(2000, 1, 1, 0, 0, 0, tzinfo=ZoneInfo("UTC")),
+                        "action": AttendanceAction.LEAVE,
+                        "acted_at": datetime(
+                            2000, 1, 1, 6, 0, 0, tzinfo=ZoneInfo("UTC")
+                        ),
+                    },
+                ],
+            },
+        },
     ],
 )
 async def test_read_latest_by_user_id_and_event_id_and_start_or_none_async(
     test_session: AsyncSession,
-    event_id: UUID,
-    start: datetime,
-    actions: list[AttendanceAction],
-    acted_ats: list[datetime],
+    action_logs_by_user: dict[int, dict[int, list[dict[str, Any]]]],
 ) -> None:
     uow = SqlalchemyUnitOfWork(session=test_session)
     event_attendance_action_log_repository = EventAttendanceActionLogRepository(uow)
 
-    entity_ids = [generate_uuid() for _ in range(len(actions))]
-    user_id = await SequenceUserId.id_generator(uow)
+    user_ids = {
+        user_index: await SequenceUserId.id_generator(uow)
+        for user_index in action_logs_by_user.keys()
+    }
+    event_ids = {
+        event_index: generate_uuid()
+        for user_dict in action_logs_by_user.values()
+        for event_index in user_dict.keys()
+    }
 
-    for action, acted_at, entity_id in zip(actions, acted_ats, entity_ids):
-        created_log = await event_attendance_action_log_repository.create_event_attendance_action_log_async(
-            entity_id=entity_id,
-            user_id=user_id,
-            event_id=event_id,
-            start=start,
-            action=action,
-            acted_at=acted_at,
-        )
+    created_logs = []
+    for user_index, event_dict in action_logs_by_user.items():
+        user_id = user_ids[user_index]
+        for event_index, logs in event_dict.items():
+            event_id = event_ids[event_index]
+            for log_data in logs:
+                entity_id = generate_uuid()
+                created_log = await event_attendance_action_log_repository.create_event_attendance_action_log_async(
+                    entity_id=entity_id,
+                    user_id=user_id,
+                    event_id=event_id,
+                    start=log_data["start"],
+                    action=log_data["action"],
+                    acted_at=log_data["acted_at"],
+                )
+                assert created_log is not None
+                created_logs.append(
+                    {
+                        "id": entity_id,
+                        "user_id": user_id,
+                        "event_id": event_id,
+                        "data": log_data,
+                    }
+                )
 
-        assert created_log is not None
-
+    test_user_id = user_ids[0]
+    test_event_id = event_ids[0]
+    test_start = action_logs_by_user[0][0][0]["start"]
+    test_logs = [
+        log
+        for log in created_logs
+        if log["user_id"] == test_user_id
+        and log["event_id"] == test_event_id
+        and log["data"]["start"] == test_start  # type: ignore[index]
+    ]
+    latest_created_log = max(test_logs, key=lambda x: x["data"]["acted_at"])  # type: ignore[index]
     latest_log = await event_attendance_action_log_repository.read_latest_by_user_id_and_event_id_and_start_or_none_async(
-        user_id=user_id,
-        event_id=event_id,
-        start=start,
+        user_id=test_user_id,
+        event_id=test_event_id,
+        start=test_start,
     )
 
     assert latest_log is not None
-    assert latest_log.id == entity_ids[-1]
-    assert latest_log.user_id == user_id
-    assert latest_log.event_id == event_id
-    assert latest_log.start == start.replace(tzinfo=None)
-    assert latest_log.action == actions[-1]
-    assert latest_log.acted_at == acted_ats[-1].replace(tzinfo=None)
+    assert latest_log.id == latest_created_log["id"]
+    assert latest_log.user_id == latest_created_log["user_id"]
+    assert latest_log.event_id == latest_created_log["event_id"]
+    latest_created_log_data: dict[str, Any] = latest_created_log["data"]  # type: ignore[assignment]
+    assert latest_log.start == latest_created_log_data["start"].replace(tzinfo=None)
+    assert latest_log.action == latest_created_log_data["action"]
+    assert latest_log.acted_at == latest_created_log_data["acted_at"].replace(
+        tzinfo=None
+    )
 
     non_existent_log = await event_attendance_action_log_repository.read_latest_by_user_id_and_event_id_and_start_or_none_async(
-        user_id=user_id,
+        user_id=test_user_id,
         event_id=generate_uuid(),
-        start=start,
+        start=test_start,
     )
 
     assert non_existent_log is None
@@ -1191,72 +1315,96 @@ async def test_read_all_latest_leave_async(
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    "event_id, start, actions, acted_ats",
+    "action_logs_by_user",
     [
-        (
-            generate_uuid(),
-            datetime(2000, 1, 1, 0, 0, 0, tzinfo=ZoneInfo("UTC")),
-            [AttendanceAction.ATTEND, AttendanceAction.LEAVE],
-            [
-                datetime(2000, 1, 1, 0, 0, 0, tzinfo=ZoneInfo("UTC")),
-                datetime(2000, 1, 1, 6, 0, 0, tzinfo=ZoneInfo("UTC")),
-            ],
-        )
+        {
+            0: {  # ユーザー 0
+                0: [  # イベント 0
+                    {
+                        "start": datetime(2000, 1, 1, 0, 0, 0, tzinfo=ZoneInfo("UTC")),
+                        "action": AttendanceAction.ATTEND,
+                        "acted_at": datetime(
+                            2000, 1, 1, 0, 0, 0, tzinfo=ZoneInfo("UTC")
+                        ),
+                    },
+                    {
+                        "start": datetime(2000, 1, 1, 0, 0, 0, tzinfo=ZoneInfo("UTC")),
+                        "action": AttendanceAction.LEAVE,
+                        "acted_at": datetime(
+                            2000, 1, 1, 6, 0, 0, tzinfo=ZoneInfo("UTC")
+                        ),
+                    },
+                ],
+            },
+        },
     ],
 )
 async def test_delete_by_user_id_and_event_id_and_start_async(
     test_session: AsyncSession,
-    event_id: UUID,
-    start: datetime,
-    actions: list[AttendanceAction],
-    acted_ats: list[datetime],
+    action_logs_by_user: dict[int, dict[int, list[dict[str, Any]]]],
 ) -> None:
     uow = SqlalchemyUnitOfWork(session=test_session)
     event_attendance_action_log_repository = EventAttendanceActionLogRepository(uow)
 
-    entity_ids = [generate_uuid() for _ in range(len(actions))]
-    user_id = await SequenceUserId.id_generator(uow)
+    user_ids = {
+        user_index: await SequenceUserId.id_generator(uow)
+        for user_index in action_logs_by_user.keys()
+    }
+    event_ids = {
+        event_index: generate_uuid()
+        for user_dict in action_logs_by_user.values()
+        for event_index in user_dict.keys()
+    }
 
-    for action, acted_at, entity_id in zip(actions, acted_ats, entity_ids):
-        created_log = await event_attendance_action_log_repository.create_event_attendance_action_log_async(
-            entity_id=entity_id,
-            user_id=user_id,
-            event_id=event_id,
-            start=start,
-            action=action,
-            acted_at=acted_at,
-        )
+    created_logs = []
+    for user_index, event_dict in action_logs_by_user.items():
+        user_id = user_ids[user_index]
+        for event_index, logs in event_dict.items():
+            event_id = event_ids[event_index]
+            for log_data in logs:
+                entity_id = generate_uuid()
+                created_log = await event_attendance_action_log_repository.create_event_attendance_action_log_async(
+                    entity_id=entity_id,
+                    user_id=user_id,
+                    event_id=event_id,
+                    start=log_data["start"],
+                    action=log_data["action"],
+                    acted_at=log_data["acted_at"],
+                )
+                assert created_log is not None
+                created_logs.append(
+                    {
+                        "id": entity_id,
+                        "user_id": user_id,
+                        "event_id": event_id,
+                        "data": log_data,
+                    }
+                )
 
-        assert created_log is not None
+    test_user_id = user_ids[0]
+    test_event_id = event_ids[0]
+    test_start = action_logs_by_user[0][0][0]["start"]
 
-    logs_before = (
-        await event_attendance_action_log_repository.read_order_by_limit_async(
-            where=(
-                EventAttendanceActionLog.user_id == user_id,
-                EventAttendanceActionLog.event_id == uuid_to_bin(event_id),
-                EventAttendanceActionLog.start == start,
-            ),
-            order_by=EventAttendanceActionLog.acted_at.asc(),
-            limit=10,
-        )
+    # 削除前のログを確認
+    logs_before = await event_attendance_action_log_repository.read_by_user_id_and_event_id_and_start_async(
+        user_id=test_user_id,
+        event_id=test_event_id,
+        start=test_start,
     )
+    assert len(logs_before) == len(action_logs_by_user[0][0])
 
-    assert len(logs_before) == len(actions)
-
+    # ログを削除
     await event_attendance_action_log_repository.delete_by_user_id_and_event_id_and_start_async(
-        user_id=user_id,
-        event_id=event_id,
-        start=start,
+        user_id=test_user_id,
+        event_id=test_event_id,
+        start=test_start,
     )
 
-    logs_after = await event_attendance_action_log_repository.read_order_by_limit_async(
-        where=(
-            EventAttendanceActionLog.user_id == user_id,
-            EventAttendanceActionLog.event_id == uuid_to_bin(event_id),
-            EventAttendanceActionLog.start == start,
-        ),
-        order_by=EventAttendanceActionLog.acted_at.asc(),
-        limit=10,
+    # 削除後のログを確認
+    logs_after = await event_attendance_action_log_repository.read_by_user_id_and_event_id_and_start_async(
+        user_id=test_user_id,
+        event_id=test_event_id,
+        start=test_start,
     )
 
     assert len(logs_after) == 0
