@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Any
 from zoneinfo import ZoneInfo
 
 import pytest
@@ -429,6 +430,159 @@ async def test_read_with_recurrence_by_user_ids_async(
         assert event.recurrence_id in [recurrence.id for recurrence in recurrences]
         assert event.timezone == timezone
         assert event.recurrence in recurrences
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "events_by_user",
+    [
+        {
+            0: [  # ユーザー 0 のイベント
+                {
+                    "summary": "event 0",
+                    "location": "location 0",
+                    "start": datetime(2000, 1, 1, 0, 0, 0, tzinfo=ZoneInfo("UTC")),
+                    "end": datetime(2000, 1, 2, 0, 0, 0, tzinfo=ZoneInfo("UTC")),
+                    "is_all_day": True,
+                    "timezone": "UTC",
+                    "rrule": {
+                        "freq": Frequency.DAILY,
+                        "count": 3,
+                        "interval": 1,
+                    },
+                },
+                {
+                    "summary": "event 1",
+                    "location": "location 1",
+                    "start": datetime(2000, 1, 3, 0, 0, 0, tzinfo=ZoneInfo("UTC")),
+                    "end": datetime(2000, 1, 4, 6, 0, 0, tzinfo=ZoneInfo("UTC")),
+                    "is_all_day": False,
+                    "timezone": "Asia/Tokyo",
+                    "rrule": {
+                        "freq": Frequency.WEEKLY,
+                        "count": 4,
+                        "interval": 2,
+                    },
+                },
+            ],
+            1: [  # ユーザー 1 のイベント
+                {
+                    "summary": "event 2",
+                    "location": "location 2",
+                    "start": datetime(2000, 1, 5, 0, 0, 0, tzinfo=ZoneInfo("UTC")),
+                    "end": datetime(2000, 1, 6, 0, 0, 0, tzinfo=ZoneInfo("UTC")),
+                    "is_all_day": True,
+                    "timezone": "UTC",
+                    "rrule": {
+                        "freq": Frequency.MONTHLY,
+                        "count": 6,
+                        "interval": 1,
+                    },
+                },
+            ],
+        },
+    ],
+)
+async def test_read_all_with_recurrence_async(
+    test_session: AsyncSession,
+    events_by_user: dict[int, list[dict[str, Any]]],
+) -> None:
+    uow = SqlalchemyUnitOfWork(session=test_session)
+    event_repository = EventRepository(uow)
+    recurrence_rule_repository = RecurrenceRuleRepository(uow)
+    recurrence_repository = RecurrenceRepository(uow)
+
+    user_ids = {
+        user_index: await SequenceUserId.id_generator(uow)
+        for user_index in events_by_user.keys()
+    }
+    events_with_recurrence = []
+
+    for user_index, events in events_by_user.items():
+        user_id = user_ids[user_index]
+        for event_data in events:
+            recurrence_rule = (
+                await recurrence_rule_repository.create_recurrence_rule_async(
+                    entity_id=generate_uuid(),
+                    user_id=user_id,
+                    freq=event_data["rrule"]["freq"],
+                    until=None,
+                    count=event_data["rrule"]["count"],
+                    interval=event_data["rrule"]["interval"],
+                    bysecond=None,
+                    byminute=None,
+                    byhour=None,
+                    byday=None,
+                    bymonthday=None,
+                    byyearday=None,
+                    byweekno=None,
+                    bymonth=None,
+                    bysetpos=None,
+                    wkst=Weekday.MO,
+                )
+            )
+            assert recurrence_rule is not None
+
+            recurrence = await recurrence_repository.create_recurrence_async(
+                entity_id=generate_uuid(),
+                user_id=user_id,
+                rrule_id=recurrence_rule.id,
+                rrule=recurrence_rule,
+                rdate=[],
+                exdate=[],
+            )
+            assert recurrence is not None
+
+            event_id = generate_uuid()
+            event = await event_repository.create_event_async(
+                entity_id=event_id,
+                user_id=user_id,
+                summary=event_data["summary"],
+                location=event_data["location"],
+                start=event_data["start"],
+                end=event_data["end"],
+                is_all_day=event_data["is_all_day"],
+                recurrence_id=recurrence.id,
+                timezone=event_data["timezone"],
+            )
+            assert event is not None
+
+            events_with_recurrence.append(
+                {
+                    "event": event_data,
+                    "recurrence": recurrence,
+                    "user_id": user_id,
+                    "event_id": event_id,
+                }
+            )
+
+    fetched_events = await event_repository.read_all_with_recurrence_async(where=())
+    assert len(fetched_events) == sum(
+        len(user_events) for user_events in events_by_user.values()
+    )
+
+    for event in fetched_events:
+        matching_event = next(
+            (
+                e
+                for e in events_with_recurrence
+                if event.id == e["event_id"] and event.user_id == e["user_id"]
+            ),
+            None,
+        )
+        assert (
+            matching_event is not None
+        ), f"Event {event.id} not found in expected events"
+
+        event_data = matching_event["event"]  # type: ignore[assignment]
+        assert event.summary == event_data["summary"]
+        assert event.location == event_data["location"]
+        assert event.start == event_data["start"].replace(tzinfo=None)
+        assert event.end == event_data["end"].replace(tzinfo=None)
+        assert event.is_all_day == event_data["is_all_day"]
+        assert event.timezone == event_data["timezone"]
+        assert event.recurrence_id == matching_event["recurrence"].id  # type: ignore[attr-defined]
+        assert event.recurrence == matching_event["recurrence"]
 
 
 @pytest.mark.asyncio
