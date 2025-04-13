@@ -12,11 +12,9 @@ def detect_outliers(
 
     for i, residual in residuals_df.iterrows():
         squared_residual = residual.pow(2)
-
         point_outliers_indices = squared_residual[
             squared_residual > point_outlier_threshold
         ].index
-
         point_outliers.extend(
             {
                 "residual_index": i,
@@ -25,7 +23,6 @@ def detect_outliers(
             }
             for t in point_outliers_indices
         )
-
         residuals.append(residual)
         squared_residuals.append(squared_residual)
 

@@ -40,7 +40,6 @@ def analyze_outliers(
     if "time" in point_outliers_df.columns:
         for (time), group in point_outliers_df.groupby(["time"]):
             outlier_count = len(group)
-
             point_outliers.append(
                 {
                     "time": time,
