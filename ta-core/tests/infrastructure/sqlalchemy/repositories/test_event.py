@@ -1062,6 +1062,135 @@ async def test_read_all_earliest_attend_async(
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
+    "action_logs_by_user",
+    [
+        {
+            0: {  # ユーザー 0
+                0: [  # イベント 0
+                    {
+                        "start": datetime(2000, 1, 1, 0, 0, 0, tzinfo=ZoneInfo("UTC")),
+                        "action": AttendanceAction.LEAVE,
+                        "acted_at": datetime(
+                            2000, 1, 1, 17, 0, 0, tzinfo=ZoneInfo("UTC")
+                        ),  # 最も遅い leave
+                    },
+                    {
+                        "start": datetime(2000, 1, 1, 0, 0, 0, tzinfo=ZoneInfo("UTC")),
+                        "action": AttendanceAction.LEAVE,
+                        "acted_at": datetime(
+                            2000, 1, 1, 16, 0, 0, tzinfo=ZoneInfo("UTC")
+                        ),
+                    },
+                    {
+                        "start": datetime(2000, 1, 1, 0, 0, 0, tzinfo=ZoneInfo("UTC")),
+                        "action": AttendanceAction.ATTEND,
+                        "acted_at": datetime(
+                            2000, 1, 1, 8, 0, 0, tzinfo=ZoneInfo("UTC")
+                        ),
+                    },
+                ],
+            },
+            1: {  # ユーザー 1
+                0: [  # イベント 0
+                    {
+                        "start": datetime(2000, 1, 1, 0, 0, 0, tzinfo=ZoneInfo("UTC")),
+                        "action": AttendanceAction.LEAVE,
+                        "acted_at": datetime(
+                            2000, 1, 1, 19, 0, 0, tzinfo=ZoneInfo("UTC")
+                        ),  # 最も遅い leave
+                    },
+                    {
+                        "start": datetime(2000, 1, 1, 0, 0, 0, tzinfo=ZoneInfo("UTC")),
+                        "action": AttendanceAction.LEAVE,
+                        "acted_at": datetime(
+                            2000, 1, 1, 18, 0, 0, tzinfo=ZoneInfo("UTC")
+                        ),
+                    },
+                ],
+                1: [  # イベント 1
+                    {
+                        "start": datetime(2000, 1, 2, 0, 0, 0, tzinfo=ZoneInfo("UTC")),
+                        "action": AttendanceAction.LEAVE,
+                        "acted_at": datetime(
+                            2000, 1, 2, 17, 0, 0, tzinfo=ZoneInfo("UTC")
+                        ),  # 最も遅い leave
+                    },
+                    {
+                        "start": datetime(2000, 1, 2, 0, 0, 0, tzinfo=ZoneInfo("UTC")),
+                        "action": AttendanceAction.LEAVE,
+                        "acted_at": datetime(
+                            2000, 1, 2, 16, 0, 0, tzinfo=ZoneInfo("UTC")
+                        ),
+                    },
+                ],
+            },
+        },
+    ],
+)
+async def test_read_all_latest_leave_async(
+    test_session: AsyncSession,
+    action_logs_by_user: dict[int, dict[int, list[dict[str, Any]]]],
+) -> None:
+    uow = SqlalchemyUnitOfWork(session=test_session)
+    event_attendance_action_log_repository = EventAttendanceActionLogRepository(uow)
+
+    user_ids = {
+        user_index: await SequenceUserId.id_generator(uow)
+        for user_index in action_logs_by_user.keys()
+    }
+    event_ids = {
+        event_index: generate_uuid()
+        for user_dict in action_logs_by_user.values()
+        for event_index in user_dict.keys()
+    }
+
+    event_attendance_action_logs = []
+    expected_latest_leaves = (
+        {}
+    )  # 各ユーザー・イベントの組み合わせでの最も遅い leave 時刻
+    for user_index, event_dict in action_logs_by_user.items():
+        user_id = user_ids[user_index]
+        for event_index, logs in event_dict.items():
+            event_id = event_ids[event_index]
+            leave_logs = [
+                log["acted_at"]
+                for log in logs
+                if log["action"] == AttendanceAction.LEAVE
+            ]
+            if leave_logs:
+                expected_latest_leaves[(user_id, event_id)] = max(leave_logs)
+            event_attendance_action_logs.extend(
+                [
+                    EventAttendanceActionLogEntity(
+                        entity_id=generate_uuid(),
+                        user_id=user_id,
+                        event_id=event_id,
+                        start=log["start"],
+                        action=log["action"],
+                        acted_at=log["acted_at"],
+                    )
+                    for log in logs
+                ]
+            )
+
+    await event_attendance_action_log_repository.bulk_create_event_attendance_action_logs_async(
+        event_attendance_action_logs
+    )
+
+    latest_leaves = (
+        await event_attendance_action_log_repository.read_all_latest_leave_async()
+    )
+    assert len(latest_leaves) == len(expected_latest_leaves)
+
+    for latest_leave in latest_leaves:
+        expected_acted_at = expected_latest_leaves[
+            (latest_leave.user_id, latest_leave.event_id)
+        ]
+        assert latest_leave.acted_at == expected_acted_at.replace(tzinfo=None)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
     "event_id, start, actions, acted_ats",
     [
         (
