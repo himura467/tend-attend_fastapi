@@ -3,6 +3,8 @@ from datetime import date, datetime
 from typing import TypeVar
 from zoneinfo import ZoneInfo
 
+from ta_ml.forecast.attendance import forecast_attendance_time
+
 from ta_core.domain.entities.event import Event as EventEntity
 from ta_core.domain.entities.event import (
     EventAttendanceActionLog as EventAttendanceActionLogEntity,
@@ -12,6 +14,7 @@ from ta_core.dtos.event import AttendEventResponse, CreateEventResponse
 from ta_core.dtos.event import Event as EventDto
 from ta_core.dtos.event import EventWithId as EventWithIdDto
 from ta_core.dtos.event import (
+    ForecastAttendanceTimeResponse,
     GetAttendancesResponse,
     GetFollowingEventsResponse,
     GetGuestCurrentAttendanceStatusResponse,
@@ -477,4 +480,27 @@ class EventUseCase:
         return GetGuestCurrentAttendanceStatusResponse(
             attend=event_attendance_action_log.action == AttendanceAction.ATTEND,
             error_codes=(),
+        )
+
+    @rollbackable
+    async def forecast_attendance_time_async(
+        self,
+    ) -> ForecastAttendanceTimeResponse:
+        event_attendance_action_log_repository = EventAttendanceActionLogRepository(
+            self.uow
+        )
+        event_repository = EventRepository(self.uow)
+        user_account_repository = UserAccountRepository(self.uow)
+
+        earliest_attend_data = (
+            await event_attendance_action_log_repository.read_all_earliest_attend_async()
+        )
+        latest_leave_data = (
+            await event_attendance_action_log_repository.read_all_latest_leave_async()
+        )
+        event_data = await event_repository.read_all_with_recurrence_async(where=())
+        user_data = await user_account_repository.read_all_async(where=())
+
+        return forecast_attendance_time(
+            earliest_attend_data, latest_leave_data, event_data, user_data
         )

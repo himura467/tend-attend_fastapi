@@ -5,7 +5,7 @@ from typing import Any, Callable
 import typer
 from rich.console import Console
 
-from ta_cli.typers import db_migration
+from ta_cli.typers import db_migration, db_mock
 
 
 def silence_event_loop_closed(func: Callable[..., Any]) -> Callable[..., Any]:
@@ -25,6 +25,7 @@ _ProactorBasePipeTransport.__del__ = silence_event_loop_closed(_ProactorBasePipe
 app = typer.Typer()
 
 app.add_typer(db_migration.app, name="db-migration")
+app.add_typer(db_mock.app, name="db-mock")
 
 error_console = Console(stderr=True)
 
