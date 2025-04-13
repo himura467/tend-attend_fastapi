@@ -26,6 +26,12 @@ class Attendance(BaseModel):
     acted_at: datetime = Field(..., title="Acted At")
 
 
+class AttendanceTime(BaseModel):
+    start: datetime = Field(..., title="Event Started At")
+    acted_at: datetime = Field(..., title="Acted At")
+    duration: float = Field(..., title="Duration")
+
+
 class CreateEventRequest(BaseModel):
     event: Event = Field(..., title="Event")
 
@@ -64,3 +70,9 @@ class GetFollowingEventsResponse(BaseModelWithErrorCodes):
 
 class GetGuestCurrentAttendanceStatusResponse(BaseModelWithErrorCodes):
     attend: bool = Field(..., title="Attend")
+
+
+class ForecastAttendanceTimeResponse(BaseModelWithErrorCodes):
+    attendance_time_forecasts: dict[int, dict[str, list[AttendanceTime]]] = Field(
+        ..., title="Attendance Time Forecasts"
+    )
