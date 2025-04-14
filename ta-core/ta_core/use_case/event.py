@@ -510,14 +510,15 @@ class EventUseCase:
         )
 
         for user_id, events in forecast_result.attendance_time_forecasts.items():
-            for event_id, forecast in events.items():
-                await event_attendance_forecast_repository.create_or_update_forecast_async(
-                    entity_id=generate_uuid(),
-                    user_id=user_id,
-                    event_id=str_to_uuid(event_id),
-                    start=forecast.start,
-                    forecasted_attended_at=forecast.attended_at,
-                    forecasted_duration=forecast.duration,
-                )
+            for event_id, forecasts in events.items():
+                for forecast in forecasts:
+                    await event_attendance_forecast_repository.create_or_update_forecast_async(
+                        entity_id=generate_uuid(),
+                        user_id=user_id,
+                        event_id=str_to_uuid(event_id),
+                        start=forecast.start,
+                        forecasted_attended_at=forecast.attended_at,
+                        forecasted_duration=forecast.duration,
+                    )
 
         return forecast_result
