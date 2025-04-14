@@ -1564,3 +1564,95 @@ async def test_bulk_delete_insert_forecasts_async(
                     "forecasted_attended_at"
                 ].replace(tzinfo=None)
                 assert ff.forecasted_duration == existing["forecasted_duration"]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "forecasts_by_user",
+    [
+        {
+            0: [  # ユーザー 0 の予測データ
+                {
+                    "entity_id": generate_uuid(),
+                    "event_id": generate_uuid(),
+                    "start": datetime(2000, 1, 1, 0, 0, 0, tzinfo=ZoneInfo("UTC")),
+                    "forecasted_attended_at": datetime(
+                        2000, 1, 1, 9, 0, 0, tzinfo=ZoneInfo("UTC")
+                    ),
+                    "forecasted_duration": 480,
+                },
+                {
+                    "entity_id": generate_uuid(),
+                    "event_id": generate_uuid(),
+                    "start": datetime(2000, 1, 2, 0, 0, 0, tzinfo=ZoneInfo("UTC")),
+                    "forecasted_attended_at": datetime(
+                        2000, 1, 2, 10, 0, 0, tzinfo=ZoneInfo("UTC")
+                    ),
+                    "forecasted_duration": 420,
+                },
+            ],
+            1: [  # ユーザー 1 の予測データ
+                {
+                    "entity_id": generate_uuid(),
+                    "event_id": generate_uuid(),
+                    "start": datetime(2000, 1, 1, 0, 0, 0, tzinfo=ZoneInfo("UTC")),
+                    "forecasted_attended_at": datetime(
+                        2000, 1, 1, 8, 0, 0, tzinfo=ZoneInfo("UTC")
+                    ),
+                    "forecasted_duration": 360,
+                }
+            ],
+        }
+    ],
+)
+async def test_read_all_by_user_id_async(
+    test_session: AsyncSession, forecasts_by_user: dict[int, list[dict[str, Any]]]
+) -> None:
+    uow = SqlalchemyUnitOfWork(session=test_session)
+    event_attendance_forecast_repository = EventAttendanceForecastRepository(uow)
+
+    user_ids = {
+        user_index: await SequenceUserId.id_generator(uow)
+        for user_index in forecasts_by_user.keys()
+    }
+
+    for user_index, forecasts in forecasts_by_user.items():
+        user_id = user_ids[user_index]
+        entities = [
+            EventAttendanceForecastEntity(
+                entity_id=f["entity_id"],
+                user_id=user_id,
+                event_id=f["event_id"],
+                start=f["start"],
+                forecasted_attended_at=f["forecasted_attended_at"],
+                forecasted_duration=f["forecasted_duration"],
+            )
+            for f in forecasts
+        ]
+        await event_attendance_forecast_repository.bulk_create_async(entities)
+
+    for user_index, forecasts in forecasts_by_user.items():
+        user_id = user_ids[user_index]
+        fetched_forecasts = (
+            await event_attendance_forecast_repository.read_all_by_user_id_async(
+                user_id
+            )
+        )
+        assert len(fetched_forecasts) == len(forecasts)
+
+        for ff, expected in zip(fetched_forecasts, forecasts):
+            assert ff.user_id == user_id
+            assert ff.event_id == expected["event_id"]
+            assert ff.start == expected["start"].replace(tzinfo=None)
+            assert ff.forecasted_attended_at == expected[
+                "forecasted_attended_at"
+            ].replace(tzinfo=None)
+            assert ff.forecasted_duration == expected["forecasted_duration"]
+
+    non_existent_user_id = max(user_ids.values()) + 1
+    empty_forecasts = (
+        await event_attendance_forecast_repository.read_all_by_user_id_async(
+            non_existent_user_id
+        )
+    )
+    assert len(empty_forecasts) == 0
