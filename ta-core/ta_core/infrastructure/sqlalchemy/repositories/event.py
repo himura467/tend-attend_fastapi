@@ -369,14 +369,3 @@ class EventAttendanceForecastRepository(
             for entity_id, event_id, start, forecasted_attended_at, forecasted_duration in forecasts
         ]
         return await self.bulk_create_async(entities)
-
-    async def read_by_user_id_and_event_id_and_start_or_none_async(
-        self, user_id: int, event_id: UUID, start: datetime
-    ) -> EventAttendanceForecastEntity | None:
-        return await self.read_one_or_none_async(
-            where=(
-                self._model.user_id == user_id,
-                self._model.event_id == uuid_to_bin(event_id),
-                self._model.start == start,
-            )
-        )
