@@ -10,6 +10,9 @@ from ta_core.domain.entities.event import EventAttendance as EventAttendanceEnti
 from ta_core.domain.entities.event import (
     EventAttendanceActionLog as EventAttendanceActionLogEntity,
 )
+from ta_core.domain.entities.event import (
+    EventAttendanceForecast as EventAttendanceForecastEntity,
+)
 from ta_core.domain.entities.event import Recurrence as RecurrenceEntity
 from ta_core.domain.entities.event import RecurrenceRule as RecurrenceRuleEntity
 from ta_core.features.event import AttendanceAction, AttendanceState, Frequency, Weekday
@@ -17,6 +20,7 @@ from ta_core.infrastructure.sqlalchemy.models.shards.event import (
     Event,
     EventAttendance,
     EventAttendanceActionLog,
+    EventAttendanceForecast,
     Recurrence,
     RecurrenceRule,
 )
@@ -330,6 +334,62 @@ class EventAttendanceActionLogRepository(
         self, user_id: int, event_id: UUID, start: datetime
     ) -> None:
         await self.delete_all_async(
+            where=(
+                self._model.user_id == user_id,
+                self._model.event_id == uuid_to_bin(event_id),
+                self._model.start == start,
+            )
+        )
+
+
+class EventAttendanceForecastRepository(
+    AbstractRepository[EventAttendanceForecastEntity, EventAttendanceForecast],
+):
+    @property
+    def _model(self) -> type[EventAttendanceForecast]:
+        return EventAttendanceForecast
+
+    async def create_or_update_forecast_async(
+        self,
+        entity_id: UUID,
+        user_id: int,
+        event_id: UUID,
+        start: datetime,
+        forecasted_attended_at: datetime,
+        forecasted_duration: int,
+    ) -> EventAttendanceForecastEntity | None:
+        existing_forecast = await self.read_one_or_none_async(
+            where=(
+                self._model.user_id == user_id,
+                self._model.event_id == uuid_to_bin(event_id),
+                self._model.start == start,
+            )
+        )
+        if existing_forecast:
+            updated_forecast = EventAttendanceForecastEntity(
+                entity_id=existing_forecast.id,
+                user_id=user_id,
+                event_id=event_id,
+                start=start,
+                forecasted_attended_at=forecasted_attended_at,
+                forecasted_duration=forecasted_duration,
+            )
+            return await self.update_async(updated_forecast)
+
+        forecast = EventAttendanceForecastEntity(
+            entity_id=entity_id,
+            user_id=user_id,
+            event_id=event_id,
+            start=start,
+            forecasted_attended_at=forecasted_attended_at,
+            forecasted_duration=forecasted_duration,
+        )
+        return await self.create_async(forecast)
+
+    async def read_by_user_id_and_event_id_and_start_or_none_async(
+        self, user_id: int, event_id: UUID, start: datetime
+    ) -> EventAttendanceForecastEntity | None:
+        return await self.read_one_or_none_async(
             where=(
                 self._model.user_id == user_id,
                 self._model.event_id == uuid_to_bin(event_id),

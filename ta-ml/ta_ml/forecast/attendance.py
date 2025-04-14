@@ -154,7 +154,7 @@ def forecast_attendance_time(
         forecasts = [
             AttendanceTime(
                 start=start,
-                acted_at=denormalize_acted_at(
+                attended_at=denormalize_acted_at(
                     acted_at_forecast[i][j],
                     start,
                     event_info["duration"],
