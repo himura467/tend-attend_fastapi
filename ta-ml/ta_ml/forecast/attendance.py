@@ -9,6 +9,7 @@ from ta_core.domain.entities.event import (
 )
 from ta_core.dtos.event import AttendanceTime, ForecastAttendanceTimeResponse
 from ta_core.features.event import Frequency
+from ta_core.utils.uuid import uuid_to_str
 
 from ta_ml.formatters.attendance import (
     denormalize_acted_at,
@@ -166,7 +167,7 @@ def forecast_attendance_time(
             )
             for j, start in enumerate(future_starts)
         ]
-        attendance_time_forecasts[user_id][str(event_id)].extend(forecasts)
+        attendance_time_forecasts[user_id][uuid_to_str(event_id)].extend(forecasts)
 
     return ForecastAttendanceTimeResponse(
         attendance_time_forecasts=attendance_time_forecasts,
