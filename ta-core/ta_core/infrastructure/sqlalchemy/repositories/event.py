@@ -10,6 +10,9 @@ from ta_core.domain.entities.event import EventAttendance as EventAttendanceEnti
 from ta_core.domain.entities.event import (
     EventAttendanceActionLog as EventAttendanceActionLogEntity,
 )
+from ta_core.domain.entities.event import (
+    EventAttendanceForecast as EventAttendanceForecastEntity,
+)
 from ta_core.domain.entities.event import Recurrence as RecurrenceEntity
 from ta_core.domain.entities.event import RecurrenceRule as RecurrenceRuleEntity
 from ta_core.features.event import AttendanceAction, AttendanceState, Frequency, Weekday
@@ -17,6 +20,7 @@ from ta_core.infrastructure.sqlalchemy.models.shards.event import (
     Event,
     EventAttendance,
     EventAttendanceActionLog,
+    EventAttendanceForecast,
     Recurrence,
     RecurrenceRule,
 )
@@ -336,3 +340,32 @@ class EventAttendanceActionLogRepository(
                 self._model.start == start,
             )
         )
+
+
+class EventAttendanceForecastRepository(
+    AbstractRepository[EventAttendanceForecastEntity, EventAttendanceForecast],
+):
+    @property
+    def _model(self) -> type[EventAttendanceForecast]:
+        return EventAttendanceForecast
+
+    # user_id をキーとしてシャーディングを行っているため、user_id を跨いだ一括削除・挿入はできない
+    async def bulk_delete_insert_forecasts_async(
+        self,
+        user_id: int,
+        forecasts: list[tuple[UUID, UUID, datetime, datetime, int]],
+    ) -> list[EventAttendanceForecastEntity] | None:
+        await self.delete_all_async(where=(self._model.user_id == user_id,))
+
+        entities = [
+            EventAttendanceForecastEntity(
+                entity_id=entity_id,
+                user_id=user_id,
+                event_id=event_id,
+                start=start,
+                forecasted_attended_at=forecasted_attended_at,
+                forecasted_duration=forecasted_duration,
+            )
+            for entity_id, event_id, start, forecasted_attended_at, forecasted_duration in forecasts
+        ]
+        return await self.bulk_create_async(entities)

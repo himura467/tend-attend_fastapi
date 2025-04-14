@@ -28,8 +28,8 @@ class Attendance(BaseModel):
 
 class AttendanceTime(BaseModel):
     start: datetime = Field(..., title="Event Started At")
-    acted_at: datetime = Field(..., title="Acted At")
-    duration: float = Field(..., title="Duration")
+    attended_at: datetime = Field(..., title="Attended At")
+    duration: float = Field(..., title="Attendance Duration")
 
 
 class CreateEventRequest(BaseModel):

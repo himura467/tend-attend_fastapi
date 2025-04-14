@@ -168,7 +168,7 @@ async def get_guest_current_attendance_status(
     )
 
 
-@router.get(
+@router.put(
     path="/attend/forecast",
     name="Forecast Attendance Time",
     response_model=ForecastAttendanceTimeResponse,

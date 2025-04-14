@@ -34,6 +34,7 @@ from ta_core.infrastructure.db.transaction import rollbackable
 from ta_core.infrastructure.sqlalchemy.repositories.account import UserAccountRepository
 from ta_core.infrastructure.sqlalchemy.repositories.event import (
     EventAttendanceActionLogRepository,
+    EventAttendanceForecastRepository,
     EventAttendanceRepository,
     EventRepository,
     RecurrenceRepository,
@@ -491,6 +492,9 @@ class EventUseCase:
         )
         event_repository = EventRepository(self.uow)
         user_account_repository = UserAccountRepository(self.uow)
+        event_attendance_forecast_repository = EventAttendanceForecastRepository(
+            self.uow
+        )
 
         earliest_attend_data = (
             await event_attendance_action_log_repository.read_all_earliest_attend_async()
@@ -501,6 +505,26 @@ class EventUseCase:
         event_data = await event_repository.read_all_with_recurrence_async(where=())
         user_data = await user_account_repository.read_all_async(where=())
 
-        return forecast_attendance_time(
+        forecast_result = forecast_attendance_time(
             earliest_attend_data, latest_leave_data, event_data, user_data
         )
+
+        for user_id, events in forecast_result.attendance_time_forecasts.items():
+            forecasts_list = [
+                (
+                    generate_uuid(),
+                    str_to_uuid(event_id),
+                    forecast.start,
+                    forecast.attended_at,
+                    forecast.duration,
+                )
+                for event_id, forecasts in events.items()
+                for forecast in forecasts
+            ]
+            if forecasts_list:
+                await event_attendance_forecast_repository.bulk_delete_insert_forecasts_async(
+                    user_id=user_id,
+                    forecasts=forecasts_list,
+                )
+
+        return forecast_result
