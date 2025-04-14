@@ -251,6 +251,8 @@ def denormalize_acted_at(
     Returns:
         実際の acted_at（datetime）
     """
+    # 予測が (-1, 1) の範囲外である場合は (-1, 1) 内に丸める
+    normalized_acted_at = np.clip(normalized_acted_at, -1, 1)
     seconds_from_center = int(normalized_acted_at * (duration.total_seconds() / 2))
     center_time = start + duration / 2
     return center_time + timedelta(seconds=seconds_from_center)
@@ -266,4 +268,6 @@ def denormalize_duration(normalized_duration: float, duration: timedelta) -> flo
     Returns:
         実際の duration（秒）
     """
+    # 予測が (0, 1) の範囲外である場合は (0, 1) 内に丸める
+    normalized_duration = np.clip(normalized_duration, 0, 1)
     return normalized_duration * duration.total_seconds()
