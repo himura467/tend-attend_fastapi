@@ -76,3 +76,9 @@ class ForecastAttendanceTimeResponse(BaseModelWithErrorCodes):
     attendance_time_forecasts: dict[int, dict[str, list[AttendanceTime]]] = Field(
         ..., title="Attendance Time Forecasts"
     )
+
+
+class GetAttendanceTimeForecastsResponse(BaseModelWithErrorCodes):
+    attendance_time_forecasts: dict[str, list[AttendanceTime]] = Field(
+        ..., title="Attendance Time Forecasts"
+    )
