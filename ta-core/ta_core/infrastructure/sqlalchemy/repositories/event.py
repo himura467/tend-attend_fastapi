@@ -369,3 +369,8 @@ class EventAttendanceForecastRepository(
             for entity_id, event_id, start, forecasted_attended_at, forecasted_duration in forecasts
         ]
         return await self.bulk_create_async(entities)
+
+    async def read_all_by_user_id_async(
+        self, user_id: int
+    ) -> tuple[EventAttendanceForecastEntity, ...]:
+        return await self.read_all_async(where=(self._model.user_id == user_id,))

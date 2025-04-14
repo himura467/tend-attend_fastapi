@@ -1,3 +1,4 @@
+from collections import defaultdict
 from dataclasses import dataclass
 from datetime import date, datetime
 from typing import TypeVar
@@ -10,12 +11,13 @@ from ta_core.domain.entities.event import (
     EventAttendanceActionLog as EventAttendanceActionLogEntity,
 )
 from ta_core.dtos.event import Attendance as AttendanceDto
-from ta_core.dtos.event import AttendEventResponse, CreateEventResponse
+from ta_core.dtos.event import AttendanceTime, AttendEventResponse, CreateEventResponse
 from ta_core.dtos.event import Event as EventDto
 from ta_core.dtos.event import EventWithId as EventWithIdDto
 from ta_core.dtos.event import (
     ForecastAttendanceTimeResponse,
     GetAttendancesResponse,
+    GetAttendanceTimeForecastsResponse,
     GetFollowingEventsResponse,
     GetGuestCurrentAttendanceStatusResponse,
     GetMyEventsResponse,
@@ -528,3 +530,43 @@ class EventUseCase:
                 )
 
         return forecast_result
+
+    @rollbackable
+    async def get_attendance_time_forecasts_async(
+        self, account_id: UUID
+    ) -> GetAttendanceTimeForecastsResponse:
+        user_account_repository = UserAccountRepository(self.uow)
+        event_attendance_forecast_repository = EventAttendanceForecastRepository(
+            self.uow
+        )
+
+        user_account = await user_account_repository.read_by_id_or_none_async(
+            account_id
+        )
+        if user_account is None:
+            return GetAttendanceTimeForecastsResponse(
+                attendance_time_forecasts={},
+                error_codes=(ErrorCode.ACCOUNT_NOT_FOUND,),
+            )
+
+        forecasts = (
+            await event_attendance_forecast_repository.read_all_by_user_id_async(
+                user_id=user_account.user_id
+            )
+        )
+
+        attendance_time_forecasts: defaultdict[str, list[AttendanceTime]] = defaultdict(
+            list
+        )
+        for forecast in forecasts:
+            attendance_time_forecasts[uuid_to_str(forecast.event_id)].append(
+                AttendanceTime(
+                    start=forecast.start,
+                    attended_at=forecast.forecasted_attended_at,
+                    duration=forecast.forecasted_duration,
+                )
+            )
+
+        return GetAttendanceTimeForecastsResponse(
+            attendance_time_forecasts=attendance_time_forecasts, error_codes=()
+        )
