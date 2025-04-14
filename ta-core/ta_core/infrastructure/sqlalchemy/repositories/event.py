@@ -349,42 +349,26 @@ class EventAttendanceForecastRepository(
     def _model(self) -> type[EventAttendanceForecast]:
         return EventAttendanceForecast
 
-    async def create_or_update_forecast_async(
+    # user_id をキーとしてシャーディングを行っているため、user_id を跨いだ一括削除・挿入はできない
+    async def bulk_delete_insert_forecasts_async(
         self,
-        entity_id: UUID,
         user_id: int,
-        event_id: UUID,
-        start: datetime,
-        forecasted_attended_at: datetime,
-        forecasted_duration: int,
-    ) -> EventAttendanceForecastEntity | None:
-        existing_forecast = await self.read_one_or_none_async(
-            where=(
-                self._model.user_id == user_id,
-                self._model.event_id == uuid_to_bin(event_id),
-                self._model.start == start,
-            )
-        )
-        if existing_forecast:
-            updated_forecast = EventAttendanceForecastEntity(
-                entity_id=existing_forecast.id,
+        forecasts: list[tuple[UUID, UUID, datetime, datetime, int]],
+    ) -> list[EventAttendanceForecastEntity] | None:
+        await self.delete_all_async(where=(self._model.user_id == user_id,))
+
+        entities = [
+            EventAttendanceForecastEntity(
+                entity_id=entity_id,
                 user_id=user_id,
                 event_id=event_id,
                 start=start,
                 forecasted_attended_at=forecasted_attended_at,
                 forecasted_duration=forecasted_duration,
             )
-            return await self.update_async(updated_forecast)
-
-        forecast = EventAttendanceForecastEntity(
-            entity_id=entity_id,
-            user_id=user_id,
-            event_id=event_id,
-            start=start,
-            forecasted_attended_at=forecasted_attended_at,
-            forecasted_duration=forecasted_duration,
-        )
-        return await self.create_async(forecast)
+            for entity_id, event_id, start, forecasted_attended_at, forecasted_duration in forecasts
+        ]
+        return await self.bulk_create_async(entities)
 
     async def read_by_user_id_and_event_id_and_start_or_none_async(
         self, user_id: int, event_id: UUID, start: datetime
