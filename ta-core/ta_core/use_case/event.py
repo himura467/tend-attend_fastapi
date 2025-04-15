@@ -545,6 +545,8 @@ class EventUseCase:
         )
         if user_account is None:
             return GetAttendanceTimeForecastsResponse(
+                user_id=0,
+                username="",
                 attendance_time_forecasts={},
                 error_codes=(ErrorCode.ACCOUNT_NOT_FOUND,),
             )
@@ -568,5 +570,8 @@ class EventUseCase:
             )
 
         return GetAttendanceTimeForecastsResponse(
-            attendance_time_forecasts=attendance_time_forecasts, error_codes=()
+            user_id=user_account.user_id,
+            username=user_account.username,
+            attendance_time_forecasts=attendance_time_forecasts,
+            error_codes=(),
         )
