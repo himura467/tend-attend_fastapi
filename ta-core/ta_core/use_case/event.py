@@ -14,7 +14,12 @@ from ta_core.domain.entities.event import (
     EventAttendanceForecast as EventAttendanceForecastEntity,
 )
 from ta_core.dtos.event import Attendance as AttendanceDto
-from ta_core.dtos.event import AttendanceTime, AttendEventResponse, CreateEventResponse
+from ta_core.dtos.event import (
+    AttendanceTimeForecast,
+    AttendanceTimeForecastsWithUsername,
+    AttendEventResponse,
+    CreateEventResponse,
+)
 from ta_core.dtos.event import Event as EventDto
 from ta_core.dtos.event import EventWithId as EventWithIdDto
 from ta_core.dtos.event import (
@@ -439,11 +444,9 @@ class EventUseCase:
                 events=[], error_codes=(ErrorCode.ACCOUNT_NOT_FOUND,)
             )
 
-        followees = await user_account_repository.read_by_ids_async(
-            set(followee.id for followee in follower.followees)
-        )
-
-        user_ids = {followee.user_id for followee in followees} | {follower.user_id}
+        user_ids = {followee.user_id for followee in follower.followees} | {
+            follower.user_id
+        }
 
         events = await event_repository.read_with_recurrence_by_user_ids_async(user_ids)
 
@@ -538,43 +541,61 @@ class EventUseCase:
         self, account_id: UUID
     ) -> GetAttendanceTimeForecastsResponse:
         user_account_repository = UserAccountRepository(self.uow)
+        event_repository = EventRepository(self.uow)
         event_attendance_forecast_repository = EventAttendanceForecastRepository(
             self.uow
         )
 
-        user_account = await user_account_repository.read_by_id_or_none_async(
-            account_id
+        user_account = (
+            await user_account_repository.read_with_followees_by_id_or_none_async(
+                account_id
+            )
         )
         if user_account is None:
             return GetAttendanceTimeForecastsResponse(
-                user_id=0,
-                username="",
-                attendance_time_forecasts={},
+                attendance_time_forecasts_with_username={},
                 error_codes=(ErrorCode.ACCOUNT_NOT_FOUND,),
             )
 
-        forecasts = await event_attendance_forecast_repository.read_all_async(
-            where=(
-                event_attendance_forecast_repository._model.user_id
-                == user_account.user_id,
+        user_dict = {
+            user.user_id: user.username
+            for user in user_account.followees + [user_account]
+        }
+        events = await event_repository.read_with_recurrence_by_user_ids_async(
+            set(user_dict.keys())
+        )
+        forecasts = (
+            await event_attendance_forecast_repository.read_all_by_event_ids_async(
+                {event.id for event in events}
             )
         )
 
-        attendance_time_forecasts: defaultdict[str, list[AttendanceTime]] = defaultdict(
-            list
-        )
+        attendance_time_forecasts: defaultdict[
+            int, defaultdict[str, list[AttendanceTimeForecast]]
+        ] = defaultdict(lambda: defaultdict(list))
         for forecast in forecasts:
-            attendance_time_forecasts[uuid_to_str(forecast.event_id)].append(
-                AttendanceTime(
+            attendance_time_forecasts[forecast.user_id][
+                uuid_to_str(forecast.event_id)
+            ].append(
+                AttendanceTimeForecast(
                     start=forecast.start,
                     attended_at=forecast.forecasted_attended_at,
                     duration=forecast.forecasted_duration,
                 )
             )
 
+        attendance_time_forecasts_with_username = {
+            user_id: AttendanceTimeForecastsWithUsername(
+                username=user_dict[user_id],
+                attendance_time_forecasts={
+                    event_id: forecasts
+                    for event_id, forecasts in event_forecasts.items()
+                },
+            )
+            for user_id, event_forecasts in attendance_time_forecasts.items()
+        }
+
         return GetAttendanceTimeForecastsResponse(
-            user_id=user_account.user_id,
-            username=user_account.username,
-            attendance_time_forecasts=attendance_time_forecasts,
+            attendance_time_forecasts_with_username=attendance_time_forecasts_with_username,
             error_codes=(),
         )
