@@ -349,28 +349,10 @@ class EventAttendanceForecastRepository(
     def _model(self) -> type[EventAttendanceForecast]:
         return EventAttendanceForecast
 
-    # user_id をキーとしてシャーディングを行っているため、user_id を跨いだ一括削除・挿入はできない
-    async def bulk_delete_insert_forecasts_async(
+    async def bulk_delete_insert_event_attendance_forecasts_async(
         self,
-        user_id: int,
-        forecasts: list[tuple[UUID, UUID, datetime, datetime, int]],
+        event_attendance_forecasts: list[EventAttendanceForecastEntity],
     ) -> list[EventAttendanceForecastEntity] | None:
-        await self.delete_all_async(where=(self._model.user_id == user_id,))
+        await self.delete_all_async(where=())
 
-        entities = [
-            EventAttendanceForecastEntity(
-                entity_id=entity_id,
-                user_id=user_id,
-                event_id=event_id,
-                start=start,
-                forecasted_attended_at=forecasted_attended_at,
-                forecasted_duration=forecasted_duration,
-            )
-            for entity_id, event_id, start, forecasted_attended_at, forecasted_duration in forecasts
-        ]
-        return await self.bulk_create_async(entities)
-
-    async def read_all_by_user_id_async(
-        self, user_id: int
-    ) -> tuple[EventAttendanceForecastEntity, ...]:
-        return await self.read_all_async(where=(self._model.user_id == user_id,))
+        return await self.bulk_create_async(event_attendance_forecasts)

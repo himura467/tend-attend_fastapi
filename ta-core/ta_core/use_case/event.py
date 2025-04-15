@@ -10,6 +10,9 @@ from ta_core.domain.entities.event import Event as EventEntity
 from ta_core.domain.entities.event import (
     EventAttendanceActionLog as EventAttendanceActionLogEntity,
 )
+from ta_core.domain.entities.event import (
+    EventAttendanceForecast as EventAttendanceForecastEntity,
+)
 from ta_core.dtos.event import Attendance as AttendanceDto
 from ta_core.dtos.event import AttendanceTime, AttendEventResponse, CreateEventResponse
 from ta_core.dtos.event import Event as EventDto
@@ -511,23 +514,22 @@ class EventUseCase:
             earliest_attend_data, latest_leave_data, event_data, user_data
         )
 
-        for user_id, events in forecast_result.attendance_time_forecasts.items():
-            forecasts_list = [
-                (
-                    generate_uuid(),
-                    str_to_uuid(event_id),
-                    forecast.start,
-                    forecast.attended_at,
-                    forecast.duration,
-                )
-                for event_id, forecasts in events.items()
-                for forecast in forecasts
-            ]
-            if forecasts_list:
-                await event_attendance_forecast_repository.bulk_delete_insert_forecasts_async(
-                    user_id=user_id,
-                    forecasts=forecasts_list,
-                )
+        forecasts = [
+            EventAttendanceForecastEntity(
+                entity_id=generate_uuid(),
+                user_id=user_id,
+                event_id=str_to_uuid(event_id),
+                start=forecast.start,
+                forecasted_attended_at=forecast.attended_at,
+                forecasted_duration=forecast.duration,
+            )
+            for user_id, events in forecast_result.attendance_time_forecasts.items()
+            for event_id, forecasts in events.items()
+            for forecast in forecasts
+        ]
+        await event_attendance_forecast_repository.bulk_delete_insert_event_attendance_forecasts_async(
+            forecasts
+        )
 
         return forecast_result
 
@@ -551,9 +553,10 @@ class EventUseCase:
                 error_codes=(ErrorCode.ACCOUNT_NOT_FOUND,),
             )
 
-        forecasts = (
-            await event_attendance_forecast_repository.read_all_by_user_id_async(
-                user_id=user_account.user_id
+        forecasts = await event_attendance_forecast_repository.read_all_async(
+            where=(
+                event_attendance_forecast_repository._model.user_id
+                == user_account.user_id,
             )
         )
 
