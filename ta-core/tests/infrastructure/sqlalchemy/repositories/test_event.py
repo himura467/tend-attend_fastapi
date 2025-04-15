@@ -1489,3 +1489,87 @@ async def test_bulk_delete_insert_event_attendance_forecasts_async(
         assert updated.start == expected.start
         assert updated.forecasted_attended_at == expected.forecasted_attended_at
         assert updated.forecasted_duration == expected.forecasted_duration
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "event_forecasts",
+    [
+        [
+            {
+                "user_id": 0,
+                "event_id": generate_uuid(),
+                "start": datetime(2000, 1, 1, 0, 0, 0, tzinfo=ZoneInfo("UTC")),
+                "forecasted_attended_at": datetime(
+                    2000, 1, 1, 9, 0, 0, tzinfo=ZoneInfo("UTC")
+                ),
+                "forecasted_duration": 3600,
+            },
+            {
+                "user_id": 1,
+                "event_id": generate_uuid(),
+                "start": datetime(2000, 1, 2, 0, 0, 0, tzinfo=ZoneInfo("UTC")),
+                "forecasted_attended_at": datetime(
+                    2000, 1, 2, 10, 0, 0, tzinfo=ZoneInfo("UTC")
+                ),
+                "forecasted_duration": 7200,
+            },
+        ],
+    ],
+)
+async def test_read_all_by_event_ids_async(
+    test_session: AsyncSession,
+    event_forecasts: list[dict[str, Any]],
+) -> None:
+    uow = SqlalchemyUnitOfWork(session=test_session)
+    event_attendance_forecast_repository = EventAttendanceForecastRepository(uow)
+
+    forecasts = []
+    event_ids = set()
+    for forecast_data in event_forecasts:
+        entity_id = generate_uuid()
+        forecast = EventAttendanceForecastEntity(
+            entity_id=entity_id,
+            user_id=forecast_data["user_id"],
+            event_id=forecast_data["event_id"],
+            start=forecast_data["start"],
+            forecasted_attended_at=forecast_data["forecasted_attended_at"],
+            forecasted_duration=forecast_data["forecasted_duration"],
+        )
+        forecasts.append(forecast)
+        event_ids.add(forecast_data["event_id"])
+
+    created_forecasts = await event_attendance_forecast_repository.bulk_delete_insert_event_attendance_forecasts_async(
+        forecasts
+    )
+    assert created_forecasts is not None
+    assert len(created_forecasts) == len(forecasts)
+
+    fetched_forecasts = (
+        await event_attendance_forecast_repository.read_all_by_event_ids_async(
+            event_ids
+        )
+    )
+    assert len(fetched_forecasts) == len(forecasts)
+
+    for fetched in fetched_forecasts:
+        matching_forecast = next(
+            (f for f in forecasts if f.id == fetched.id),
+            None,
+        )
+        assert matching_forecast is not None
+        assert fetched.user_id == matching_forecast.user_id
+        assert fetched.event_id == matching_forecast.event_id
+        assert fetched.start == matching_forecast.start.replace(tzinfo=None)
+        assert (
+            fetched.forecasted_attended_at
+            == matching_forecast.forecasted_attended_at.replace(tzinfo=None)
+        )
+        assert fetched.forecasted_duration == matching_forecast.forecasted_duration
+
+    non_existent_forecasts = (
+        await event_attendance_forecast_repository.read_all_by_event_ids_async(
+            {generate_uuid()}
+        )
+    )
+    assert len(non_existent_forecasts) == 0
