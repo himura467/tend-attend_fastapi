@@ -557,13 +557,10 @@ class EventUseCase:
                 error_codes=(ErrorCode.ACCOUNT_NOT_FOUND,),
             )
 
-        user_dict = {
-            user.user_id: user.username
-            for user in user_account.followees + [user_account]
+        user_ids = {followee.user_id for followee in user_account.followees} | {
+            user_account.user_id
         }
-        events = await event_repository.read_with_recurrence_by_user_ids_async(
-            set(user_dict.keys())
-        )
+        events = await event_repository.read_with_recurrence_by_user_ids_async(user_ids)
         forecasts = (
             await event_attendance_forecast_repository.read_all_by_event_ids_async(
                 {event.id for event in events}
@@ -571,11 +568,11 @@ class EventUseCase:
         )
 
         attendance_time_forecasts: defaultdict[
-            int, defaultdict[str, list[AttendanceTimeForecast]]
+            str, defaultdict[int, list[AttendanceTimeForecast]]
         ] = defaultdict(lambda: defaultdict(list))
         for forecast in forecasts:
-            attendance_time_forecasts[forecast.user_id][
-                uuid_to_str(forecast.event_id)
+            attendance_time_forecasts[uuid_to_str(forecast.event_id)][
+                forecast.user_id
             ].append(
                 AttendanceTimeForecast(
                     start=forecast.start,
@@ -584,15 +581,21 @@ class EventUseCase:
                 )
             )
 
+        username_dict = {
+            ua.user_id: ua.username
+            for ua in await user_account_repository.read_all_async(
+                where=()
+            )  # TODO: user_account テーブルに対する read_all_async はまずそう
+        }
         attendance_time_forecasts_with_username = {
-            user_id: AttendanceTimeForecastsWithUsername(
-                username=user_dict[user_id],
-                attendance_time_forecasts={
-                    event_id: forecasts
-                    for event_id, forecasts in event_forecasts.items()
-                },
-            )
-            for user_id, event_forecasts in attendance_time_forecasts.items()
+            event_id: {
+                user_id: AttendanceTimeForecastsWithUsername(
+                    username=username_dict[user_id],
+                    attendance_time_forecasts=forecasts,
+                )
+                for user_id, forecasts in user_forecasts.items()
+            }
+            for event_id, user_forecasts in attendance_time_forecasts.items()
         }
 
         return GetAttendanceTimeForecastsResponse(

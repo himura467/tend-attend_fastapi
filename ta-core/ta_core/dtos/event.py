@@ -34,7 +34,7 @@ class AttendanceTimeForecast(BaseModel):
 
 class AttendanceTimeForecastsWithUsername(BaseModel):
     username: str = Field(..., title="Username")
-    attendance_time_forecasts: dict[str, list[AttendanceTimeForecast]] = Field(
+    attendance_time_forecasts: list[AttendanceTimeForecast] = Field(
         ..., title="Attendance Time Forecasts"
     )
 
@@ -87,5 +87,5 @@ class ForecastAttendanceTimeResponse(BaseModelWithErrorCodes):
 
 class GetAttendanceTimeForecastsResponse(BaseModelWithErrorCodes):
     attendance_time_forecasts_with_username: dict[
-        int, AttendanceTimeForecastsWithUsername
+        str, dict[int, AttendanceTimeForecastsWithUsername]
     ] = Field(..., title="Attendance Time Forecasts with Username")
