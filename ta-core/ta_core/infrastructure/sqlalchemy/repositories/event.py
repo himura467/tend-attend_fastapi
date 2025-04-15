@@ -356,3 +356,14 @@ class EventAttendanceForecastRepository(
         await self.delete_all_async(where=())
 
         return await self.bulk_create_async(event_attendance_forecasts)
+
+    async def read_all_by_event_ids_async(
+        self, event_ids: set[UUID]
+    ) -> tuple[EventAttendanceForecastEntity, ...]:
+        return await self.read_all_async(
+            where=(
+                self._model.event_id.in_(
+                    uuid_to_bin(event_id) for event_id in event_ids
+                ),
+            )
+        )
