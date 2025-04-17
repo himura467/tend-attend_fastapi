@@ -11,7 +11,7 @@ from ta_core.dtos.event import (
     GetAttendancesResponse,
     GetAttendanceTimeForecastsResponse,
     GetFollowingEventsResponse,
-    GetGuestCurrentAttendanceStatusResponse,
+    GetGuestAttendanceStatusResponse,
     GetMyEventsResponse,
     UpdateAttendancesRequest,
     UpdateAttendancesResponse,
@@ -149,20 +149,20 @@ async def get_following_events(
 
 
 @router.get(
-    path="/attend/current/{event_id}/{start}",
-    name="Get Guest Current Attendance Status",
-    response_model=GetGuestCurrentAttendanceStatusResponse,
+    path="/attend/status/{event_id}/{start}",
+    name="Get Guest Attendance Status",
+    response_model=GetGuestAttendanceStatusResponse,
 )
-async def get_guest_current_attendance_status(
+async def get_guest_attendance_status(
     event_id: str,
     start: datetime,
     session: AsyncSession = Depends(get_db_async),
     account: Account = Depends(AccessControl(permit={Role.GUEST})),
-) -> GetGuestCurrentAttendanceStatusResponse:
+) -> GetGuestAttendanceStatusResponse:
     uow = SqlalchemyUnitOfWork(session=session)
     use_case = EventUseCase(uow=uow)
 
-    return await use_case.get_guest_current_attendance_status_async(
+    return await use_case.get_guest_attendance_status_async(
         guest_id=account.account_id,
         event_id_str=event_id,
         start=start,
