@@ -159,3 +159,21 @@ class EventAttendanceActionLog(IEntity):
         self.start = start
         self.action = action
         self.acted_at = acted_at
+
+
+class EventAttendanceForecast(IEntity):
+    def __init__(
+        self,
+        entity_id: UUID,
+        user_id: int,
+        event_id: UUID,
+        start: datetime,
+        forecasted_attended_at: datetime,
+        forecasted_duration: int,
+    ) -> None:
+        super().__init__(entity_id)
+        self.user_id = user_id
+        self.event_id = event_id
+        self.start = start
+        self.forecasted_attended_at = forecasted_attended_at
+        self.forecasted_duration = forecasted_duration

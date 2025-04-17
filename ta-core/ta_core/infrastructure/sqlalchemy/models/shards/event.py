@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from sqlalchemy.dialects.mysql import (
+    BIGINT,
     BINARY,
     BOOLEAN,
     DATETIME,
@@ -18,6 +19,9 @@ from ta_core.domain.entities.event import Event as EventEntity
 from ta_core.domain.entities.event import EventAttendance as EventAttendanceEntity
 from ta_core.domain.entities.event import (
     EventAttendanceActionLog as EventAttendanceActionLogEntity,
+)
+from ta_core.domain.entities.event import (
+    EventAttendanceForecast as EventAttendanceForecastEntity,
 )
 from ta_core.domain.entities.event import Recurrence as RecurrenceEntity
 from ta_core.domain.entities.event import RecurrenceRule as RecurrenceRuleEntity
@@ -296,4 +300,51 @@ Index(
     EventAttendanceActionLog.user_id,
     EventAttendanceActionLog.event_id,
     EventAttendanceActionLog.start,
+)
+
+
+class EventAttendanceForecast(AbstractShardDynamicBase):
+    event_id: Mapped[bytes] = mapped_column(
+        BINARY(16),
+        nullable=False,
+        comment="Event ID",
+    )
+    start: Mapped[datetime] = mapped_column(
+        DATETIME(timezone=True), nullable=False, comment="Event Start Time"
+    )
+    forecasted_attended_at: Mapped[datetime] = mapped_column(
+        DATETIME(timezone=True), nullable=False, comment="Forecasted Attendance Time"
+    )
+    forecasted_duration: Mapped[int] = mapped_column(
+        BIGINT(unsigned=True), nullable=False, comment="Forecasted Duration in Seconds"
+    )
+
+    def to_entity(self) -> "EventAttendanceForecastEntity":
+        return EventAttendanceForecastEntity(
+            entity_id=bin_to_uuid(self.id),
+            user_id=self.user_id,
+            event_id=bin_to_uuid(self.event_id),
+            start=self.start,
+            forecasted_attended_at=self.forecasted_attended_at,
+            forecasted_duration=self.forecasted_duration,
+        )
+
+    @classmethod
+    def from_entity(
+        cls, entity: "EventAttendanceForecastEntity"
+    ) -> "EventAttendanceForecast":
+        return cls(
+            id=uuid_to_bin(entity.id),
+            user_id=entity.user_id,
+            event_id=uuid_to_bin(entity.event_id),
+            start=entity.start,
+            forecasted_attended_at=entity.forecasted_attended_at,
+            forecasted_duration=entity.forecasted_duration,
+        )
+
+
+UniqueConstraint(
+    EventAttendanceForecast.user_id,
+    EventAttendanceForecast.event_id,
+    EventAttendanceForecast.start,
 )
