@@ -1,12 +1,17 @@
 from datetime import datetime
+from typing import Any
 
 from sqlalchemy.orm.strategy_options import joinedload
 from sqlalchemy.sql import select
+from sqlalchemy.sql.functions import func
 
 from ta_core.domain.entities.event import Event as EventEntity
 from ta_core.domain.entities.event import EventAttendance as EventAttendanceEntity
 from ta_core.domain.entities.event import (
     EventAttendanceActionLog as EventAttendanceActionLogEntity,
+)
+from ta_core.domain.entities.event import (
+    EventAttendanceForecast as EventAttendanceForecastEntity,
 )
 from ta_core.domain.entities.event import Recurrence as RecurrenceEntity
 from ta_core.domain.entities.event import RecurrenceRule as RecurrenceRuleEntity
@@ -15,6 +20,7 @@ from ta_core.infrastructure.sqlalchemy.models.shards.event import (
     Event,
     EventAttendance,
     EventAttendanceActionLog,
+    EventAttendanceForecast,
     Recurrence,
     RecurrenceRule,
 )
@@ -137,6 +143,17 @@ class EventRepository(AbstractRepository[EventEntity, Event]):
         result = await self._uow.execute_async(stmt)
         return tuple(record.to_entity() for record in result.unique().scalars().all())
 
+    async def read_all_with_recurrence_async(
+        self, where: tuple[Any, ...]
+    ) -> tuple[EventEntity, ...]:
+        stmt = (
+            select(self._model)
+            .where(*where)
+            .options(joinedload(Event.recurrence).joinedload(Recurrence.rrule))
+        )
+        result = await self._uow.execute_async(stmt)
+        return tuple(record.to_entity() for record in result.unique().scalars().all())
+
 
 class EventAttendanceRepository(
     AbstractRepository[EventAttendanceEntity, EventAttendance],
@@ -239,6 +256,80 @@ class EventAttendanceActionLogRepository(
         )
         return event_attendance_action_logs[0] if event_attendance_action_logs else None
 
+    async def read_all_earliest_attend_async(
+        self,
+    ) -> tuple[EventAttendanceActionLogEntity, ...]:
+        sub_query = (
+            select(
+                self._model.user_id,
+                self._model.event_id,
+                self._model.start,
+                self._model.acted_at,
+                func.row_number()
+                .over(
+                    partition_by=[
+                        self._model.user_id,
+                        self._model.event_id,
+                        self._model.start,
+                    ],
+                    order_by=self._model.acted_at.asc(),
+                )
+                .label("rn"),
+            )
+            .where(self._model.action == "attend")
+            .subquery()
+        )
+        stmt = (
+            select(self._model)
+            .join(
+                sub_query,
+                (self._model.user_id == sub_query.c.user_id)
+                & (self._model.event_id == sub_query.c.event_id)
+                & (self._model.start == sub_query.c.start)
+                & (self._model.acted_at == sub_query.c.acted_at),
+            )
+            .where(sub_query.c.rn == 1)
+        )
+        result = await self._uow.execute_async(stmt)
+        return tuple(record.to_entity() for record in result.scalars().all())
+
+    async def read_all_latest_leave_async(
+        self,
+    ) -> tuple[EventAttendanceActionLogEntity, ...]:
+        sub_query = (
+            select(
+                self._model.user_id,
+                self._model.event_id,
+                self._model.start,
+                self._model.acted_at,
+                func.row_number()
+                .over(
+                    partition_by=[
+                        self._model.user_id,
+                        self._model.event_id,
+                        self._model.start,
+                    ],
+                    order_by=self._model.acted_at.desc(),
+                )
+                .label("rn"),
+            )
+            .where(self._model.action == "leave")
+            .subquery()
+        )
+        stmt = (
+            select(self._model)
+            .join(
+                sub_query,
+                (self._model.user_id == sub_query.c.user_id)
+                & (self._model.event_id == sub_query.c.event_id)
+                & (self._model.start == sub_query.c.start)
+                & (self._model.acted_at == sub_query.c.acted_at),
+            )
+            .where(sub_query.c.rn == 1)
+        )
+        result = await self._uow.execute_async(stmt)
+        return tuple(record.to_entity() for record in result.scalars().all())
+
     async def delete_by_user_id_and_event_id_and_start_async(
         self, user_id: int, event_id: UUID, start: datetime
     ) -> None:
@@ -247,5 +338,32 @@ class EventAttendanceActionLogRepository(
                 self._model.user_id == user_id,
                 self._model.event_id == uuid_to_bin(event_id),
                 self._model.start == start,
+            )
+        )
+
+
+class EventAttendanceForecastRepository(
+    AbstractRepository[EventAttendanceForecastEntity, EventAttendanceForecast],
+):
+    @property
+    def _model(self) -> type[EventAttendanceForecast]:
+        return EventAttendanceForecast
+
+    async def bulk_delete_insert_event_attendance_forecasts_async(
+        self,
+        event_attendance_forecasts: list[EventAttendanceForecastEntity],
+    ) -> list[EventAttendanceForecastEntity] | None:
+        await self.delete_all_async(where=())
+
+        return await self.bulk_create_async(event_attendance_forecasts)
+
+    async def read_all_by_event_ids_async(
+        self, event_ids: set[UUID]
+    ) -> tuple[EventAttendanceForecastEntity, ...]:
+        return await self.read_all_async(
+            where=(
+                self._model.event_id.in_(
+                    uuid_to_bin(event_id) for event_id in event_ids
+                ),
             )
         )

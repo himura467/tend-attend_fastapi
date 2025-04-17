@@ -1,18 +1,31 @@
+from collections import defaultdict
 from dataclasses import dataclass
 from datetime import date, datetime
 from typing import TypeVar
 from zoneinfo import ZoneInfo
 
+from ta_ml.forecast.attendance import forecast_attendance_time
+
 from ta_core.domain.entities.event import Event as EventEntity
 from ta_core.domain.entities.event import (
     EventAttendanceActionLog as EventAttendanceActionLogEntity,
 )
+from ta_core.domain.entities.event import (
+    EventAttendanceForecast as EventAttendanceForecastEntity,
+)
 from ta_core.dtos.event import Attendance as AttendanceDto
-from ta_core.dtos.event import AttendEventResponse, CreateEventResponse
+from ta_core.dtos.event import (
+    AttendanceTimeForecast,
+    AttendanceTimeForecastsWithUsername,
+    AttendEventResponse,
+    CreateEventResponse,
+)
 from ta_core.dtos.event import Event as EventDto
 from ta_core.dtos.event import EventWithId as EventWithIdDto
 from ta_core.dtos.event import (
+    ForecastAttendanceTimeResponse,
     GetAttendancesResponse,
+    GetAttendanceTimeForecastsResponse,
     GetFollowingEventsResponse,
     GetGuestCurrentAttendanceStatusResponse,
     GetMyEventsResponse,
@@ -31,6 +44,7 @@ from ta_core.infrastructure.db.transaction import rollbackable
 from ta_core.infrastructure.sqlalchemy.repositories.account import UserAccountRepository
 from ta_core.infrastructure.sqlalchemy.repositories.event import (
     EventAttendanceActionLogRepository,
+    EventAttendanceForecastRepository,
     EventAttendanceRepository,
     EventRepository,
     RecurrenceRepository,
@@ -430,11 +444,9 @@ class EventUseCase:
                 events=[], error_codes=(ErrorCode.ACCOUNT_NOT_FOUND,)
             )
 
-        followees = await user_account_repository.read_by_ids_async(
-            set(followee.id for followee in follower.followees)
-        )
-
-        user_ids = {followee.user_id for followee in followees} | {follower.user_id}
+        user_ids = {followee.user_id for followee in follower.followees} | {
+            follower.user_id
+        }
 
         events = await event_repository.read_with_recurrence_by_user_ids_async(user_ids)
 
@@ -476,5 +488,117 @@ class EventUseCase:
 
         return GetGuestCurrentAttendanceStatusResponse(
             attend=event_attendance_action_log.action == AttendanceAction.ATTEND,
+            error_codes=(),
+        )
+
+    @rollbackable
+    async def forecast_attendance_time_async(
+        self,
+    ) -> ForecastAttendanceTimeResponse:
+        event_attendance_action_log_repository = EventAttendanceActionLogRepository(
+            self.uow
+        )
+        event_repository = EventRepository(self.uow)
+        user_account_repository = UserAccountRepository(self.uow)
+        event_attendance_forecast_repository = EventAttendanceForecastRepository(
+            self.uow
+        )
+
+        earliest_attend_data = (
+            await event_attendance_action_log_repository.read_all_earliest_attend_async()
+        )
+        latest_leave_data = (
+            await event_attendance_action_log_repository.read_all_latest_leave_async()
+        )
+        event_data = await event_repository.read_all_with_recurrence_async(where=())
+        user_data = await user_account_repository.read_all_async(where=())
+
+        forecast_result = forecast_attendance_time(
+            earliest_attend_data, latest_leave_data, event_data, user_data
+        )
+
+        forecasts = [
+            EventAttendanceForecastEntity(
+                entity_id=generate_uuid(),
+                user_id=user_id,
+                event_id=str_to_uuid(event_id),
+                start=forecast.start,
+                forecasted_attended_at=forecast.attended_at,
+                forecasted_duration=forecast.duration,
+            )
+            for user_id, events in forecast_result.attendance_time_forecasts.items()
+            for event_id, forecasts in events.items()
+            for forecast in forecasts
+        ]
+        await event_attendance_forecast_repository.bulk_delete_insert_event_attendance_forecasts_async(
+            forecasts
+        )
+
+        return forecast_result
+
+    @rollbackable
+    async def get_attendance_time_forecasts_async(
+        self, account_id: UUID
+    ) -> GetAttendanceTimeForecastsResponse:
+        user_account_repository = UserAccountRepository(self.uow)
+        event_repository = EventRepository(self.uow)
+        event_attendance_forecast_repository = EventAttendanceForecastRepository(
+            self.uow
+        )
+
+        user_account = (
+            await user_account_repository.read_with_followees_by_id_or_none_async(
+                account_id
+            )
+        )
+        if user_account is None:
+            return GetAttendanceTimeForecastsResponse(
+                attendance_time_forecasts_with_username={},
+                error_codes=(ErrorCode.ACCOUNT_NOT_FOUND,),
+            )
+
+        user_ids = {followee.user_id for followee in user_account.followees} | {
+            user_account.user_id
+        }
+        events = await event_repository.read_with_recurrence_by_user_ids_async(user_ids)
+        forecasts = (
+            await event_attendance_forecast_repository.read_all_by_event_ids_async(
+                {event.id for event in events}
+            )
+        )
+
+        attendance_time_forecasts: defaultdict[
+            str, defaultdict[int, list[AttendanceTimeForecast]]
+        ] = defaultdict(lambda: defaultdict(list))
+        for forecast in forecasts:
+            attendance_time_forecasts[uuid_to_str(forecast.event_id)][
+                forecast.user_id
+            ].append(
+                AttendanceTimeForecast(
+                    start=forecast.start,
+                    attended_at=forecast.forecasted_attended_at,
+                    duration=forecast.forecasted_duration,
+                )
+            )
+
+        username_dict = {
+            ua.user_id: ua.username
+            for ua in await user_account_repository.read_all_async(
+                where=()
+            )  # TODO: user_account テーブルに対する read_all_async はまずそう
+        }
+        attendance_time_forecasts_with_username = {
+            event_id: {
+                user_id: AttendanceTimeForecastsWithUsername(
+                    username=username_dict[user_id],
+                    attendance_time_forecasts=forecasts,
+                )
+                for user_id, forecasts in user_forecasts.items()
+            }
+            for event_id, user_forecasts in attendance_time_forecasts.items()
+        }
+
+        return GetAttendanceTimeForecastsResponse(
+            attendance_time_forecasts_with_username=attendance_time_forecasts_with_username,
             error_codes=(),
         )

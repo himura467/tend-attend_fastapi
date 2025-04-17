@@ -261,6 +261,7 @@ resource "aws_lambda_function" "tend_attend_lambda" {
   architectures = [ "arm64" ]
   depends_on    = [ time_sleep.wait_for_push ]
   timeout       = 60
+  memory_size   = 2048
 
   vpc_config {
     subnet_ids         = [
@@ -285,6 +286,7 @@ resource "aws_lambda_function" "tend_attend_lambda" {
       AURORA_COMMON_DBNAME            = var.common_dbname
       AURORA_SEQUENCE_DBNAME          = var.sequence_dbname
       AURORA_SHARD_DBNAME_PREFIX      = var.shard_dbname_prefix
+      CHECKPOINT_PATH                 = var.checkpoint_path
     }
   }
 }
@@ -322,6 +324,7 @@ resource "aws_api_gateway_integration" "lambda_integration" {
   integration_http_method = "POST"
   type                    = "AWS_PROXY"
   uri                     = aws_lambda_function.tend_attend_lambda.invoke_arn
+  timeout_milliseconds    = 60000
 }
 
 resource "aws_api_gateway_method" "proxy_options" {

@@ -26,6 +26,19 @@ class Attendance(BaseModel):
     acted_at: datetime = Field(..., title="Acted At")
 
 
+class AttendanceTimeForecast(BaseModel):
+    start: datetime = Field(..., title="Event Started At")
+    attended_at: datetime = Field(..., title="Attended At")
+    duration: float = Field(..., title="Attendance Duration")
+
+
+class AttendanceTimeForecastsWithUsername(BaseModel):
+    username: str = Field(..., title="Username")
+    attendance_time_forecasts: list[AttendanceTimeForecast] = Field(
+        ..., title="Attendance Time Forecasts"
+    )
+
+
 class CreateEventRequest(BaseModel):
     event: Event = Field(..., title="Event")
 
@@ -64,3 +77,15 @@ class GetFollowingEventsResponse(BaseModelWithErrorCodes):
 
 class GetGuestCurrentAttendanceStatusResponse(BaseModelWithErrorCodes):
     attend: bool = Field(..., title="Attend")
+
+
+class ForecastAttendanceTimeResponse(BaseModelWithErrorCodes):
+    attendance_time_forecasts: dict[int, dict[str, list[AttendanceTimeForecast]]] = (
+        Field(..., title="Attendance Time Forecasts")
+    )
+
+
+class GetAttendanceTimeForecastsResponse(BaseModelWithErrorCodes):
+    attendance_time_forecasts_with_username: dict[
+        str, dict[int, AttendanceTimeForecastsWithUsername]
+    ] = Field(..., title="Attendance Time Forecasts with Username")

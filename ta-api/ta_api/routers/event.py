@@ -7,7 +7,9 @@ from ta_core.dtos.event import (
     AttendEventResponse,
     CreateEventRequest,
     CreateEventResponse,
+    ForecastAttendanceTimeResponse,
     GetAttendancesResponse,
+    GetAttendanceTimeForecastsResponse,
     GetFollowingEventsResponse,
     GetGuestCurrentAttendanceStatusResponse,
     GetMyEventsResponse,
@@ -164,4 +166,35 @@ async def get_guest_current_attendance_status(
         guest_id=account.account_id,
         event_id_str=event_id,
         start=start,
+    )
+
+
+@router.put(
+    path="/attend/forecast",
+    name="Forecast Attendance Time",
+    response_model=ForecastAttendanceTimeResponse,
+)
+async def forecast_attendance_time(
+    session: AsyncSession = Depends(get_db_async),
+) -> ForecastAttendanceTimeResponse:
+    uow = SqlalchemyUnitOfWork(session=session)
+    use_case = EventUseCase(uow=uow)
+
+    return await use_case.forecast_attendance_time_async()
+
+
+@router.get(
+    path="/attend/forecast",
+    name="Get Attendance Time Forecasts",
+    response_model=GetAttendanceTimeForecastsResponse,
+)
+async def get_attendance_time_forecasts(
+    session: AsyncSession = Depends(get_db_async),
+    account: Account = Depends(AccessControl(permit={Role.GUEST})),
+) -> GetAttendanceTimeForecastsResponse:
+    uow = SqlalchemyUnitOfWork(session=session)
+    use_case = EventUseCase(uow=uow)
+
+    return await use_case.get_attendance_time_forecasts_async(
+        account_id=account.account_id,
     )
