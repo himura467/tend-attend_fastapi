@@ -11,13 +11,13 @@ from ta_core.dtos.event import AttendanceTimeForecast, ForecastAttendanceTimeRes
 from ta_core.features.event import Frequency
 from ta_core.utils.uuid import uuid_to_str
 
+from ta_ml.api.timesfm import initialize_timesfm
 from ta_ml.formatters.attendance import (
     denormalize_acted_at,
     denormalize_duration,
     get_formatted_attendance_data,
     get_next_event_start,
 )
-from ta_ml.models.timesfm import tfm
 from ta_ml.utils.stl import stl_decompose
 
 
@@ -37,6 +37,8 @@ def forecast_attendance_time(
     event_data: tuple[EventEntity, ...],
     user_data: tuple[UserAccountEntity, ...],
 ) -> ForecastAttendanceTimeResponse:
+    tfm = initialize_timesfm()
+
     df, date_features_dict = get_formatted_attendance_data(
         earliest_attend_data, latest_leave_data, event_data, user_data
     )
