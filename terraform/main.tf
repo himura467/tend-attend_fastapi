@@ -285,6 +285,7 @@ resource "aws_lambda_function" "tend_attend_lambda" {
       AURORA_COMMON_DBNAME            = var.common_dbname
       AURORA_SEQUENCE_DBNAME          = var.sequence_dbname
       AURORA_SHARD_DBNAME_PREFIX      = var.shard_dbname_prefix
+      CHECKPOINT_PATH                 = var.checkpoint_path
     }
   }
 }
