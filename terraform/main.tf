@@ -261,6 +261,7 @@ resource "aws_lambda_function" "tend_attend_lambda" {
   architectures = [ "arm64" ]
   depends_on    = [ time_sleep.wait_for_push ]
   timeout       = 60
+  memory_size   = 2048
 
   vpc_config {
     subnet_ids         = [
