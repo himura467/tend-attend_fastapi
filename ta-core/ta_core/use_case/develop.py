@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
-from ta_ml.constants import models
+from ta_ml.constants import timesfm
 
 from ta_core.domain.entities.event import (
     EventAttendanceActionLog as EventAttendanceActionLogEntity,
@@ -114,7 +114,7 @@ class DevelopUseCase:
                 follower_ids=set(),
             )
 
-            for i in range(models.CONTEXT_LEN):
+            for i in range(timesfm.CONTEXT_LEN):
                 start = today - timedelta(days=i)
                 attend_log = EventAttendanceActionLogEntity(
                     entity_id=generate_uuid(),
