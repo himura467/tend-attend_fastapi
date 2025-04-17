@@ -15,7 +15,7 @@ from ta_core.features.event import AttendanceAction, Frequency
 from ta_core.utils.datetime import apply_timezone
 from ta_core.utils.uuid import UUID, generate_uuid
 
-from ta_ml.constants import models
+from ta_ml.constants import timesfm
 
 
 def get_next_event_start(current: datetime, freq: Frequency) -> datetime:
@@ -206,17 +206,17 @@ def get_formatted_attendance_data(
     date_features_dict = {}
 
     for (user_id, event_id), group_data in data_by_group.items():
-        if len(group_data["acted_at"]) < models.FORECASTABLE_THRESHOLD:
+        if len(group_data["acted_at"]) < timesfm.FORECASTABLE_THRESHOLD:
             continue
-        df_group = pd.DataFrame(group_data).tail(models.CONTEXT_LEN)
+        df_group = pd.DataFrame(group_data).tail(timesfm.CONTEXT_LEN)
         filtered_groups.append(df_group)
         current_dates = np.array(date_features_by_group[(user_id, event_id)])[
-            -models.CONTEXT_LEN :
+            -timesfm.CONTEXT_LEN :
         ]
         future_dates = []
         current = group_data["start"][-1]
         freq = event_dict[event_id]["freq"]
-        for _ in range(models.HORIZON_LEN):
+        for _ in range(timesfm.HORIZON_LEN):
             current = get_next_event_start(current, freq)
             future_dates.append(
                 [

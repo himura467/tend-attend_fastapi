@@ -63,3 +63,9 @@ variable "cookie_domain" {
   type        = string
   default     = "tend-attend.com"
 }
+
+variable "checkpoint_path" {
+  description = "Path to the checkpoint file"
+  type        = string
+  default     = "/var/task/checkpoints/torch_model.ckpt"
+}
