@@ -27,7 +27,7 @@ from ta_core.dtos.event import (
     GetAttendancesResponse,
     GetAttendanceTimeForecastsResponse,
     GetFollowingEventsResponse,
-    GetGuestCurrentAttendanceStatusResponse,
+    GetGuestAttendanceStatusResponse,
     GetMyEventsResponse,
     UpdateAttendancesResponse,
 )
@@ -455,9 +455,9 @@ class EventUseCase:
         )
 
     @rollbackable
-    async def get_guest_current_attendance_status_async(
+    async def get_guest_attendance_status_async(
         self, guest_id: UUID, event_id_str: str, start: datetime
-    ) -> GetGuestCurrentAttendanceStatusResponse:
+    ) -> GetGuestAttendanceStatusResponse:
         user_account_repository = UserAccountRepository(self.uow)
         event_repository = EventRepository(self.uow)
         event_attendance_action_log_repository = EventAttendanceActionLogRepository(
@@ -468,7 +468,7 @@ class EventUseCase:
 
         guest = await user_account_repository.read_by_id_or_none_async(guest_id)
         if guest is None:
-            return GetGuestCurrentAttendanceStatusResponse(
+            return GetGuestAttendanceStatusResponse(
                 attend=False, error_codes=(ErrorCode.ACCOUNT_NOT_FOUND,)
             )
 
@@ -476,7 +476,7 @@ class EventUseCase:
 
         event = await event_repository.read_by_id_or_none_async(event_id)
         if event is None:
-            return GetGuestCurrentAttendanceStatusResponse(
+            return GetGuestAttendanceStatusResponse(
                 attend=False, error_codes=(ErrorCode.EVENT_NOT_FOUND,)
             )
 
@@ -484,9 +484,9 @@ class EventUseCase:
             user_id=user_id, event_id=event_id, start=start
         )
         if event_attendance_action_log is None:
-            return GetGuestCurrentAttendanceStatusResponse(attend=False, error_codes=())
+            return GetGuestAttendanceStatusResponse(attend=False, error_codes=())
 
-        return GetGuestCurrentAttendanceStatusResponse(
+        return GetGuestAttendanceStatusResponse(
             attend=event_attendance_action_log.action == AttendanceAction.ATTEND,
             error_codes=(),
         )

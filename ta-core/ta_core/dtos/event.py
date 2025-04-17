@@ -75,8 +75,8 @@ class GetFollowingEventsResponse(BaseModelWithErrorCodes):
     events: list[EventWithId] = Field(..., title="Following Events")
 
 
-class GetGuestCurrentAttendanceStatusResponse(BaseModelWithErrorCodes):
-    attend: bool = Field(..., title="Attend")
+class GetGuestAttendanceStatusResponse(BaseModelWithErrorCodes):
+    attend: bool = Field(..., title="Is Attending")
 
 
 class ForecastAttendanceTimeResponse(BaseModelWithErrorCodes):
