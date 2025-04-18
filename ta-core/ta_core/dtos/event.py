@@ -63,7 +63,7 @@ class UpdateAttendancesResponse(BaseModelWithErrorCodes):
     pass
 
 
-class GetAttendancesResponse(BaseModelWithErrorCodes):
+class GetAttendanceHistoryResponse(BaseModelWithErrorCodes):
     attendances: list[Attendance] = Field(..., title="Attendances")
 
 
