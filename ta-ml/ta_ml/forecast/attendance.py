@@ -7,7 +7,8 @@ from ta_core.domain.entities.event import Event as EventEntity
 from ta_core.domain.entities.event import (
     EventAttendanceActionLog as EventAttendanceActionLogEntity,
 )
-from ta_core.dtos.event import AttendanceTimeForecast, ForecastAttendanceTimeResponse
+from ta_core.dtos.event import AttendanceTimeForecast as AttendanceTimeForecastDto
+from ta_core.dtos.event import ForecastAttendanceTimeResponse
 from ta_core.features.event import Frequency
 from ta_core.utils.uuid import uuid_to_str
 
@@ -145,7 +146,7 @@ def forecast_attendance_time(
     }
 
     attendance_time_forecasts: defaultdict[
-        int, defaultdict[str, list[AttendanceTimeForecast]]
+        int, defaultdict[str, list[AttendanceTimeForecastDto]]
     ] = defaultdict(lambda: defaultdict(list))
     for i, user_id in enumerate(user_ids):
         event_id = event_ids[i]
@@ -155,7 +156,7 @@ def forecast_attendance_time(
             latest_start, event_info["freq"], len(acted_at_forecast[i])
         )
         forecasts = [
-            AttendanceTimeForecast(
+            AttendanceTimeForecastDto(
                 start=start,
                 attended_at=denormalize_acted_at(
                     acted_at_forecast[i][j],
