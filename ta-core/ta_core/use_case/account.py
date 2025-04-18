@@ -4,11 +4,9 @@ from datetime import datetime
 from pydantic.networks import EmailStr
 
 from ta_core.cryptography.hash import PasswordHasher
-from ta_core.dtos.account import (
-    CreateUserAccountResponse,
-    FollowerInfo,
-    GetFollowersInfoResponse,
-)
+from ta_core.dtos.account import CreateUserAccountResponse
+from ta_core.dtos.account import FollowerInfo as FollowerInfoDto
+from ta_core.dtos.account import GetFollowersInfoResponse
 from ta_core.error.error_code import ErrorCode
 from ta_core.features.account import Gender
 from ta_core.infrastructure.db.transaction import rollbackable
@@ -81,7 +79,7 @@ class AccountUseCase:
             error_codes=(),
             followers=(
                 tuple(
-                    FollowerInfo(
+                    FollowerInfoDto(
                         account_id=uuid_to_str(follower.id),
                         username=follower.username,
                         nickname=follower.nickname,

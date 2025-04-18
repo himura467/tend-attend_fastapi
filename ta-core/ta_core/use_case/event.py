@@ -14,12 +14,12 @@ from ta_core.domain.entities.event import (
     EventAttendanceForecast as EventAttendanceForecastEntity,
 )
 from ta_core.dtos.event import Attendance as AttendanceDto
+from ta_core.dtos.event import AttendancesWithUsername as AttendancesWithUsernameDto
+from ta_core.dtos.event import AttendanceTimeForecast as AttendanceTimeForecastDto
 from ta_core.dtos.event import (
-    AttendanceTimeForecast,
-    AttendanceTimeForecastsWithUsername,
-    AttendEventResponse,
-    CreateEventResponse,
+    AttendanceTimeForecastsWithUsername as AttendanceTimeForecastsWithUsernameDto,
 )
+from ta_core.dtos.event import AttendEventResponse, CreateEventResponse
 from ta_core.dtos.event import Event as EventDto
 from ta_core.dtos.event import EventWithId as EventWithIdDto
 from ta_core.dtos.event import (
@@ -385,7 +385,10 @@ class EventUseCase:
         guest = await user_account_repository.read_by_id_or_none_async(guest_id)
         if guest is None:
             return GetAttendanceHistoryResponse(
-                attendances=[], error_codes=(ErrorCode.ACCOUNT_NOT_FOUND,)
+                attendances_with_username=AttendancesWithUsernameDto(
+                    username="", attendances=[]
+                ),
+                error_codes=(ErrorCode.ACCOUNT_NOT_FOUND,),
             )
 
         user_id = guest.user_id
@@ -393,7 +396,10 @@ class EventUseCase:
         event = await event_repository.read_by_id_or_none_async(event_id)
         if event is None:
             return GetAttendanceHistoryResponse(
-                attendances=[], error_codes=(ErrorCode.EVENT_NOT_FOUND,)
+                attendances_with_username=AttendancesWithUsernameDto(
+                    username="", attendances=[]
+                ),
+                error_codes=(ErrorCode.EVENT_NOT_FOUND,),
             )
 
         logs = await event_attendance_action_log_repository.read_by_user_id_and_event_id_and_start_async(
@@ -404,7 +410,12 @@ class EventUseCase:
             AttendanceDto(action=log.action, acted_at=log.acted_at) for log in logs
         ]
 
-        return GetAttendanceHistoryResponse(attendances=attendances, error_codes=())
+        return GetAttendanceHistoryResponse(
+            attendances_with_username=AttendancesWithUsernameDto(
+                username=guest.username, attendances=attendances
+            ),
+            error_codes=(),
+        )
 
     @rollbackable
     async def get_my_events_async(self, account_id: UUID) -> GetMyEventsResponse:
@@ -568,13 +579,13 @@ class EventUseCase:
         )
 
         attendance_time_forecasts: defaultdict[
-            str, defaultdict[int, list[AttendanceTimeForecast]]
+            str, defaultdict[int, list[AttendanceTimeForecastDto]]
         ] = defaultdict(lambda: defaultdict(list))
         for forecast in forecasts:
             attendance_time_forecasts[uuid_to_str(forecast.event_id)][
                 forecast.user_id
             ].append(
-                AttendanceTimeForecast(
+                AttendanceTimeForecastDto(
                     start=forecast.start,
                     attended_at=forecast.forecasted_attended_at,
                     duration=forecast.forecasted_duration,
@@ -589,7 +600,7 @@ class EventUseCase:
         }
         attendance_time_forecasts_with_username = {
             event_id: {
-                user_id: AttendanceTimeForecastsWithUsername(
+                user_id: AttendanceTimeForecastsWithUsernameDto(
                     username=username_dict[user_id],
                     attendance_time_forecasts=forecasts,
                 )

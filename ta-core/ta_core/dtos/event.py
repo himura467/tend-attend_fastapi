@@ -26,6 +26,11 @@ class Attendance(BaseModel):
     acted_at: datetime = Field(..., title="Acted At")
 
 
+class AttendancesWithUsername(BaseModel):
+    username: str = Field(..., title="Username")
+    attendances: list[Attendance] = Field(..., title="Attendances")
+
+
 class AttendanceTimeForecast(BaseModel):
     start: datetime = Field(..., title="Event Started At")
     attended_at: datetime = Field(..., title="Attended At")
@@ -64,7 +69,9 @@ class UpdateAttendancesResponse(BaseModelWithErrorCodes):
 
 
 class GetAttendanceHistoryResponse(BaseModelWithErrorCodes):
-    attendances: list[Attendance] = Field(..., title="Attendances")
+    attendances_with_username: AttendancesWithUsername = Field(
+        ..., title="Attendances with Username"
+    )
 
 
 class GetMyEventsResponse(BaseModelWithErrorCodes):

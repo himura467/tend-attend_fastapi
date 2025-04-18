@@ -4,7 +4,7 @@ from zoneinfo import ZoneInfo
 
 from jose import JWTError, jwt
 
-from ta_core.dtos.auth import AuthToken
+from ta_core.dtos.auth import AuthToken as AuthTokenDto
 from ta_core.features.account import Group
 from ta_core.features.auth import TokenType
 from ta_core.utils.uuid import UUID, generate_uuid, str_to_uuid, uuid_to_str
@@ -40,7 +40,7 @@ class JWTCryptography:
         )
         return encoded_jwt
 
-    def create_auth_token(self, subject: UUID, group: Group) -> AuthToken:
+    def create_auth_token(self, subject: UUID, group: Group) -> AuthTokenDto:
         access_token = self._create_token(
             subject=subject,
             group=group,
@@ -53,7 +53,7 @@ class JWTCryptography:
             token_type=TokenType.REFRESH,
             expires_delta=self.refresh_token_expires,
         )
-        return AuthToken(
+        return AuthTokenDto(
             access_token=access_token,
             refresh_token=refresh_token,
             token_type="bearer",
