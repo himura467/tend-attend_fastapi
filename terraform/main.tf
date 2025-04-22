@@ -183,35 +183,6 @@ resource "aws_rds_cluster_instance" "this" {
   engine_version     = aws_rds_cluster.this.engine_version
 }
 
-resource "aws_ecr_repository" "tend_attend_repo" {
-  name         = local.app_name
-  force_delete = true
-}
-
-resource "terraform_data" "docker_push" {
-  triggers_replace = [ timestamp() ]
-
-  provisioner "local-exec" {
-    command = <<EOF
-      echo "Logging in to Amazon ECR..."
-      aws ecr get-login-password --region ${var.aws_region} | docker login --username AWS --password-stdin ${aws_ecr_repository.tend_attend_repo.repository_url}
-
-      echo "Tagging ${local.app_name} image..."
-      docker tag ${local.app_name}:latest ${aws_ecr_repository.tend_attend_repo.repository_url}:latest
-
-      echo "Pushing ${local.app_name} image to Amazon ECR..."
-      docker push ${aws_ecr_repository.tend_attend_repo.repository_url}:latest
-    EOF
-  }
-
-  depends_on = [ aws_ecr_repository.tend_attend_repo ]
-}
-
-resource "time_sleep" "wait_for_push" {
-  depends_on      = [ terraform_data.docker_push ]
-  create_duration = "30s"
-}
-
 resource "aws_iam_role" "lambda_role" {
   name               = "lambda_role"
   assume_role_policy = jsonencode({
@@ -254,14 +225,14 @@ resource "aws_iam_role_policy_attachment" "lambda_cloudwatch_policy" {
 }
 
 resource "aws_lambda_function" "tend_attend_lambda" {
-  function_name = var.lambda_function_name
-  role          = aws_iam_role.lambda_role.arn
-  package_type  = "Image"
-  image_uri     = "${aws_ecr_repository.tend_attend_repo.repository_url}:latest"
-  architectures = [ "arm64" ]
-  depends_on    = [ time_sleep.wait_for_push ]
-  timeout       = 60
-  memory_size   = 2048
+  function_name    = var.lambda_function_name
+  role             = aws_iam_role.lambda_role.arn
+  filename         = "../app.zip"
+  source_code_hash = filebase64sha256("../app.zip")
+  handler          = "main.lambda_handler"
+  runtime          = "python3.10"
+  timeout          = 60
+  memory_size      = 2048
 
   vpc_config {
     subnet_ids         = [
@@ -445,11 +416,6 @@ output "aws_rds_cluster_master_password" {
   description = "Master password of the Amazon RDS cluster"
   value       = local.aurora_credentials.password
   sensitive   = true
-}
-
-output "aws_ecr_repository_url" {
-  description = "URL of the Amazon ECR repository"
-  value       = aws_ecr_repository.tend_attend_repo.repository_url
 }
 
 output "lambda_function_name" {

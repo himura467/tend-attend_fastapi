@@ -1,4 +1,4 @@
-FROM amazonlinux:2023
+FROM amazonlinux:2023 AS amazonlinux
 
 ARG PYTHON_VERSION
 
@@ -19,6 +19,10 @@ RUN yum update -y && \
     yum clean all
 RUN pip install --upgrade pip
 
+FROM amazonlinux AS python-libs
+
+WORKDIR /app
+
 COPY ta-api/main.py ./main.py
 COPY ta-api/ta_api ./ta_api
 COPY ta-core/alembic.ini ./alembic.ini
@@ -30,5 +34,3 @@ COPY ta-ml/ta_ml ./ta_ml
 COPY requirements.txt ./requirements.txt
 RUN pip install -r requirements.txt
 RUN rm requirements.txt
-
-CMD [ "main.lambda_handler" ]

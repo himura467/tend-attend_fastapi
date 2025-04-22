@@ -67,5 +67,5 @@ variable "cookie_domain" {
 variable "checkpoint_path" {
   description = "Path to the checkpoint file"
   type        = string
-  default     = "/var/task/checkpoints/torch_model.ckpt"
+  default     = "/app/checkpoints/torch_model.ckpt"
 }
