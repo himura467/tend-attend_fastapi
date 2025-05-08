@@ -11,7 +11,7 @@ terraform {
       version = "5.81.0"
     }
   }
-  
+
   backend "s3" {
     profile      = "himura"
     bucket       = "tend-attend-terraform-state"
@@ -38,7 +38,7 @@ resource "aws_acm_certificate" "this" {
 }
 
 resource "aws_route53_record" "this" {
-  zone_id  = aws_route53_zone.aws_tend_attend_com.zone_id
+  zone_id = aws_route53_zone.aws_tend_attend_com.zone_id
   for_each = {
     for dvo in aws_acm_certificate.this.domain_validation_options : dvo.domain_name => {
       name   = dvo.resource_record_name
@@ -46,10 +46,10 @@ resource "aws_route53_record" "this" {
       record = dvo.resource_record_value
     }
   }
-  name     = each.value.name
-  type     = each.value.type
-  records  = [each.value.record]
-  ttl      = 60
+  name    = each.value.name
+  type    = each.value.type
+  records = [each.value.record]
+  ttl     = 60
 }
 
 resource "aws_acm_certificate_validation" "this" {
@@ -74,7 +74,7 @@ resource "aws_subnet" "tend_attend_subnet_1c" {
 }
 
 resource "aws_db_subnet_group" "this" {
-  name       = "${local.app_name}-db-subnet-group"
+  name = "${local.app_name}-db-subnet-group"
   subnet_ids = [
     aws_subnet.tend_attend_subnet_1a.id,
     aws_subnet.tend_attend_subnet_1c.id
@@ -119,7 +119,7 @@ resource "random_password" "aurora_master_password" {
 }
 
 resource "aws_secretsmanager_secret_version" "aurora_credentials_version" {
-  secret_id     = aws_secretsmanager_secret.aurora_credentials.id
+  secret_id = aws_secretsmanager_secret.aurora_credentials.id
   secret_string = jsonencode({
     port     = 3306
     username = "user",
@@ -137,7 +137,7 @@ locals {
 
 resource "aws_rds_cluster_parameter_group" "this" {
   name   = "${local.app_name}-cluster-parameter-group"
-  family = "aurora-mysql8.0"  # Aurora MySQL 8.4 がリリースされたら変更する
+  family = "aurora-mysql8.0" # Aurora MySQL 8.4 がリリースされたら変更する
 
   parameter {
     name  = "character_set_server"
@@ -160,7 +160,7 @@ resource "aws_rds_cluster" "this" {
   master_password                 = local.aurora_credentials.password
   db_cluster_parameter_group_name = aws_rds_cluster_parameter_group.this.name
   db_subnet_group_name            = aws_db_subnet_group.this.name
-  vpc_security_group_ids          = [ aws_security_group.tend_attend_sg.id ]
+  vpc_security_group_ids          = [aws_security_group.tend_attend_sg.id]
   enable_http_endpoint            = true
 
   serverlessv2_scaling_configuration {
@@ -172,7 +172,7 @@ resource "aws_rds_cluster" "this" {
   deletion_protection = false
   skip_final_snapshot = true
 
-  depends_on = [ aws_secretsmanager_secret_version.aurora_credentials_version ]
+  depends_on = [aws_secretsmanager_secret_version.aurora_credentials_version]
 }
 
 resource "aws_rds_cluster_instance" "this" {
@@ -189,7 +189,7 @@ resource "aws_ecr_repository" "tend_attend_repo" {
 }
 
 resource "terraform_data" "docker_push" {
-  triggers_replace = [ timestamp() ]
+  triggers_replace = [timestamp()]
 
   provisioner "local-exec" {
     command = <<EOF
@@ -204,39 +204,39 @@ resource "terraform_data" "docker_push" {
     EOF
   }
 
-  depends_on = [ aws_ecr_repository.tend_attend_repo ]
+  depends_on = [aws_ecr_repository.tend_attend_repo]
 }
 
 resource "time_sleep" "wait_for_push" {
-  depends_on      = [ terraform_data.docker_push ]
+  depends_on      = [terraform_data.docker_push]
   create_duration = "30s"
 }
 
 resource "aws_iam_role" "lambda_role" {
-  name               = "lambda_role"
+  name = "lambda_role"
   assume_role_policy = jsonencode({
-    Version   = "2012-10-17"
+    Version = "2012-10-17"
     Statement = [
       {
-        Action    = "sts:AssumeRole"
+        Action = "sts:AssumeRole"
         Principal = {
           Service = "lambda.amazonaws.com"
         }
-        Effect    = "Allow"
-        Sid       = ""
+        Effect = "Allow"
+        Sid    = ""
       }
     ]
   })
 }
 
 resource "aws_iam_role_policy" "lambda_vpc_access_policy" {
-  name   = "lambda_vpc_access_policy"
-  role   = aws_iam_role.lambda_role.id
+  name = "lambda_vpc_access_policy"
+  role = aws_iam_role.lambda_role.id
   policy = jsonencode({
-    Version   = "2012-10-17"
+    Version = "2012-10-17"
     Statement = [
       {
-        Action   = [
+        Action = [
           "ec2:CreateNetworkInterface",
           "ec2:DescribeNetworkInterfaces",
           "ec2:DeleteNetworkInterface"
@@ -258,17 +258,17 @@ resource "aws_lambda_function" "tend_attend_lambda" {
   role          = aws_iam_role.lambda_role.arn
   package_type  = "Image"
   image_uri     = "${aws_ecr_repository.tend_attend_repo.repository_url}:latest"
-  architectures = [ "arm64" ]
-  depends_on    = [ time_sleep.wait_for_push ]
+  architectures = ["arm64"]
+  depends_on    = [time_sleep.wait_for_push]
   timeout       = 60
   memory_size   = 2048
 
   vpc_config {
-    subnet_ids         = [
+    subnet_ids = [
       aws_subnet.tend_attend_subnet_1a.id,
       aws_subnet.tend_attend_subnet_1c.id
     ]
-    security_group_ids = [ aws_security_group.tend_attend_sg.id ]
+    security_group_ids = [aws_security_group.tend_attend_sg.id]
   }
 
   environment {
@@ -344,7 +344,7 @@ resource "aws_api_gateway_integration" "proxy_options" {
 }
 
 resource "aws_api_gateway_deployment" "lambda_deployment" {
-  depends_on  = [ aws_api_gateway_integration.lambda_integration, aws_api_gateway_integration.proxy_options ]
+  depends_on  = [aws_api_gateway_integration.lambda_integration, aws_api_gateway_integration.proxy_options]
   rest_api_id = aws_api_gateway_rest_api.tend_attend_api.id
 }
 
@@ -421,7 +421,7 @@ resource "aws_route53_record" "api_gw" {
     name                   = aws_api_gateway_domain_name.tend_attend_domain_name.regional_domain_name
     zone_id                = aws_api_gateway_domain_name.tend_attend_domain_name.regional_zone_id
     evaluate_target_health = true
-  }  
+  }
 }
 
 output "aws_rds_cluster_instance_url" {
